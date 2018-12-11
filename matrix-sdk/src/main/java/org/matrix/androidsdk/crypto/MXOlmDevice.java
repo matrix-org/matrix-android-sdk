@@ -17,6 +17,7 @@
 
 package org.matrix.androidsdk.crypto;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonParser;
@@ -161,7 +162,7 @@ public class MXOlmDevice {
      * @param message the message to be signed.
      * @return the base64-encoded signature.
      */
-    private String signMessage(String message) {
+    public String signMessage(String message) {
         try {
             return mOlmAccount.signMessage(message);
         } catch (Exception e) {
@@ -169,17 +170,6 @@ public class MXOlmDevice {
         }
 
         return null;
-    }
-
-    /**
-     * Signs a JSON dictionary with the ed25519 key for this account.
-     * The signature is done on canonical version of the JSON.
-     *
-     * @param JSONDictionary the JSON to be signed.
-     * @return the base64-encoded signature
-     */
-    public String signJSON(Map<String, Object> JSONDictionary) {
-        return signMessage(JsonUtils.getCanonicalizedJsonString(JSONDictionary));
     }
 
     /**
@@ -271,7 +261,7 @@ public class MXOlmDevice {
      * @param theirDeviceIdentityKey the remote user's Curve25519 identity key.
      * @param messageType            the message_type field from the received message (must be 0).
      * @param ciphertext             base64-encoded body from the received message.
-     * @return {{payload: string, session_id: string}} decrypted payload, andsession id of new session.
+     * @return {{payload: string, session_id: string}} decrypted payload, and session id of new session.
      */
     public Map<String, String> createInboundSession(String theirDeviceIdentityKey, int messageType, String ciphertext) {
 
@@ -348,13 +338,7 @@ public class MXOlmDevice {
      * @return a list of known session ids for the device.
      */
     public Set<String> getSessionIds(String theirDeviceIdentityKey) {
-        Map<String, OlmSession> map = mStore.getDeviceSessions(theirDeviceIdentityKey);
-
-        if (null != map) {
-            return map.keySet();
-        }
-
-        return null;
+        return mStore.getDeviceSessionIds(theirDeviceIdentityKey);
     }
 
     /**
@@ -588,13 +572,14 @@ public class MXOlmDevice {
     /**
      * Import an inbound group session to the session store.
      *
-     * @param exportedSessionMap the exported session map
+     * @param megolmSessionData the megolm session data
      * @return the imported session if the operation succeeds.
      */
-    public MXOlmInboundGroupSession2 importInboundGroupSession(Map<String, Object> exportedSessionMap) {
-        String sessionId = (String) exportedSessionMap.get("session_id");
-        String senderKey = (String) exportedSessionMap.get("sender_key");
-        String roomId = (String) exportedSessionMap.get("room_id");
+    @Nullable
+    public MXOlmInboundGroupSession2 importInboundGroupSession(MegolmSessionData megolmSessionData) {
+        String sessionId = megolmSessionData.sessionId;
+        String senderKey = megolmSessionData.senderKey;
+        String roomId = megolmSessionData.roomId;
 
         if (null != getInboundGroupSession(sessionId, senderKey, roomId)) {
             // If we already have this session, consider updating it
@@ -607,7 +592,7 @@ public class MXOlmDevice {
         MXOlmInboundGroupSession2 session = null;
 
         try {
-            session = new MXOlmInboundGroupSession2(exportedSessionMap);
+            session = new MXOlmInboundGroupSession2(megolmSessionData);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## importInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId, e);
         }
@@ -649,7 +634,7 @@ public class MXOlmDevice {
      * Decrypt a received message with an inbound group session.
      *
      * @param body      the base64-encoded body of the encrypted message.
-     * @param roomId    theroom in which the message was received.
+     * @param roomId    the room in which the message was received.
      * @param timeline  the id of the timeline where the event is decrypted. It is used to prevent replay attack.
      * @param sessionId the session identifier.
      * @param senderKey the base64-encoded curve25519 key of the sender.
@@ -745,14 +730,14 @@ public class MXOlmDevice {
     /**
      * Verify an ed25519 signature on a JSON object.
      *
-     * @param key           the ed25519 key.
-     * @param JSONDictinary the JSON object which was signed.
-     * @param signature     the base64-encoded signature to be checked.
+     * @param key            the ed25519 key.
+     * @param JSONDictionary the JSON object which was signed.
+     * @param signature      the base64-encoded signature to be checked.
      * @throws Exception the exception
      */
-    public void verifySignature(String key, Map<String, Object> JSONDictinary, String signature) throws Exception {
+    public void verifySignature(String key, Map<String, Object> JSONDictionary, String signature) throws Exception {
         // Check signature on the canonical version of the JSON
-        mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictinary));
+        mOlmUtility.verifyEd25519Signature(signature, key, JsonUtils.getCanonicalizedJsonString(JSONDictionary));
     }
 
     /**
@@ -775,11 +760,7 @@ public class MXOlmDevice {
     private OlmSession getSessionForDevice(String theirDeviceIdentityKey, String sessionId) {
         // sanity check
         if (!TextUtils.isEmpty(theirDeviceIdentityKey) && !TextUtils.isEmpty(sessionId)) {
-            Map<String, OlmSession> map = mStore.getDeviceSessions(theirDeviceIdentityKey);
-
-            if (null != map) {
-                return map.get(sessionId);
-            }
+            return mStore.getDeviceSession(sessionId, theirDeviceIdentityKey);
         }
 
         return null;
@@ -789,11 +770,12 @@ public class MXOlmDevice {
      * Extract an InboundGroupSession from the session store and do some check.
      * mInboundGroupSessionWithIdError describes the failure reason.
      *
-     * @param roomId    the room where the sesion is used.
+     * @param roomId    the room where the session is used.
      * @param sessionId the session identifier.
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return the inbound group session.
      */
+    @Nullable
     public MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey, String roomId) {
         mInboundGroupSessionWithIdError = null;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,21 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model;
 
-import java.util.Map;
+package org.matrix.androidsdk.rest.model.keys
+
+import com.google.gson.annotations.SerializedName
 
 /**
- * Class to define the authentication parameters
+ * Backup data for several keys in several rooms.
  */
-public class AuthParams {
-    //
-    public String type;
+class KeysBackupData {
 
-    // update password (type = m.login.password)
-    public String user;
-    public String password;
+    // the keys are the room IDs, and the values are RoomKeysBackupData
+    @SerializedName("rooms")
+    var roomIdToRoomKeysBackupData: MutableMap<String, RoomKeysBackupData> = HashMap()
 
-    // forget password parameters (type = m.login.email.identity)
-    public Map<String, String> threepid_creds;
 }

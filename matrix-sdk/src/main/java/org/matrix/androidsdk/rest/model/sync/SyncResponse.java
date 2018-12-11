@@ -20,15 +20,13 @@ package org.matrix.androidsdk.rest.model.sync;
 
 import org.matrix.androidsdk.rest.model.group.GroupsSyncResponse;
 
-import java.util.Map;
-
 // SyncResponse represents the request response for server sync v2.
 public class SyncResponse {
 
     /**
      * The user private data.
      */
-    public Map<String, Object> accountData;
+    public AccountData accountData;
 
     /**
      * The opaque token for the end.

@@ -471,7 +471,12 @@ class MXEventTimeline implements EventTimeline {
             for (Event stateEvent : stateEvents) {
                 if (direction == Direction.BACKWARDS) {
                     // Enrich the timeline root state with the additional state events observed during back pagination
-                    processStateEvent(stateEvent, Direction.FORWARDS, true);
+                    // Check that it is a member state event (it should always be the case) and
+                    // that this user is not already known in our live room state
+                    if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(stateEvent.type)
+                            && mStateHolder.getState().getMember(stateEvent.stateKey) == null) {
+                        processStateEvent(stateEvent, Direction.FORWARDS, true);
+                    }
                 }
 
                 processStateEvent(stateEvent, direction, true);

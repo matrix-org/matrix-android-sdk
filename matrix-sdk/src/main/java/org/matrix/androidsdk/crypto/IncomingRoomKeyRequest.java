@@ -72,5 +72,12 @@ public class IncomingRoomKeyRequest implements Serializable {
         mRequestId = roomKeyRequest.request_id;
         mRequestBody = (null != roomKeyRequest.body) ? roomKeyRequest.body : new RoomKeyRequestBody();
     }
+
+    /**
+     * Constructor for object creation from crypto store
+     */
+    public IncomingRoomKeyRequest() {
+
+    }
 }
 

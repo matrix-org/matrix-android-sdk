@@ -2,16 +2,24 @@ Changes to Matrix Android SDK in 0.9.14 (2018-XX-XX)
 =======================================================
 
 Features:
- -
+ - Add terms model for the register/login flow (vector-im/riot-android#2442)
 
 Improvements:
- -
+ - Any Account data element, even if the type is not known is persisted.
+ - The crypto store is now implemented using a Realm database. The existing file store will be migrated at first usage (#398)
+ - Upgrade olm-sdk.aar from version 2.3.0 to version 3.0.0
+ - Implement the backup of the room keys in the KeysBackup class (vector-im/riot-android#2642)
 
 Bugfix:
  - Generate thumbnails for gifs rather than throw an error (#395)
+ - Room members who left are listed with the actual members (vector-im/riot-android#2744)
+ - I'm not allow to send message in a new joined room (vector-im/riot-android#2743)
+ - Matrix Content Scanner: Refresh the server public key on error with "MCS_BAD_DECRYPTION" reason.
 
 API Change:
  - new API in CallSoundsManager to allow client to play the specified Ringtone (vector-im/riot-android#827)
+ - IMXStore.storeAccountData() has been renamed to IMXStore.storeRoomAccountData()
+ - MXCrypto: importRoomKeys methods now return number of imported keys and number of total keys in the Callback.
 
 Translations:
  -
@@ -20,7 +28,7 @@ Others:
  -
 
 Build:
- -
+ - Introduce Kotlin to the SDK
 
 Test:
  -

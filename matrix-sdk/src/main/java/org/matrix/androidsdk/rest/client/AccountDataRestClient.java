@@ -27,20 +27,6 @@ import java.util.Map;
 
 public class AccountDataRestClient extends RestClient<AccountDataApi> {
     /**
-     * Account data types
-     */
-    public static final String ACCOUNT_DATA_TYPE_IGNORED_USER_LIST = "m.ignored_user_list";
-    public static final String ACCOUNT_DATA_TYPE_DIRECT_MESSAGES = "m.direct";
-    public static final String ACCOUNT_DATA_TYPE_PREVIEW_URLS = "org.matrix.preview_urls";
-    public static final String ACCOUNT_DATA_TYPE_WIDGETS = "m.widgets";
-
-    /**
-     * Account data keys
-     */
-    public static final String ACCOUNT_DATA_KEY_IGNORED_USERS = "ignored_users";
-    public static final String ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE = "disable";
-
-    /**
      * {@inheritDoc}
      */
     public AccountDataRestClient(HomeServerConnectionConfig hsConfig) {
@@ -62,11 +48,11 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
 
         mApi.setAccountData(userId, type, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                setAccountData(userId, type, params, callback);
-            }
-        }));
+                    @Override
+                    public void onRetry() {
+                        setAccountData(userId, type, params, callback);
+                    }
+                }));
     }
 
     /**
@@ -82,11 +68,11 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
 
         mApi.openIdToken(userId, new HashMap<>())
                 .enqueue(new RestAdapterCallback<Map<Object, Object>>(description, mUnsentEventsManager, callback,
-                new RestAdapterCallback.RequestRetryCallBack() {
-            @Override
-            public void onRetry() {
-                openIdToken(userId, callback);
-            }
-        }));
+                        new RestAdapterCallback.RequestRetryCallBack() {
+                            @Override
+                            public void onRetry() {
+                                openIdToken(userId, callback);
+                            }
+                        }));
     }
 }

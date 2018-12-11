@@ -1,6 +1,7 @@
 /*
  * Copyright 2014 OpenMarket Ltd
  * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +17,12 @@
  */
 package org.matrix.androidsdk.rest.model.login;
 
-import java.util.Map;
-
 /**
  * Class to pass parameters to the different registration types for /register.
  */
 public class RegistrationParams {
-    // authentification parameters
-    public Map<String, Object> auth;
+    // authentication parameters
+    public AuthParams auth;
 
     // the account username
     public String username;

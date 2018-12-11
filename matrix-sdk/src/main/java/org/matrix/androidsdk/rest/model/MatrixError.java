@@ -55,6 +55,7 @@ public class MatrixError implements java.io.Serializable {
     public static final String TOO_LARGE = "M_TOO_LARGE";
     public static final String M_CONSENT_NOT_GIVEN = "M_CONSENT_NOT_GIVEN";
     public static final String RESOURCE_LIMIT_EXCEEDED = "M_RESOURCE_LIMIT_EXCEEDED";
+    public static final String WRONG_ROOM_KEYS_VERSION = "M_WRONG_ROOM_KEYS_VERSION";
 
     // custom ones
     public static final String NOT_SUPPORTED = "M_NOT_SUPPORTED";

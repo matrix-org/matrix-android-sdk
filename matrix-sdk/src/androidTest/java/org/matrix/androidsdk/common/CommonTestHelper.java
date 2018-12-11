@@ -31,10 +31,12 @@ import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomMediaMessage;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXFileStore;
+import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.login.AuthParams;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.rest.model.login.RegistrationParams;
@@ -178,8 +180,7 @@ public class CommonTestHelper {
                 context,
                 userNamePrefix + "_" + System.currentTimeMillis() + UUID.randomUUID(),
                 password,
-                testParams.withInitialSync,
-                testParams.withCryptoEnabled
+                testParams
         );
         Assert.assertNotNull(session);
         return session;
@@ -205,17 +206,15 @@ public class CommonTestHelper {
     /**
      * Create an account and a dedicated session
      *
-     * @param context         the context
-     * @param userName        the account username
-     * @param password        the password
-     * @param withInitialSync true to perform an initial sync
-     * @param enableCrypto    true to set enableCryptoWhenStarting
+     * @param context           the context
+     * @param userName          the account username
+     * @param password          the password
+     * @param sessionTestParams parameters for the test
      */
     private MXSession createAccountAndSync(Context context,
                                            String userName,
                                            String password,
-                                           boolean withInitialSync,
-                                           boolean enableCrypto) throws InterruptedException {
+                                           SessionTestParams sessionTestParams) throws InterruptedException {
         final HomeServerConnectionConfig hs = createHomeServerConfig(null);
 
         final LoginRestClient loginRestClient = new LoginRestClient(hs);
@@ -226,7 +225,7 @@ public class CommonTestHelper {
         CountDownLatch lock = new CountDownLatch(1);
 
         // get the registration session id
-        loginRestClient.register(registrationParams, new TestApiCallback<Credentials>(lock) {
+        loginRestClient.register(registrationParams, new TestApiCallback<Credentials>(lock, false) {
             @Override
             public void onMatrixError(MatrixError e) {
                 // detect if a parameter is expected
@@ -257,9 +256,8 @@ public class CommonTestHelper {
 
         registrationParams.username = userName;
         registrationParams.password = password;
-        Map<String, Object> authParams = new HashMap<>();
-        authParams.put("session", session);
-        authParams.put("type", LoginRestClient.LOGIN_FLOW_TYPE_DUMMY);
+        AuthParams authParams = new AuthParams(LoginRestClient.LOGIN_FLOW_TYPE_DUMMY);
+        authParams.session = session;
 
         registrationParams.auth = authParams;
 
@@ -282,14 +280,18 @@ public class CommonTestHelper {
 
         IMXStore store = new MXFileStore(hs, false, context);
 
-        MXSession mxSession = new MXSession.Builder(hs, new MXDataHandler(store, credentials), context)
+        MXDataHandler dataHandler = new MXDataHandler(store, credentials);
+        dataHandler.setLazyLoadingEnabled(sessionTestParams.getWithLazyLoading());
+
+        MXSession mxSession = new MXSession.Builder(hs, dataHandler, context)
+                .withLegacyCryptoStore(sessionTestParams.getWithLegacyCryptoStore())
                 .build();
 
-        if (enableCrypto) {
+        if (sessionTestParams.getWithCryptoEnabled()) {
             mxSession.enableCryptoWhenStarting();
         }
-        if (withInitialSync) {
-            syncSession(mxSession, enableCrypto);
+        if (sessionTestParams.getWithInitialSync()) {
+            syncSession(mxSession, sessionTestParams.getWithCryptoEnabled());
         }
         return mxSession;
     }
@@ -331,16 +333,17 @@ public class CommonTestHelper {
         final IMXStore store = new MXFileStore(hs, false, context);
 
         MXDataHandler mxDataHandler = new MXDataHandler(store, credentials);
-        mxDataHandler.setLazyLoadingEnabled(sessionTestParams.withLazyLoading);
+        mxDataHandler.setLazyLoadingEnabled(sessionTestParams.getWithLazyLoading());
 
         final MXSession mxSession = new MXSession.Builder(hs, mxDataHandler, context)
+                .withLegacyCryptoStore(sessionTestParams.getWithLegacyCryptoStore())
                 .build();
 
-        if (sessionTestParams.withCryptoEnabled) {
+        if (sessionTestParams.getWithCryptoEnabled()) {
             mxSession.enableCryptoWhenStarting();
         }
-        if (sessionTestParams.withInitialSync) {
-            syncSession(mxSession, sessionTestParams.withCryptoEnabled);
+        if (sessionTestParams.getWithInitialSync()) {
+            syncSession(mxSession, sessionTestParams.getWithCryptoEnabled());
         }
         return mxSession;
     }
@@ -352,7 +355,7 @@ public class CommonTestHelper {
      * @throws InterruptedException
      */
     public void await(CountDownLatch latch) throws InterruptedException {
-        Assert.assertTrue(latch.await(TestConstants.AWAIT_TIME_OUT_MILLIS, TimeUnit.MILLISECONDS));
+        Assert.assertTrue(latch.await(TestConstants.getTimeOutMillis(), TimeUnit.MILLISECONDS));
     }
 
     /**
@@ -366,5 +369,64 @@ public class CommonTestHelper {
         for (MXSession session : sessions) {
             session.clear(context);
         }
+    }
+
+    /**
+     * Clone a session.
+     * It simulate that the user launches again the application with the same Credentials, contrary to login which will create a new DeviceId
+     *
+     * @param from the session to clone
+     * @return the duplicated session
+     */
+    @NonNull
+    public MXSession createNewSession(@NonNull MXSession from, SessionTestParams sessionTestParams) throws InterruptedException {
+        final Context context = InstrumentationRegistry.getContext();
+
+        Credentials credentials = from.getCredentials();
+        HomeServerConnectionConfig hs = createHomeServerConfig(credentials);
+        MXFileStore store = new MXFileStore(hs, false, context);
+        MXDataHandler dataHandler = new MXDataHandler(store, credentials);
+        dataHandler.setLazyLoadingEnabled(sessionTestParams.getWithLazyLoading());
+        store.setDataHandler(dataHandler);
+        MXSession session2 = new MXSession.Builder(hs, dataHandler, context)
+                .withLegacyCryptoStore(sessionTestParams.getWithLegacyCryptoStore())
+                .build();
+
+        final Map<String, Object> results = new HashMap<>();
+
+        final CountDownLatch lock = new CountDownLatch(1);
+        MXStoreListener listener = new MXStoreListener() {
+            @Override
+            public void postProcess(String accountId) {
+                results.put("postProcess", "postProcess " + accountId);
+            }
+
+            @Override
+            public void onStoreReady(String accountId) {
+                results.put("onStoreReady", "onStoreReady");
+                lock.countDown();
+            }
+
+            @Override
+            public void onStoreCorrupted(String accountId, String description) {
+                results.put("onStoreCorrupted", description);
+                lock.countDown();
+            }
+
+            @Override
+            public void onStoreOOM(String accountId, String description) {
+                results.put("onStoreOOM", "onStoreOOM");
+                lock.countDown();
+            }
+        };
+
+        store.addMXStoreListener(listener);
+        store.open();
+
+        await(lock);
+
+        Assert.assertTrue(results.toString(), results.containsKey("onStoreReady"));
+
+        return session2;
     }
 }

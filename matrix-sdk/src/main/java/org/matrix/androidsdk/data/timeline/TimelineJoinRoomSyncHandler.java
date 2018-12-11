@@ -97,10 +97,27 @@ class TimelineJoinRoomSyncHandler {
         // Note: We consider it is not required to clone the existing room state here, because no notification is posted for these events.
         if (room.getDataHandler().isAlive()) {
             for (Event event : mRoomSync.state.events) {
-                try {
-                    mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS, true);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "processStateEvent failed " + e.getMessage(), e);
+                // The server sometime provide event twice in mRoomSync.state.events and in mRoomSync.timeline.events
+                // For instance when an invited user joins a room
+                // If the event is also in mRoomSync.timeline.events, ignore it here, it will be handled later, with the timeline event, and
+                // so will be visible to the user and not ignored because considered as a event duplicate
+                boolean eventFoundInTimeline = false;
+                if (mRoomSync.timeline.events != null) {
+                    for (Event timelineEvent : mRoomSync.timeline.events) {
+                        if (TextUtils.equals(timelineEvent.eventId, event.eventId)) {
+                            // Ignore this state event
+                            eventFoundInTimeline = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!eventFoundInTimeline) {
+                    try {
+                        mTimelineStateHolder.processStateEvent(event, EventTimeline.Direction.FORWARDS, true);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "processStateEvent failed " + e.getMessage(), e);
+                    }
                 }
             }
 

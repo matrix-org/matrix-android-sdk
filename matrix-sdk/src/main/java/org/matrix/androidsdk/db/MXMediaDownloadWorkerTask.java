@@ -807,7 +807,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                 defaultError.error = e.getLocalizedMessage();
 
                 // In case of 403, revert the key
-                if (connection.getResponseCode() == 403 && mMediaScanRestClient != null) {
+                if (connection.getResponseCode() == HttpURLConnection.HTTP_FORBIDDEN && mMediaScanRestClient != null) {
                     mMediaScanRestClient.resetServerPublicKey();
                 }
 

@@ -55,9 +55,7 @@ public class RoomNameTestHelper {
                                                @Nullable final String roomName,
                                                final boolean withLazyLoading) throws Exception {
 
-        final SessionTestParams createSessionParams = SessionTestParams.newBuilder()
-                .withInitialSync(true)
-                .build();
+        final SessionTestParams createSessionParams = new SessionTestParams(true);
 
         List<MXSession> createdSessions = new ArrayList<>(nbOfUsers);
 
@@ -113,10 +111,7 @@ public class RoomNameTestHelper {
         room.invite("@dave:localhost:8480", new TestApiCallback<Void>(latch));
         mTestHelper.await(latch);
 
-        final SessionTestParams logSessionParams = SessionTestParams.newBuilder()
-                .withLazyLoading(withLazyLoading)
-                .withInitialSync(true)
-                .build();
+        final SessionTestParams logSessionParams = new SessionTestParams(true, false, withLazyLoading);
 
         List<MXSession> loggedSessions = new ArrayList<>(nbOfUsers);
 

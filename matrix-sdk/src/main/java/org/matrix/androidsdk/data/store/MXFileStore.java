@@ -39,6 +39,7 @@ import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
+import org.matrix.androidsdk.rest.model.sync.AccountData;
 import org.matrix.androidsdk.util.CompatUtil;
 import org.matrix.androidsdk.util.ContentUtils;
 import org.matrix.androidsdk.util.Log;
@@ -76,6 +77,7 @@ public class MXFileStore extends MXMemoryStore {
 
     private static final String MXFILE_STORE_FOLDER = "MXFileStore";
     private static final String MXFILE_STORE_METADATA_FILE_NAME = "MXFileStore";
+    private static final String MXFILE_STORE_ACCOUNT_DATA_FILE_NAME = "MXAccountData";
 
     private static final String MXFILE_STORE_GZ_ROOMS_MESSAGES_FOLDER = "messages_gz";
     private static final String MXFILE_STORE_ROOMS_TOKENS_FOLDER = "tokens";
@@ -465,6 +467,17 @@ public class MXFileStore extends MXMemoryStore {
                                         Log.e(LOG_TAG, errorDescription);
                                     } else {
                                         Log.d(LOG_TAG, "loadRoomsAccountData succeeds");
+                                    }
+                                }
+
+                                if (succeed) {
+                                    succeed &= loadAccountData();
+
+                                    if (!succeed) {
+                                        errorDescription = "loadAccountData fails";
+                                        Log.e(LOG_TAG, errorDescription);
+                                    } else {
+                                        Log.d(LOG_TAG, "loadAccountData succeeds");
                                     }
                                 }
 
@@ -954,6 +967,66 @@ public class MXFileStore extends MXMemoryStore {
         if ((null != summary) && (null != summary.getRoomId()) && !mRoomsToCommitForSummaries.contains(summary.getRoomId())) {
             mRoomsToCommitForSummaries.add(summary.getRoomId());
         }
+    }
+
+    /* ==========================================================================================
+     * AccountData
+     * ========================================================================================== */
+
+    /**
+     * Load the account data from the file system.
+     *
+     * @return true if the operation succeeds.
+     */
+    private boolean loadAccountData() {
+        long start = System.currentTimeMillis();
+
+        // init members
+        mAccountData = null;
+
+        File accountDataFile = new File(mStoreFolderFile, MXFILE_STORE_ACCOUNT_DATA_FILE_NAME);
+
+        if (accountDataFile.exists()) {
+            Object accountDataAsVoid = readObject("loadAccountData", accountDataFile);
+
+            if (null != accountDataAsVoid) {
+                try {
+                    mAccountData = (AccountData) accountDataAsVoid;
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## loadAccountData() : is corrupted", e);
+                    return false;
+                }
+            }
+        }
+
+        Log.d(LOG_TAG, "loadAccountData : " + (System.currentTimeMillis() - start) + " ms");
+        return true;
+    }
+
+    /**
+     * flush the metadata info from the file system.
+     */
+    @Override
+    public void storeAccountData(AccountData accountData) {
+        super.storeAccountData(accountData);
+
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                mFileStoreHandler.post(new Runnable() {
+                    public void run() {
+                        if (!mIsKilled) {
+                            long start = System.currentTimeMillis();
+                            writeObject("storeAccountData", new File(mStoreFolderFile, MXFILE_STORE_ACCOUNT_DATA_FILE_NAME), mAccountData);
+                            Log.d(LOG_TAG, "storeAccountData : " + (System.currentTimeMillis() - start) + " ms");
+                        }
+                    }
+                });
+            }
+        };
+
+        Thread t = new Thread(r);
+        t.start();
     }
 
     //================================================================================
@@ -1843,8 +1916,8 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void storeAccountData(String roomId, RoomAccountData accountData) {
-        super.storeAccountData(roomId, accountData);
+    public void storeRoomAccountData(String roomId, RoomAccountData accountData) {
+        super.storeRoomAccountData(roomId, accountData);
 
         if (null != roomId) {
             Room room = mRooms.get(roomId);

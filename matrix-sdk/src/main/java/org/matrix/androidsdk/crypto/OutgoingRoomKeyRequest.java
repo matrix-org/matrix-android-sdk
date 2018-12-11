@@ -17,6 +17,8 @@
 
 package org.matrix.androidsdk.crypto;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +30,9 @@ public class OutgoingRoomKeyRequest implements Serializable {
 
     /**
      * possible states for a room key request
-     *
+     * <p>
      * The state machine looks like:
+     * <pre>
      *
      *      |
      *      V
@@ -50,6 +53,7 @@ public class OutgoingRoomKeyRequest implements Serializable {
      *      |                                  |                |  in the UNSENT state)
      *      V                                  |                |
      *  (deleted)  <---------------------------+----------------+
+     *  </pre>
      */
 
     public enum RequestState {
@@ -72,7 +76,24 @@ public class OutgoingRoomKeyRequest implements Serializable {
         /**
          * sending failed
          */
-        FAILED
+        FAILED;
+
+        @Nullable
+        public static RequestState from(int state) {
+            switch (state) {
+                case 0:
+                    return UNSENT;
+                case 1:
+                    return SENT;
+                case 2:
+                    return CANCELLATION_PENDING;
+                case 3:
+                    return CANCELLATION_PENDING_AND_WILL_RESEND;
+                case 4:
+                    return FAILED;
+            }
+            return null;
+        }
     }
 
     // Unique id for this request. Used for both

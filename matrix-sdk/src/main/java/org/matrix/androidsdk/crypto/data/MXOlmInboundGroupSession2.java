@@ -17,15 +17,16 @@
 
 package org.matrix.androidsdk.crypto.data;
 
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.crypto.MXCryptoAlgorithms;
+import org.matrix.androidsdk.crypto.CryptoConstantsKt;
+import org.matrix.androidsdk.crypto.MegolmSessionData;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.olm.OlmInboundGroupSession;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,7 +37,7 @@ import java.util.Map;
  */
 public class MXOlmInboundGroupSession2 implements Serializable {
     //
-    private static final String LOG_TAG = "OlmInboundGroupSession";
+    private static final String LOG_TAG = MXOlmInboundGroupSession2.class.getSimpleName();
 
     // define a serialVersionUID to avoid having to redefine the class after updates
     private static final long serialVersionUID = 201702011617L;
@@ -89,20 +90,20 @@ public class MXOlmInboundGroupSession2 implements Serializable {
     /**
      * Create a new instance from the provided keys map.
      *
-     * @param map the map
+     * @param megolmSessionData the megolm session data
      * @throws Exception if the data are invalid
      */
-    public MXOlmInboundGroupSession2(Map<String, Object> map) throws Exception {
+    public MXOlmInboundGroupSession2(MegolmSessionData megolmSessionData) throws Exception {
         try {
-            mSession = OlmInboundGroupSession.importSession((String) map.get("session_key"));
+            mSession = OlmInboundGroupSession.importSession(megolmSessionData.sessionKey);
 
-            if (!TextUtils.equals(mSession.sessionIdentifier(), (String) map.get("session_id"))) {
+            if (!TextUtils.equals(mSession.sessionIdentifier(), megolmSessionData.sessionId)) {
                 throw new Exception("Mismatched group session Id");
             }
 
-            mSenderKey = (String) map.get("sender_key");
-            mKeysClaimed = (Map<String, String>) map.get("sender_claimed_keys");
-            mRoomId = (String) map.get("room_id");
+            mSenderKey = megolmSessionData.senderKey;
+            mKeysClaimed = megolmSessionData.senderClaimedKeys;
+            mRoomId = megolmSessionData.roomId;
         } catch (Exception e) {
             throw new Exception(e.getMessage());
         }
@@ -111,30 +112,31 @@ public class MXOlmInboundGroupSession2 implements Serializable {
     /**
      * Export the inbound group session keys
      *
-     * @return the inbound group session as map if the operation succeeds
+     * @return the inbound group session as MegolmSessionData if the operation succeeds
      */
-    public Map<String, Object> exportKeys() {
-        Map<String, Object> map = new HashMap<>();
+    @Nullable
+    public MegolmSessionData exportKeys() {
+        MegolmSessionData megolmSessionData = new MegolmSessionData();
 
         try {
             if (null == mForwardingCurve25519KeyChain) {
                 mForwardingCurve25519KeyChain = new ArrayList<>();
             }
 
-            map.put("sender_claimed_ed25519_key", mKeysClaimed.get("ed25519"));
-            map.put("forwardingCurve25519KeyChain", mForwardingCurve25519KeyChain);
-            map.put("sender_key", mSenderKey);
-            map.put("sender_claimed_keys", mKeysClaimed);
-            map.put("room_id", mRoomId);
-            map.put("session_id", mSession.sessionIdentifier());
-            map.put("session_key", mSession.export(mSession.getFirstKnownIndex()));
-            map.put("algorithm", MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_MEGOLM);
+            megolmSessionData.senderClaimedEd25519Key = mKeysClaimed.get("ed25519");
+            megolmSessionData.forwardingCurve25519KeyChain = new ArrayList<>(mForwardingCurve25519KeyChain);
+            megolmSessionData.senderKey = mSenderKey;
+            megolmSessionData.senderClaimedKeys = mKeysClaimed;
+            megolmSessionData.roomId = mRoomId;
+            megolmSessionData.sessionId = mSession.sessionIdentifier();
+            megolmSessionData.sessionKey = mSession.export(mSession.getFirstKnownIndex());
+            megolmSessionData.algorithm = CryptoConstantsKt.MXCRYPTO_ALGORITHM_MEGOLM;
         } catch (Exception e) {
-            map = null;
+            megolmSessionData = null;
             Log.e(LOG_TAG, "## export() : senderKey " + mSenderKey + " failed " + e.getMessage(), e);
         }
 
-        return map;
+        return megolmSessionData;
     }
 
     /**

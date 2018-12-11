@@ -16,10 +16,12 @@
 
 package org.matrix.androidsdk.rest.model;
 
+import org.matrix.androidsdk.rest.model.login.AuthParamsLoginPassword;
+
 public class DeactivateAccountParams {
 
     // Auth params
-    public AuthParams auth;
+    public AuthParamsLoginPassword auth;
 
     // Set to true to erase all data of the account
     public boolean erase;
