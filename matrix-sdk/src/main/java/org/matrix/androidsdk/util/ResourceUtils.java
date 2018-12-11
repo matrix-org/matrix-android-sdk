@@ -150,7 +150,7 @@ public class ResourceUtils {
 
                 // the bitmap is smaller that max sizes
                 if ((fullSizeBitmap.getHeight() < maxThumbHeight) && (fullSizeBitmap.getWidth() < maxThumbWidth)) {
-                    thumbnailBitmap = fullSizeBitmap;
+                    thumbnailBitmap = fullSizeBitmap.copy(Bitmap.Config.ARGB_8888, true);
                 } else {
                     double thumbnailWidth = maxThumbWidth;
                     double thumbnailHeight = maxThumbHeight;
@@ -170,12 +170,6 @@ public class ResourceUtils {
                     } catch (OutOfMemoryError ex) {
                         Log.e(LOG_TAG, "createThumbnailBitmap " + ex.getMessage(), ex);
                     }
-                }
-
-                // reduce the memory consumption
-                if (null != fullSizeBitmap) {
-                    fullSizeBitmap.recycle();
-                    System.gc();
                 }
             }
 

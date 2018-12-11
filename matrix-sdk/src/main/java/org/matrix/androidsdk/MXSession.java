@@ -47,7 +47,7 @@ import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
-import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -161,7 +161,7 @@ public class MXSession {
     private UnsentEventsManager mUnsentEventsManager;
 
     private MXLatestChatMessageCache mLatestChatMessageCache;
-    private MXMediasCache mMediasCache;
+    private MXMediaCache mMediasCache;
 
     private BingRulesManager mBingRulesManager = null;
 
@@ -358,7 +358,7 @@ public class MXSession {
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
-        mMediasCache = new MXMediasCache(mContentManager, mNetworkConnectivityReceiver, mCredentials.userId, appContext);
+        mMediasCache = new MXMediaCache(mContentManager, mNetworkConnectivityReceiver, mCredentials.userId, appContext);
         mDataHandler.setMediasCache(mMediasCache);
 
         mMediaScanRestClient.setMxStore(mDataHandler.getStore());
@@ -605,7 +605,7 @@ public class MXSession {
         return mLatestChatMessageCache;
     }
 
-    public MXMediasCache getMediasCache() {
+    public MXMediaCache getMediasCache() {
         checkIfAlive();
         return mMediasCache;
     }

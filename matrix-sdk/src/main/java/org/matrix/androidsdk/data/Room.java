@@ -47,7 +47,7 @@ import org.matrix.androidsdk.data.room.RoomDisplayNameResolver;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.timeline.EventTimelineFactory;
-import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.listeners.MXRoomEventListener;
@@ -2286,7 +2286,7 @@ public class Room {
             }
 
             List<String> urls = event.getMediaUrls();
-            MXMediasCache cache = mDataHandler.getMediasCache();
+            MXMediaCache cache = mDataHandler.getMediasCache();
 
             for (String url : urls) {
                 cache.cancelUpload(url);

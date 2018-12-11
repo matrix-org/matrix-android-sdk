@@ -27,7 +27,7 @@ import com.google.gson.annotations.SerializedName;
 
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
-import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.message.FileMessage;
 import org.matrix.androidsdk.rest.model.message.ImageMessage;
@@ -773,7 +773,7 @@ public class Event implements Externalizable {
      * @param mediasCache the media cache
      * @return true if the event is uploading a media.
      */
-    public boolean isUploadingMedias(MXMediasCache mediasCache) {
+    public boolean isUploadingMedias(MXMediaCache mediasCache) {
         List<String> urls = getMediaUrls();
 
         for (String url : urls) {
@@ -791,7 +791,7 @@ public class Event implements Externalizable {
      * @param mediasCache the media cache
      * @return true if the event is downloading a media.
      */
-    public boolean isDownloadingMedias(MXMediasCache mediasCache) {
+    public boolean isDownloadingMedias(MXMediaCache mediasCache) {
         List<String> urls = getMediaUrls();
 
         for (String url : urls) {

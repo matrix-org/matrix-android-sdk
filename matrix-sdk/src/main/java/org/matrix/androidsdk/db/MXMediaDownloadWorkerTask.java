@@ -380,7 +380,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
         }
 
         if (null != cachedBitmap) {
-            MXMediasCache.mUIHandler.post(new Runnable() {
+            MXMediaCache.mUIHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     callback.onSuccess(cachedBitmap);
@@ -425,7 +425,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
             return false;
         }
 
-        MXMediasCache.mDecryptingHandler.post(new Runnable() {
+        MXMediaCache.mDecryptingHandler.post(new Runnable() {
             @Override
             public void run() {
                 Bitmap bitmap = null;
@@ -508,7 +508,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                 }
 
                 final Bitmap fBitmap = bitmap;
-                MXMediasCache.mUIHandler.post(new Runnable() {
+                MXMediaCache.mUIHandler.post(new Runnable() {
                     @Override
                     public void run() {
                         callback.onSuccess(fBitmap);

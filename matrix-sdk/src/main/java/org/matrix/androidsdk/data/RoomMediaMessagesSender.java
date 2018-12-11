@@ -32,7 +32,7 @@ import android.util.Pair;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
-import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
@@ -622,7 +622,7 @@ class RoomMediaMessagesSender {
     private Message buildImageMessage(RoomMediaMessage roomMediaMessage) {
         try {
             String mimeType = roomMediaMessage.getMimeType(mContext);
-            final MXMediasCache mediasCache = mDataHandler.getMediasCache();
+            final MXMediaCache mediasCache = mDataHandler.getMediasCache();
 
             String mediaUrl = getMediaUrl(roomMediaMessage);
 
@@ -809,7 +809,7 @@ class RoomMediaMessagesSender {
         mEncodingHandler.post(new Runnable() {
             @Override
             public void run() {
-                final MXMediasCache mediasCache = mDataHandler.getMediasCache();
+                final MXMediaCache mediasCache = mDataHandler.getMediasCache();
 
                 Uri uri = Uri.parse(url);
                 String mimeType = fMimeType;

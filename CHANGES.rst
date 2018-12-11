@@ -11,6 +11,7 @@ Improvements:
  - Implement the backup of the room keys in the KeysBackup class (vector-im/riot-android#2642)
 
 Bugfix:
+ - Generate thumbnails for gifs rather than throw an error (#395)
  - Room members who left are listed with the actual members (vector-im/riot-android#2744)
  - I'm not allow to send message in a new joined room (vector-im/riot-android#2743)
  - Matrix Content Scanner: Refresh the server public key on error with "MCS_BAD_DECRYPTION" reason.
