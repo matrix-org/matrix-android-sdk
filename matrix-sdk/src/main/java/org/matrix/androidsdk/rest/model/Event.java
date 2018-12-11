@@ -770,14 +770,14 @@ public class Event implements Externalizable {
     /**
      * Tells if the current event is uploading a media.
      *
-     * @param mediasCache the media cache
+     * @param mediaCache the media cache
      * @return true if the event is uploading a media.
      */
-    public boolean isUploadingMedias(MXMediaCache mediasCache) {
+    public boolean isUploadingMedia(MXMediaCache mediaCache) {
         List<String> urls = getMediaUrls();
 
         for (String url : urls) {
-            if (mediasCache.getProgressValueForUploadId(url) >= 0) {
+            if (mediaCache.getProgressValueForUploadId(url) >= 0) {
                 return true;
             }
         }
@@ -788,14 +788,14 @@ public class Event implements Externalizable {
     /**
      * Tells if the current event is downloading a media.
      *
-     * @param mediasCache the media cache
+     * @param mediaCache the media cache
      * @return true if the event is downloading a media.
      */
-    public boolean isDownloadingMedias(MXMediaCache mediasCache) {
+    public boolean isDownloadingMedia(MXMediaCache mediaCache) {
         List<String> urls = getMediaUrls();
 
         for (String url : urls) {
-            if (mediasCache.getProgressValueForDownloadId(mediasCache.downloadIdFromUrl(url)) >= 0) {
+            if (mediaCache.getProgressValueForDownloadId(mediaCache.downloadIdFromUrl(url)) >= 0) {
                 return true;
             }
         }

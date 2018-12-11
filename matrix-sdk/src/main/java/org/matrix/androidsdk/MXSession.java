@@ -29,8 +29,6 @@ import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 
-import com.google.gson.JsonObject;
-
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.crypto.MXCryptoConfig;
@@ -161,7 +159,7 @@ public class MXSession {
     private UnsentEventsManager mUnsentEventsManager;
 
     private MXLatestChatMessageCache mLatestChatMessageCache;
-    private MXMediaCache mMediasCache;
+    private MXMediaCache mMediaCache;
 
     private BingRulesManager mBingRulesManager = null;
 
@@ -358,11 +356,11 @@ public class MXSession {
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
-        mMediasCache = new MXMediaCache(mContentManager, mNetworkConnectivityReceiver, mCredentials.userId, appContext);
-        mDataHandler.setMediasCache(mMediasCache);
+        mMediaCache = new MXMediaCache(mContentManager, mNetworkConnectivityReceiver, mCredentials.userId, appContext);
+        mDataHandler.setMediaCache(mMediaCache);
 
         mMediaScanRestClient.setMxStore(mDataHandler.getStore());
-        mMediasCache.setMediaScanRestClient(mMediaScanRestClient);
+        mMediaCache.setMediaScanRestClient(mMediaScanRestClient);
 
         mGroupsManager = new GroupsManager(mDataHandler, mGroupsRestClient);
         mDataHandler.setGroupsManager(mGroupsManager);
@@ -605,9 +603,9 @@ public class MXSession {
         return mLatestChatMessageCache;
     }
 
-    public MXMediaCache getMediasCache() {
+    public MXMediaCache getMediaCache() {
         checkIfAlive();
-        return mMediasCache;
+        return mMediaCache;
     }
 
     /**
@@ -667,7 +665,7 @@ public class MXSession {
         mUnsentEventsManager.clear();
 
         mLatestChatMessageCache.clearCache(context);
-        mMediasCache.clear();
+        mMediaCache.clear();
 
         if (null != mCrypto) {
             mCrypto.close();
@@ -741,12 +739,12 @@ public class MXSession {
     }
 
     /**
-     * Remove the medias older than the provided timestamp.
+     * Remove the media older than the provided timestamp.
      *
      * @param context   the context
      * @param timestamp the timestamp (in seconds)
      */
-    public void removeMediasBefore(final Context context, final long timestamp) {
+    public void removeMediaBefore(final Context context, final long timestamp) {
         // list the files to keep even if they are older than the provided timestamp
         // because their upload failed
         final Set<String> filesToKeep = new HashSet<>();
@@ -779,7 +777,7 @@ public class MXSession {
                             }
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage(), e);
+                        Log.e(LOG_TAG, "## removeMediaBefore() : failed " + e.getMessage(), e);
                     }
                 }
             }
@@ -788,7 +786,7 @@ public class MXSession {
         AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
-                long length = getMediasCache().removeMediasBefore(timestamp, filesToKeep);
+                long length = getMediaCache().removeMediaBefore(timestamp, filesToKeep);
 
                 // delete also the log files
                 // they might be large
@@ -808,9 +806,9 @@ public class MXSession {
                 }
 
                 if (0 != length) {
-                    Log.d(LOG_TAG, "## removeMediasBefore() : save " + android.text.format.Formatter.formatFileSize(context, length));
+                    Log.d(LOG_TAG, "## removeMediaBefore() : save " + android.text.format.Formatter.formatFileSize(context, length));
                 } else {
-                    Log.d(LOG_TAG, "## removeMediasBefore() : useless");
+                    Log.d(LOG_TAG, "## removeMediaBefore() : useless");
                 }
 
                 return null;
@@ -819,7 +817,7 @@ public class MXSession {
         try {
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage(), e);
+            Log.e(LOG_TAG, "## removeMediaBefore() : failed " + e.getMessage(), e);
             task.cancel(true);
         }
     }
@@ -1148,8 +1146,8 @@ public class MXSession {
             Log.e(LOG_TAG, "pauseEventStream : mEventsThread is null");
         }
 
-        if (null != getMediasCache()) {
-            getMediasCache().clearTmpDecryptedMediaCache();
+        if (null != getMediaCache()) {
+            getMediaCache().clearTmpDecryptedMediaCache();
         }
 
         if (null != mGroupsManager) {
@@ -1192,8 +1190,8 @@ public class MXSession {
             Log.d(LOG_TAG, "## resumeEventStream() : cancel bg sync");
         }
 
-        if (null != getMediasCache()) {
-            getMediasCache().clearShareDecryptedMediaCache();
+        if (null != getMediaCache()) {
+            getMediaCache().clearShareDecryptedMediaCache();
         }
 
         if (null != mGroupsManager) {
@@ -1510,7 +1508,7 @@ public class MXSession {
      * Retrieve user matrix id from a 3rd party id.
      *
      * @param addresses 3rd party ids
-     * @param mediums   the medias.
+     * @param mediums   the media.
      * @param callback  the 3rd parties callback
      */
     public void lookup3Pids(List<String> addresses, List<String> mediums, ApiCallback<List<String>> callback) {
@@ -1586,20 +1584,20 @@ public class MXSession {
      * @param nextBatch the token to pass for doing pagination from a previous response.
      * @param callback  the request callback
      */
-    public void searchMediasByName(String name, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
+    public void searchMediaByName(String name, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
 
         if (null != callback) {
-            mEventsRestClient.searchMediasByText(name, rooms, 0, 0, nextBatch, callback);
+            mEventsRestClient.searchMediaByText(name, rooms, 0, 0, nextBatch, callback);
         }
     }
 
     /**
      * Cancel any pending file search request
      */
-    public void cancelSearchMediasByText() {
+    public void cancelSearchMediaByText() {
         checkIfAlive();
-        mEventsRestClient.cancelSearchMediasByText();
+        mEventsRestClient.cancelSearchMediaByText();
     }
 
     /**

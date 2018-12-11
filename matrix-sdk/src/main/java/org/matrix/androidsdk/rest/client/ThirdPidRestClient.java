@@ -158,7 +158,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * Retrieve user matrix id from a 3rd party id.
      *
      * @param addresses 3rd party ids
-     * @param mediums   the medias.
+     * @param mediums   the media.
      * @param callback  the 3rd parties callback
      */
     public void lookup3Pids(final List<String> addresses, final List<String> mediums, final ApiCallback<List<String>> callback) {

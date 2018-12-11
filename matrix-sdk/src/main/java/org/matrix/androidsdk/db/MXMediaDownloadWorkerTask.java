@@ -101,7 +101,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
     private static final Object sSyncObject = new Object();
 
     /**
-     * The medias cache
+     * The media cache
      */
     private static LruCache<String, Bitmap> sBitmapByDownloadIdCache = null;
 
@@ -834,7 +834,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                 //Log.d(LOG_TAG, "MediaWorkerTask " + mUrl + " does not exist");
                 Log.d(LOG_TAG, "MediaWorkerTask an url does not exist");
 
-                // If some medias are not found,
+                // If some media are not found,
                 // do not try to reload them until the next application launch.
                 // We mark this url as unreachable.
                 // We can do this only if the av scanner is disabled or if the media is unencrypted,
@@ -852,7 +852,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
             if ((null == stream) && (null == jsonElementResult)) {
                 jsonElementResult = new JsonParser().parse("Cannot open " + mUrl);
 
-                // if some medias are not found
+                // if some media are not found
                 // do not try to reload them until the next application launch.
                 // We mark this url as unreachable.
                 // We can do this only if the av scanner is disabled or if the media is unencrypted,

@@ -119,7 +119,7 @@ public class RoomMediaMessage implements Parcelable {
 
     /**
      * Constructor from a ClipData.Item.
-     * It might be used by a third party medias selection.
+     * It might be used by a third party media selection.
      *
      * @param clipDataItem the data item
      * @param mimeType     the mime type

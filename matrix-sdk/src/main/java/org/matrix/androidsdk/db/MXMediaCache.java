@@ -62,7 +62,7 @@ public class MXMediaCache {
     private static final String LOG_TAG = MXMediaCache.class.getSimpleName();
 
     /**
-     * The medias folders.
+     * The media folders.
      */
     // Put the previous folders used for cache here. Every time the cache management change (change of id format, etc.),
     // append the current cache folder to this list, and change value of MXMEDIA_STORE_FOLDER (typically increment the value)
@@ -84,9 +84,9 @@ public class MXMediaCache {
     private ContentManager mContentManager;
 
     /**
-     * The medias folders list.
+     * The media folders list.
      */
-    private File mMediasFolderFile;
+    private File mMediaFolderFile;
     private File mImagesFolderFile;
     private File mOthersFolderFile;
     private File mThumbnailsFolderFile;
@@ -137,17 +137,17 @@ public class MXMediaCache {
         }
 
         // create the dir tree
-        mMediasFolderFile = new File(mediaBaseFolderFile, userID);
-        mImagesFolderFile = new File(mMediasFolderFile, MXMEDIA_STORE_IMAGES_FOLDER);
-        mOthersFolderFile = new File(mMediasFolderFile, MXMEDIA_STORE_OTHERS_FOLDER);
-        mTmpFolderFile = new File(mMediasFolderFile, MXMEDIA_STORE_TMP_FOLDER);
+        mMediaFolderFile = new File(mediaBaseFolderFile, userID);
+        mImagesFolderFile = new File(mMediaFolderFile, MXMEDIA_STORE_IMAGES_FOLDER);
+        mOthersFolderFile = new File(mMediaFolderFile, MXMEDIA_STORE_OTHERS_FOLDER);
+        mTmpFolderFile = new File(mMediaFolderFile, MXMEDIA_STORE_TMP_FOLDER);
 
         if (mTmpFolderFile.exists()) {
             ContentUtils.deleteDirectory(mTmpFolderFile);
         }
         mTmpFolderFile.mkdirs();
 
-        mShareFolderFile = new File(mMediasFolderFile, MXMEDIA_STORE_SHARE_FOLDER);
+        mShareFolderFile = new File(mMediaFolderFile, MXMEDIA_STORE_SHARE_FOLDER);
 
         if (mShareFolderFile.exists()) {
             ContentUtils.deleteDirectory(mShareFolderFile);
@@ -166,17 +166,17 @@ public class MXMediaCache {
     }
 
     /**
-     * Returns the mediasFolder files.
+     * Returns the mediaFolder files.
      * Creates it if it does not exist
      *
-     * @return the medias folder file.
+     * @return the media folder file.
      */
-    private File getMediasFolderFile() {
-        if (!mMediasFolderFile.exists()) {
-            mMediasFolderFile.mkdirs();
+    private File getMediaFolderFile() {
+        if (!mMediaFolderFile.exists()) {
+            mMediaFolderFile.mkdirs();
         }
 
-        return mMediasFolderFile;
+        return mMediaFolderFile;
     }
 
     /**
@@ -218,7 +218,7 @@ public class MXMediaCache {
     }
 
     /**
-     * Compute the medias cache size
+     * Compute the media cache size
      *
      * @param context  the context
      * @param callback the asynchronous callback
@@ -249,17 +249,17 @@ public class MXMediaCache {
     }
 
     /**
-     * Remove medias older than ts
+     * Remove media older than ts
      *
      * @param ts             the ts
      * @param filePathToKeep set of files to keep
      * @return length of deleted files
      */
-    public long removeMediasBefore(long ts, Set<String> filePathToKeep) {
+    public long removeMediaBefore(long ts, Set<String> filePathToKeep) {
         long length = 0;
 
-        length += removeMediasBefore(getMediasFolderFile(), ts, filePathToKeep);
-        length += removeMediasBefore(getThumbnailsFolderFile(), ts, filePathToKeep);
+        length += removeMediaBefore(getMediaFolderFile(), ts, filePathToKeep);
+        length += removeMediaBefore(getThumbnailsFolderFile(), ts, filePathToKeep);
 
         return length;
     }
@@ -272,7 +272,7 @@ public class MXMediaCache {
      * @param filePathToKeep set of files to keep
      * @return length of deleted files
      */
-    private long removeMediasBefore(File folder, long aTs, Set<String> filePathToKeep) {
+    private long removeMediaBefore(File folder, long aTs, Set<String> filePathToKeep) {
         long length = 0;
         File[] files = folder.listFiles();
 
@@ -290,7 +290,7 @@ public class MXMediaCache {
                         }
                     }
                 } else {
-                    length += removeMediasBefore(file, aTs, filePathToKeep);
+                    length += removeMediaBefore(file, aTs, filePathToKeep);
                 }
             }
         }
@@ -299,10 +299,10 @@ public class MXMediaCache {
     }
 
     /**
-     * Clear the medias caches.
+     * Clear the media caches.
      */
     public void clear() {
-        ContentUtils.deleteDirectory(getMediasFolderFile());
+        ContentUtils.deleteDirectory(getMediaFolderFile());
 
         ContentUtils.deleteDirectory(mThumbnailsFolderFile);
 

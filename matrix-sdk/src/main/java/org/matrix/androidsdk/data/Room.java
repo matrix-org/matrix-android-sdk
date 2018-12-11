@@ -1610,7 +1610,7 @@ public class Room {
     }
 
     //================================================================================
-    // Medias events
+    // Media events
     //================================================================================
 
     /**
@@ -2286,7 +2286,7 @@ public class Room {
             }
 
             List<String> urls = event.getMediaUrls();
-            MXMediaCache cache = mDataHandler.getMediasCache();
+            MXMediaCache cache = mDataHandler.getMediaCache();
 
             for (String url : urls) {
                 cache.cancelUpload(url);

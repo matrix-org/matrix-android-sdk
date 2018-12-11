@@ -118,7 +118,7 @@ public class MXDataHandler {
     private DataRetriever mDataRetriever;
     private BingRulesManager mBingRulesManager;
     private MXCallsManager mCallsManager;
-    private MXMediaCache mMediasCache;
+    private MXMediaCache mMediaCache;
 
     private MetricsListener mMetricsListener;
 
@@ -534,23 +534,23 @@ public class MXDataHandler {
     }
 
     /**
-     * Update the medias cache.
+     * Update the media cache.
      *
-     * @param mediasCache the new medias cache.
+     * @param mediaCache the new media cache.
      */
-    public void setMediasCache(MXMediaCache mediasCache) {
+    public void setMediaCache(MXMediaCache mediaCache) {
         checkIfAlive();
-        mMediasCache = mediasCache;
+        mMediaCache = mediaCache;
     }
 
     /**
-     * Retrieve the medias cache.
+     * Retrieve the media cache.
      *
-     * @return the used mediasCache
+     * @return the used mediaCache
      */
-    public MXMediaCache getMediasCache() {
+    public MXMediaCache getMediaCache() {
         checkIfAlive();
-        return mMediasCache;
+        return mMediaCache;
     }
 
     /**

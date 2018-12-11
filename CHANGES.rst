@@ -20,6 +20,7 @@ API Change:
  - new API in CallSoundsManager to allow client to play the specified Ringtone (vector-im/riot-android#827)
  - IMXStore.storeAccountData() has been renamed to IMXStore.storeRoomAccountData()
  - MXCrypto: importRoomKeys methods now return number of imported keys and number of total keys in the Callback.
+ - `MXMediasCache` has been renamed to `MXMediaCache` (and `Medias` to `Media`)
 
 Translations:
  -
@@ -720,7 +721,7 @@ Bugfixes:
 
 * #290 : Redacting membership events should immediately reset the displayname & avatar of room members
 * #320 : Sanitise the logs to remove private data
-* #330 : some medias are not downloadable
+* #330 : some media are not downloadable
 * #352 : some rooms are not displayed in the recents when the 10 last messages are redacted ones after performing an initial sync 
 * #358 : Update the event not found message when clicking on permalink
 * #359 : Redacting a video during sending goes wrong 
@@ -856,10 +857,10 @@ Bugfixes:
 * SYAND-90 The very first pagination jumps the scroll bar.
 * The room spinner was sometime stuck.
 * The presense was sometimes invalid.
-* MXMediasCache : delete the destinated file if it already exists.
+* MXMediaCache : delete the destinated file if it already exists.
 * The back pagination was sometimes stuck after a network error.
 * Texts sizes are now defined in SD instead of DP.
-* The medias message sending did not work properly when the application was in background.
+* The media message sending did not work properly when the application was in background.
 * Fix an issue when a room is left, joined, left and joined again.
 * The account info was sometimes resetted after receiving a membership event.
 * The filestore was not really cleared after a logout.
@@ -1029,7 +1030,7 @@ Changes in Matrix Android SDK in 0.4.1 (2015-06-22)
 
 Improvements:
 
- * Automatically resend failed medias.
+ * Automatically resend failed media.
 
 Bug fixes:
 
@@ -1056,7 +1057,7 @@ Improvements:
  * Rotate image with exif if the device has enough memory.
  * Enable largeHeap to be able to manage large images.
  * Move ImageUtils from console to the SDK.
- * Each account has its own medias directory (except the member thumbnails).
+ * Each account has its own media directory (except the member thumbnails).
  * Update the media file name computation to ensure its uniqueness.
  * The media download & upload progress is more linear.
  * Remove the presence and typing events while processing the first events request after application launch.
@@ -1115,8 +1116,8 @@ Improvements:
 
 Features:
 
- * Applications can share medias with Matrix Console with the "<" button.
- * Matrix console can share medias with third party applications like emails.
+ * Applications can share media with Matrix Console with the "<" button.
+ * Matrix console can share media with third party applications like emails.
  * A message can be forwarded to an existing room or to a third party application.
  * The images are not anymore automatically saved when displayed in fullscreen : there is a new menu when tapping on the message. (The media mud have been downloaded once).
  * Add multi-accounts management. Create/Join a room require to select an account.
@@ -1221,7 +1222,7 @@ Improvements:
  * Refresh the display when some messages are automatically resent (after retrieving a data network connection for example).
  * Update the user rename message to be compliant with the web client.
  * Use the local media files instead of downloading them when they are acknowledged (messages sending).
- * Create a medias management class.
+ * Create a media management class.
  * Display the offline status in the members list.
  * Avoid creating new homeActivity instance when joining a room from member details sheet.
  * The public rooms list are now saved in the bundle state : it should avoid having a spinner when rotated the device.
@@ -1278,7 +1279,7 @@ Bug fixes:
  * SYAND-30 Notification should be away when entering a room.
  * Some images thumbnails were downloaded several times.
  * Restore the foreground service
- * The medias cache was not cleared after logging out.
+ * The media cache was not cleared after logging out.
  * The client crashed when joining #anime:matrix.org.
  * SYAND-29 Messages in delivery status are not seen
  * Some user display names were their matrix IDs.

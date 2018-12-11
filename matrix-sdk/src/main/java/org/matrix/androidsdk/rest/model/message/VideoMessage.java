@@ -23,7 +23,7 @@ public class VideoMessage extends MediaMessage {
     public VideoInfo info;
     public String url;
 
-    // encrypted medias
+    // encrypted media
     // url and thumbnailUrl are replaced by their dedicated file
     public EncryptedFileInfo file;
 
