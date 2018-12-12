@@ -9,7 +9,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "io.realm:realm-gradle-plugin:5.7.0"
+        classpath "io.realm:realm-gradle-plugin:5.8.0"
     }
 }
 
@@ -29,6 +29,11 @@ android {
         versionCode 914
         versionName "0.9.14-dev"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     // prevent the "superClassName is empty" error for classes not annotated as tests
