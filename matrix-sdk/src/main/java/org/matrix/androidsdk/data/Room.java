@@ -155,7 +155,7 @@ public class Room {
         mDataHandler = dataHandler;
         mStore = store;
         mMyUserId = mDataHandler.getUserId();
-        mTimeline = EventTimelineFactory.liveTimeline(mDataHandler, this, roomId);
+        mTimeline = EventTimelineFactory.liveTimeline(mDataHandler, store, this, roomId);
         mRoomDisplayNameResolver = new RoomDisplayNameResolver(this);
         mRoomAvatarResolver = new RoomAvatarResolver(this);
     }
