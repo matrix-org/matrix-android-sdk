@@ -21,6 +21,7 @@ API Change:
  - IMXStore.storeAccountData() has been renamed to IMXStore.storeRoomAccountData()
  - MXCrypto: importRoomKeys methods now return number of imported keys and number of total keys in the Callback.
  - `MXMediasCache` has been renamed to `MXMediaCache` (and `Medias` to `Media`)
+ - Remove IconAndTextDialogFragment, it's up to the application to manage UI.
 
 Translations:
  -
