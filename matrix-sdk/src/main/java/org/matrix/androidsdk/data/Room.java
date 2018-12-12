@@ -155,7 +155,7 @@ public class Room {
         mDataHandler = dataHandler;
         mStore = store;
         mMyUserId = mDataHandler.getUserId();
-        mTimeline = EventTimelineFactory.liveTimeline(mDataHandler, this, roomId);
+        mTimeline = EventTimelineFactory.liveTimeline(mDataHandler, store, this, roomId);
         mRoomDisplayNameResolver = new RoomDisplayNameResolver(this);
         mRoomAvatarResolver = new RoomAvatarResolver(this);
     }
@@ -1919,12 +1919,14 @@ public class Room {
                 } else {
                     mAccountData.handleTagEvent(accountDataEvent);
                     if (Event.EVENT_TYPE_TAGS.equals(accountDataEvent.getType())) {
-                        summary.setRoomTags(mAccountData.getKeys());
-                        getStore().flushSummary(summary);
+                        if (summary != null) {
+                            summary.setRoomTags(mAccountData.getKeys());
+                            getStore().flushSummary(summary);
+                        }
                         mDataHandler.onRoomTagEvent(getRoomId());
                     } else if (Event.EVENT_TYPE_URL_PREVIEW.equals(accountDataEvent.getType())) {
                         final JsonObject jsonObject = accountDataEvent.getContentAsJsonObject();
-                        if (jsonObject.has(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
+                        if (jsonObject != null && jsonObject.has(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
                             final boolean disabled = jsonObject.get(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE).getAsBoolean();
                             Set<String> roomIdsWithoutURLPreview = mDataHandler.getStore().getRoomsWithoutURLPreviews();
                             if (disabled) {

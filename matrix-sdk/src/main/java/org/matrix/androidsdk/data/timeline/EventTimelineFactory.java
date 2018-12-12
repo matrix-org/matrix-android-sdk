@@ -21,6 +21,7 @@ import android.support.annotation.Nullable;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.data.Room;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXMemoryStore;
 
 /**
@@ -36,9 +37,10 @@ public class EventTimelineFactory {
      * @param roomId      the room id
      */
     public static EventTimeline liveTimeline(@NonNull final MXDataHandler dataHandler,
+                                             @NonNull final IMXStore store,
                                              @NonNull final Room room,
                                              @NonNull final String roomId) {
-        return new MXEventTimeline(dataHandler.getStore(roomId), dataHandler, room, roomId, null, true);
+        return new MXEventTimeline(store, dataHandler, room, roomId, null, true);
     }
 
     /**
