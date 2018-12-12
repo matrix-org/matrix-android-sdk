@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("DEPRECATION")
+
 package org.matrix.androidsdk.data.cryptostore.db
 
 import android.content.Context
