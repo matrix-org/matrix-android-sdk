@@ -15,6 +15,7 @@ Bugfix:
  - Room members who left are listed with the actual members (vector-im/riot-android#2744)
  - I'm not allow to send message in a new joined room (vector-im/riot-android#2743)
  - Matrix Content Scanner: Refresh the server public key on error with "MCS_BAD_DECRYPTION" reason.
+ - Fix several issues on Room history and enable LazyLoading on this request.
 
 API Change:
  - new API in CallSoundsManager to allow client to play the specified Ringtone (vector-im/riot-android#827)

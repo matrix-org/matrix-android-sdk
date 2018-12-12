@@ -62,6 +62,9 @@ import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.PushRuleSet;
 import org.matrix.androidsdk.rest.model.bingrules.PushRulesResponse;
+import org.matrix.androidsdk.rest.model.filter.FilterBody;
+import org.matrix.androidsdk.rest.model.filter.RoomEventFilter;
+import org.matrix.androidsdk.rest.model.filter.RoomFilter;
 import org.matrix.androidsdk.rest.model.group.InvitedGroupSync;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
@@ -69,6 +72,7 @@ import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
 import org.matrix.androidsdk.util.BingRulesManager;
+import org.matrix.androidsdk.util.FilterUtil;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.MXOsHandler;
@@ -91,8 +95,6 @@ import java.util.Set;
  */
 public class MXDataHandler {
     private static final String LOG_TAG = MXDataHandler.class.getSimpleName();
-
-    private static final String LEFT_ROOMS_FILTER = "{\"room\":{\"timeline\":{\"limit\":1},\"include_leave\":true}}";
 
     public interface RequestNetworkErrorListener {
         /**
@@ -1618,7 +1620,7 @@ public class MXDataHandler {
 
                 Log.d(LOG_TAG, "## refreshHistoricalRoomsList() : requesting");
 
-                mEventsRestClient.syncFromToken(null, 0, 30000, null, LEFT_ROOMS_FILTER, new ApiCallback<SyncResponse>() {
+                mEventsRestClient.syncFromToken(null, 0, 30000, null, getLeftRoomsFilter(), new ApiCallback<SyncResponse>() {
                     @Override
                     public void onSuccess(final SyncResponse syncResponse) {
 
@@ -1704,6 +1706,46 @@ public class MXDataHandler {
                 });
             }
         }
+    }
+
+    /**
+     * Return a filter to sync left room, depending if lazyloading is on or off
+     * Without LL:
+     * <pre>
+     *     {
+     *         "room": {
+     *             "timeline": {
+     *                 "limit": 1
+     *                 },
+     *             "include_leave":true
+     *         }
+     *     }
+     * </pre>
+     * With LL:
+     * <pre>
+     *     {
+     *         "room": {
+     *             "timeline": {
+     *                 "limit": 1
+     *                 },
+     *             "include_leave":true,
+     *             "state": {
+     *                 "lazy_load_members": true
+     *                 }
+     *         }
+     *     }
+     * </pre>
+     */
+    private String getLeftRoomsFilter() {
+        FilterBody filterBody = new FilterBody();
+        filterBody.room = new RoomFilter();
+        filterBody.room.timeline = new RoomEventFilter();
+        filterBody.room.timeline.limit = 1;
+        filterBody.room.includeLeave = true;
+
+        FilterUtil.enableLazyLoading(filterBody, isLazyLoadingEnabled());
+
+        return filterBody.toJSONString();
     }
 
     /*
