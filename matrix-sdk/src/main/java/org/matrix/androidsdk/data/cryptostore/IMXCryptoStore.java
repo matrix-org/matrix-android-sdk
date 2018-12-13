@@ -1,5 +1,6 @@
 /*
  * Copyright 2016 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,7 @@
 package org.matrix.androidsdk.data.cryptostore;
 
 import android.content.Context;
+import android.support.annotation.Nullable;
 
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
@@ -43,7 +45,7 @@ public interface IMXCryptoStore {
     void initWithCredentials(Context context, Credentials credentials);
 
     /**
-     * @return if the corrupted is corrupted.
+     * @return if the store is corrupted.
      */
     boolean isCorrupted();
 
@@ -96,7 +98,7 @@ public interface IMXCryptoStore {
     /**
      * Store a device for a user.
      *
-     * @param userId The user's id.
+     * @param userId the user's id.
      * @param device the device to store.
      */
     void storeUserDevice(String userId, MXDeviceInfo device);
@@ -104,11 +106,20 @@ public interface IMXCryptoStore {
     /**
      * Retrieve a device for a user.
      *
-     * @param deviceId The device id.
-     * @param userId   The user's id.
-     * @return A map from device id to 'MXDevice' object for the device.
+     * @param deviceId the device id.
+     * @param userId   the user's id.
+     * @return the device
      */
     MXDeviceInfo getUserDevice(String deviceId, String userId);
+
+    /**
+     * Retrieve a device by its identity key.
+     *
+     * @param identityKey the device identity key (`MXDeviceInfo.identityKey`)
+     * @return the device or null if not found
+     */
+    @Nullable
+    MXDeviceInfo deviceWithIdentityKey(String identityKey);
 
     /**
      * Store the known devices for a user.
@@ -151,13 +162,25 @@ public interface IMXCryptoStore {
     void storeSession(OlmSession session, String deviceKey);
 
     /**
-     * Retrieve the end-to-end sessions between the logged-in user and another
+     * Retrieve the end-to-end session ids between the logged-in user and another
      * device.
      *
      * @param deviceKey the public key of the other device.
-     * @return A map from sessionId to Base64 end-to-end session.
+     * @return A set of sessionId, or null if device is not known
      */
-    Map<String, OlmSession> getDeviceSessions(String deviceKey);
+    @Nullable
+    Set<String> getDeviceSessionIds(String deviceKey);
+
+    /**
+     * Retrieve the end-to-end sessions between the logged-in user and another
+     * device.
+     *
+     * @param sessionId the session Id.
+     * @param deviceKey the public key of the other device.
+     * @return The Base64 end-to-end session, or null if not found
+     */
+    @Nullable
+    OlmSession getDeviceSession(String sessionId, String deviceKey);
 
     /**
      * Store an inbound group session.
@@ -173,12 +196,13 @@ public interface IMXCryptoStore {
      * @param senderKey the base64-encoded curve25519 key of the sender.
      * @return an inbound group session.
      */
+    @Nullable
     MXOlmInboundGroupSession2 getInboundGroupSession(String sessionId, String senderKey);
 
     /**
      * Retrieve the known inbound group sessions.
      *
-     * @return an inbound group session.
+     * @return the list of all known group sessions, to export them.
      */
     List<MXOlmInboundGroupSession2> getInboundGroupSessions();
 
@@ -189,6 +213,39 @@ public interface IMXCryptoStore {
      * @param senderKey the base64-encoded curve25519 key of the sender.
      */
     void removeInboundGroupSession(String sessionId, String senderKey);
+
+    /* ==========================================================================================
+     * Keys backup
+     * ========================================================================================== */
+
+    /**
+     * Mark all inbound group sessions as not backed up.
+     */
+    void resetBackupMarkers();
+
+    /**
+     * Mark an inbound group session as backed up on the user homeserver.
+     *
+     * @param sessionId the session identifier.
+     * @param senderKey the base64-encoded curve25519 key of the sender.
+     */
+    void markBackupDoneForInboundGroupSessionWithId(String sessionId, String senderKey);
+
+    /**
+     * Retrieve inbound group sessions that are not yet backed up.
+     *
+     * @param limit the maximum number of sessions to return.
+     * @return an array of non backed up inbound group sessions.
+     */
+    List<MXOlmInboundGroupSession2> inboundGroupSessionsToBackup(int limit);
+
+    /**
+     * Number of stored inbound group sessions.
+     *
+     * @param onlyBackedUp if true, count only session marked as backed up.
+     * @return a count.
+     */
+    int inboundGroupSessionsCount(boolean onlyBackedUp);
 
     /**
      * Set the global override for whether the client should ever send encrypted
@@ -220,7 +277,20 @@ public interface IMXCryptoStore {
     List<String> getRoomsListBlacklistUnverifiedDevices();
 
     /**
-     * @return the devices statuses map
+     * Set the current keys backup version
+     *
+     * @param keyBackupVersion the keys backup version or null to delete it
+     */
+    void setKeyBackupVersion(@Nullable String keyBackupVersion);
+
+    /**
+     * Get the current keys backup version
+     */
+    @Nullable
+    String getKeyBackupVersion();
+
+    /**
+     * @return the devices statuses map (userId -> tracking status)
      */
     Map<String, Integer> getDeviceTrackingStatuses();
 
@@ -241,20 +311,21 @@ public interface IMXCryptoStore {
     int getDeviceTrackingStatus(String userId, int defaultValue);
 
     /**
-     * Look for an existing outgoing room key request, and if none is found,
+     * Look for an existing outgoing room key request, and if none is found, return null
      *
      * @param requestBody the request body
      * @return an OutgoingRoomKeyRequest instance or null
      */
+    @Nullable
     OutgoingRoomKeyRequest getOutgoingRoomKeyRequest(Map<String, String> requestBody);
 
     /**
-     * Look for an existing outgoing room key request, and if none is found,
-     * + add a new one.
+     * Look for an existing outgoing room key request, and if none is found, add a new one.
      *
      * @param request the request
      * @return either the same instance as passed in, or the existing one.
      */
+    @Nullable
     OutgoingRoomKeyRequest getOrAddOutgoingRoomKeyRequest(OutgoingRoomKeyRequest request);
 
     /**
@@ -263,6 +334,7 @@ public interface IMXCryptoStore {
      * @param states the states
      * @return an OutgoingRoomKeyRequest or null
      */
+    @Nullable
     OutgoingRoomKeyRequest getOutgoingRoomKeyRequestByState(Set<OutgoingRoomKeyRequest.RequestState> states);
 
     /**
@@ -296,8 +368,8 @@ public interface IMXCryptoStore {
     /**
      * Search an IncomingRoomKeyRequest
      *
-     * @param userId the user id
-     * @param deviceId the device id
+     * @param userId    the user id
+     * @param deviceId  the device id
      * @param requestId the request id
      * @return an IncomingRoomKeyRequest if it exists, else null
      */

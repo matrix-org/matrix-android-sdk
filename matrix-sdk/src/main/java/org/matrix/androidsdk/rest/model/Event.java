@@ -27,7 +27,7 @@ import com.google.gson.annotations.SerializedName;
 
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
-import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.message.FileMessage;
 import org.matrix.androidsdk.rest.model.message.ImageMessage;
@@ -93,13 +93,15 @@ public class Event implements Externalizable {
     public static final String EVENT_TYPE_TYPING = "m.typing";
     public static final String EVENT_TYPE_REDACTION = "m.room.redaction";
     public static final String EVENT_TYPE_RECEIPT = "m.receipt";
-    public static final String EVENT_TYPE_TAGS = "m.tag";
     public static final String EVENT_TYPE_ROOM_KEY = "m.room_key";
-    public static final String EVENT_TYPE_READ_MARKER = "m.fully_read";
     public static final String EVENT_TYPE_ROOM_PLUMBING = "m.room.plumbing";
     public static final String EVENT_TYPE_ROOM_BOT_OPTIONS = "m.room.bot.options";
     public static final String EVENT_TYPE_ROOM_KEY_REQUEST = "m.room_key_request";
     public static final String EVENT_TYPE_FORWARDED_ROOM_KEY = "m.forwarded_room_key";
+
+    // Possible value for room account data type
+    public static final String EVENT_TYPE_TAGS = "m.tag";
+    public static final String EVENT_TYPE_READ_MARKER = "m.fully_read";
     public static final String EVENT_TYPE_URL_PREVIEW = "org.matrix.room.preview_urls";
 
     // State events
@@ -768,14 +770,14 @@ public class Event implements Externalizable {
     /**
      * Tells if the current event is uploading a media.
      *
-     * @param mediasCache the media cache
+     * @param mediaCache the media cache
      * @return true if the event is uploading a media.
      */
-    public boolean isUploadingMedias(MXMediasCache mediasCache) {
+    public boolean isUploadingMedia(MXMediaCache mediaCache) {
         List<String> urls = getMediaUrls();
 
         for (String url : urls) {
-            if (mediasCache.getProgressValueForUploadId(url) >= 0) {
+            if (mediaCache.getProgressValueForUploadId(url) >= 0) {
                 return true;
             }
         }
@@ -786,14 +788,14 @@ public class Event implements Externalizable {
     /**
      * Tells if the current event is downloading a media.
      *
-     * @param mediasCache the media cache
+     * @param mediaCache the media cache
      * @return true if the event is downloading a media.
      */
-    public boolean isDownloadingMedias(MXMediasCache mediasCache) {
+    public boolean isDownloadingMedia(MXMediaCache mediaCache) {
         List<String> urls = getMediaUrls();
 
         for (String url : urls) {
-            if (mediasCache.getProgressValueForDownloadId(mediasCache.downloadIdFromUrl(url)) >= 0) {
+            if (mediaCache.getProgressValueForDownloadId(mediaCache.downloadIdFromUrl(url)) >= 0) {
                 return true;
             }
         }

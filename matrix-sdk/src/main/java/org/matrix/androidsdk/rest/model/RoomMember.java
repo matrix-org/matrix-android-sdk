@@ -354,4 +354,13 @@ public class RoomMember implements Externalizable, DatedObject {
     public boolean kickedOrBanned() {
         return TextUtils.equals(membership, MEMBERSHIP_KICK) || TextUtils.equals(membership, MEMBERSHIP_BAN);
     }
+
+    /* ==========================================================================================
+     * Debug info
+     * ========================================================================================== */
+
+    @Override
+    public String toString() {
+        return displayname + " (" + userId + ") " + super.toString();
+    }
 }

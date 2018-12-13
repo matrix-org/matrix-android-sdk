@@ -26,9 +26,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
-
-import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.crypto.MXCrypto;
@@ -41,11 +40,12 @@ import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.data.comparator.RoomComparatorWithTag;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
+import org.matrix.androidsdk.data.cryptostore.db.RealmCryptoStore;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
-import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
@@ -63,6 +63,7 @@ import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushRulesRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
+import org.matrix.androidsdk.rest.client.RoomKeysRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
@@ -80,12 +81,14 @@ import org.matrix.androidsdk.rest.model.filter.FilterResponse;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.LoginFlow;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
+import org.matrix.androidsdk.rest.model.login.ThreePidCredentials;
 import org.matrix.androidsdk.rest.model.message.MediaMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.pid.DeleteDeviceAuth;
 import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;
 import org.matrix.androidsdk.rest.model.search.SearchUsersResponse;
+import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 import org.matrix.androidsdk.rest.model.sync.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
@@ -141,6 +144,7 @@ public class MXSession {
     private final GroupsRestClient mGroupsRestClient;
     private final MediaScanRestClient mMediaScanRestClient;
     private final FilterRestClient mFilterRestClient;
+    private final RoomKeysRestClient mRoomKeysRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -150,12 +154,12 @@ public class MXSession {
 
     private MetricsListener mMetricsListener;
 
-    private Context mAppContent;
+    private Context mContext;
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
     private UnsentEventsManager mUnsentEventsManager;
 
     private MXLatestChatMessageCache mLatestChatMessageCache;
-    private MXMediasCache mMediasCache;
+    private MXMediaCache mMediaCache;
 
     private BingRulesManager mBingRulesManager = null;
 
@@ -167,9 +171,6 @@ public class MXSession {
     private int mSyncDelay = 0;
 
     private final HomeServerConnectionConfig mHsConfig;
-
-    // True if file encryption is enabled
-    private boolean mEnableFileEncryption;
 
     // the application is launched from a notification
     // so, mEventsThread.start might be not ready
@@ -186,12 +187,16 @@ public class MXSession {
     // load the crypto libs.
     public static OlmManager mOlmManager = new OlmManager();
 
+    private IMXCryptoStore mCryptoStore;
+
     /**
      * Create a basic session for direct API calls.
      *
-     * @param hsConfig the home server connection config
+     * @param hsConfig      the home server connection config
+     * @param pushServerUrl specific pushServerUrl
      */
-    private MXSession(HomeServerConnectionConfig hsConfig) {
+    private MXSession(HomeServerConnectionConfig hsConfig,
+                      @Nullable String pushServerUrl) {
         mCredentials = hsConfig.getCredentials();
         mHsConfig = hsConfig;
 
@@ -200,7 +205,25 @@ public class MXSession {
         mPresenceRestClient = new PresenceRestClient(hsConfig);
         mRoomsRestClient = new RoomsRestClient(hsConfig);
         mPushRulesRestClient = new PushRulesRestClient(hsConfig);
-        mPushersRestClient = new PushersRestClient(hsConfig);
+
+        // If not empty, create a special PushersRestClient
+        if (!TextUtils.isEmpty(pushServerUrl)) {
+            // pusher uses a custom server
+            try {
+                HomeServerConnectionConfig alteredHsConfig = new HomeServerConnectionConfig.Builder(hsConfig)
+                        .withHomeServerUri(Uri.parse(pushServerUrl))
+                        .build();
+                mPushersRestClient = new PushersRestClient(alteredHsConfig);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## withPushServerUrl() failed " + e.getMessage(), e);
+            }
+        }
+
+        if (null == mPushersRestClient) {
+            // In case of error, or if pushServerUrl is not defined, use default config
+            mPushersRestClient = new PushersRestClient(hsConfig);
+        }
+
         mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
         mCallRestClient = new CallRestClient(hsConfig);
         mAccountDataRestClient = new AccountDataRestClient(hsConfig);
@@ -209,19 +232,39 @@ public class MXSession {
         mGroupsRestClient = new GroupsRestClient(hsConfig);
         mMediaScanRestClient = new MediaScanRestClient(hsConfig);
         mFilterRestClient = new FilterRestClient(hsConfig);
+        mRoomKeysRestClient = new RoomKeysRestClient(hsConfig);
     }
 
     /**
      * Create a user session with a data handler.
      * Private, please use the MxSession.Builder now
      *
-     * @param hsConfig    the home server connection config
-     * @param dataHandler the data handler
-     * @param appContext  the application context
+     * @param hsConfig                  the home server connection config
+     * @param dataHandler               the data handler
+     * @param appContext                the application context
+     * @param pushServerUrl             specific pushServerUrl
+     * @param withFileEncryptionEnabled true to encrypt the crypto store
+     * @param withLegacyCryptoStore     true to use the legacy file crypto store (for test only)
+     * @param metricsListener           the metrics listener
      */
-    private MXSession(HomeServerConnectionConfig hsConfig, MXDataHandler dataHandler, Context appContext) {
-        this(hsConfig);
+    private MXSession(HomeServerConnectionConfig hsConfig,
+                      MXDataHandler dataHandler,
+                      Context appContext,
+                      @Nullable String pushServerUrl,
+                      boolean withFileEncryptionEnabled,
+                      boolean withLegacyCryptoStore,
+                      @Nullable MetricsListener metricsListener) {
+        this(hsConfig, pushServerUrl);
         mDataHandler = dataHandler;
+
+        // application context
+        mContext = appContext;
+
+        mMetricsListener = metricsListener;
+
+        // Init the crypto store
+        mCryptoStore = withLegacyCryptoStore ? new MXFileCryptoStore(withFileEncryptionEnabled) : new RealmCryptoStore(withFileEncryptionEnabled);
+        mCryptoStore.initWithCredentials(mContext, mCredentials);
 
         mDataHandler.getStore().addMXStoreListener(new MXStoreListener() {
             @Override
@@ -246,10 +289,7 @@ public class MXSession {
 
                 // test if the crypto instance has already been created
                 if (null == mCrypto) {
-                    MXFileCryptoStore store = new MXFileCryptoStore(mEnableFileEncryption);
-                    store.initWithCredentials(mAppContent, mCredentials);
-
-                    if (store.hasData() || mEnableCryptoWhenStartingMXSession) {
+                    if (mCryptoStore.hasData() || mEnableCryptoWhenStartingMXSession) {
                         Log.d(LOG_TAG, "## postProcess() : create the crypto instance for session " + this);
                         checkCrypto();
                     } else {
@@ -284,13 +324,10 @@ public class MXSession {
         mDataHandler.setEventsRestClient(mEventsRestClient);
         mDataHandler.setAccountDataRestClient(mAccountDataRestClient);
 
-        // application context
-        mAppContent = appContext;
-
         mNetworkConnectivityReceiver = new NetworkConnectivityReceiver();
         mNetworkConnectivityReceiver.checkNetworkConnection(appContext);
         mDataHandler.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
-        mAppContent.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+        mContext.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
         mBingRulesManager = new BingRulesManager(this, mNetworkConnectivityReceiver);
         mDataHandler.setPushRulesManager(mBingRulesManager);
@@ -300,7 +337,7 @@ public class MXSession {
         mContentManager = new ContentManager(hsConfig, mUnsentEventsManager);
 
         //
-        mCallsManager = new MXCallsManager(this, mAppContent);
+        mCallsManager = new MXCallsManager(this, mContext);
         mDataHandler.setCallsManager(mCallsManager);
 
         // the rest client
@@ -319,11 +356,11 @@ public class MXSession {
 
         // return the default cache manager
         mLatestChatMessageCache = new MXLatestChatMessageCache(mCredentials.userId);
-        mMediasCache = new MXMediasCache(mContentManager, mNetworkConnectivityReceiver, mCredentials.userId, appContext);
-        mDataHandler.setMediasCache(mMediasCache);
+        mMediaCache = new MXMediaCache(mContentManager, mNetworkConnectivityReceiver, mCredentials.userId, appContext);
+        mDataHandler.setMediaCache(mMediaCache);
 
         mMediaScanRestClient.setMxStore(mDataHandler.getStore());
-        mMediasCache.setMediaScanRestClient(mMediaScanRestClient);
+        mMediaCache.setMediaScanRestClient(mMediaScanRestClient);
 
         mGroupsManager = new GroupsManager(mDataHandler, mGroupsRestClient);
         mDataHandler.setGroupsManager(mGroupsManager);
@@ -363,10 +400,10 @@ public class MXSession {
         String versionName = BuildConfig.VERSION_NAME;
 
         if (!TextUtils.isEmpty(versionName)) {
-            String gitVersion = mAppContent.getResources().getString(R.string.git_sdk_revision);
+            String gitVersion = mContext.getString(R.string.git_sdk_revision);
 
             if (longFormat) {
-                String date = mAppContent.getResources().getString(R.string.git_sdk_revision_date);
+                String date = mContext.getString(R.string.git_sdk_revision_date);
                 versionName += " (" + gitVersion + "-" + date + ")";
             } else {
                 versionName += " (" + gitVersion + ")";
@@ -448,6 +485,16 @@ public class MXSession {
     }
 
     /**
+     * Get the API client for requests to the Room Keys API.
+     *
+     * @return the Room Keys API client
+     */
+    public RoomKeysRestClient getRoomKeysRestClient() {
+        checkIfAlive();
+        return mRoomKeysRestClient;
+    }
+
+    /**
      * Refresh the presence info of a dedicated user.
      *
      * @param userId   the user userID.
@@ -526,6 +573,11 @@ public class MXSession {
         return mMediaScanRestClient;
     }
 
+    public AccountDataRestClient getAccountDataRestClient() {
+        checkIfAlive();
+        return mAccountDataRestClient;
+    }
+
     protected void setEventsApiClient(EventsRestClient eventsRestClient) {
         checkIfAlive();
         mEventsRestClient = eventsRestClient;
@@ -551,9 +603,9 @@ public class MXSession {
         return mLatestChatMessageCache;
     }
 
-    public MXMediasCache getMediasCache() {
+    public MXMediaCache getMediaCache() {
         checkIfAlive();
-        return mMediasCache;
+        return mMediaCache;
     }
 
     /**
@@ -603,7 +655,7 @@ public class MXSession {
 
         // network event will not be listened anymore
         try {
-            mAppContent.unregisterReceiver(mNetworkConnectivityReceiver);
+            mContext.unregisterReceiver(mNetworkConnectivityReceiver);
         } catch (Exception e) {
             Log.e(LOG_TAG, "## clearApplicationCaches() : unregisterReceiver failed " + e.getMessage(), e);
         }
@@ -613,7 +665,7 @@ public class MXSession {
         mUnsentEventsManager.clear();
 
         mLatestChatMessageCache.clearCache(context);
-        mMediasCache.clear();
+        mMediaCache.clear();
 
         if (null != mCrypto) {
             mCrypto.close();
@@ -687,12 +739,12 @@ public class MXSession {
     }
 
     /**
-     * Remove the medias older than the provided timestamp.
+     * Remove the media older than the provided timestamp.
      *
      * @param context   the context
      * @param timestamp the timestamp (in seconds)
      */
-    public void removeMediasBefore(final Context context, final long timestamp) {
+    public void removeMediaBefore(final Context context, final long timestamp) {
         // list the files to keep even if they are older than the provided timestamp
         // because their upload failed
         final Set<String> filesToKeep = new HashSet<>();
@@ -725,7 +777,7 @@ public class MXSession {
                             }
                         }
                     } catch (Exception e) {
-                        Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage(), e);
+                        Log.e(LOG_TAG, "## removeMediaBefore() : failed " + e.getMessage(), e);
                     }
                 }
             }
@@ -734,7 +786,7 @@ public class MXSession {
         AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
-                long length = getMediasCache().removeMediasBefore(timestamp, filesToKeep);
+                long length = getMediaCache().removeMediaBefore(timestamp, filesToKeep);
 
                 // delete also the log files
                 // they might be large
@@ -754,9 +806,9 @@ public class MXSession {
                 }
 
                 if (0 != length) {
-                    Log.d(LOG_TAG, "## removeMediasBefore() : save " + android.text.format.Formatter.formatFileSize(context, length));
+                    Log.d(LOG_TAG, "## removeMediaBefore() : save " + android.text.format.Formatter.formatFileSize(context, length));
                 } else {
-                    Log.d(LOG_TAG, "## removeMediasBefore() : useless");
+                    Log.d(LOG_TAG, "## removeMediaBefore() : useless");
                 }
 
                 return null;
@@ -765,7 +817,7 @@ public class MXSession {
         try {
             task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## removeMediasBefore() : failed " + e.getMessage(), e);
+            Log.e(LOG_TAG, "## removeMediaBefore() : failed " + e.getMessage(), e);
             task.cancel(true);
         }
     }
@@ -853,7 +905,7 @@ public class MXSession {
 
             final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
-            mEventsThread = new EventsThread(mAppContent, mEventsRestClient, fEventsListener, initialToken);
+            mEventsThread = new EventsThread(mContext, mEventsRestClient, fEventsListener, initialToken);
             setSyncFilter(mCurrentFilter);
             mEventsThread.setMetricsListener(mMetricsListener);
             mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
@@ -1044,7 +1096,7 @@ public class MXSession {
         if (null != mNetworkConnectivityReceiver) {
             // mNetworkConnectivityReceiver is a broadcastReceiver
             // but some users reported that the network updates were not dispatched
-            mNetworkConnectivityReceiver.checkNetworkConnection(mAppContent);
+            mNetworkConnectivityReceiver.checkNetworkConnection(mContext);
         }
     }
 
@@ -1094,8 +1146,8 @@ public class MXSession {
             Log.e(LOG_TAG, "pauseEventStream : mEventsThread is null");
         }
 
-        if (null != getMediasCache()) {
-            getMediasCache().clearTmpDecryptedMediaCache();
+        if (null != getMediaCache()) {
+            getMediaCache().clearTmpDecryptedMediaCache();
         }
 
         if (null != mGroupsManager) {
@@ -1119,7 +1171,7 @@ public class MXSession {
         if (null != mNetworkConnectivityReceiver) {
             // mNetworkConnectivityReceiver is a broadcastReceiver
             // but some users reported that the network updates were not dispatched
-            mNetworkConnectivityReceiver.checkNetworkConnection(mAppContent);
+            mNetworkConnectivityReceiver.checkNetworkConnection(mContext);
         }
 
         if (null != mCallsManager) {
@@ -1138,8 +1190,8 @@ public class MXSession {
             Log.d(LOG_TAG, "## resumeEventStream() : cancel bg sync");
         }
 
-        if (null != getMediasCache()) {
-            getMediasCache().clearShareDecryptedMediaCache();
+        if (null != getMediaCache()) {
+            getMediaCache().clearShareDecryptedMediaCache();
         }
 
         if (null != mGroupsManager) {
@@ -1456,7 +1508,7 @@ public class MXSession {
      * Retrieve user matrix id from a 3rd party id.
      *
      * @param addresses 3rd party ids
-     * @param mediums   the medias.
+     * @param mediums   the media.
      * @param callback  the 3rd parties callback
      */
     public void lookup3Pids(List<String> addresses, List<String> mediums, ApiCallback<List<String>> callback) {
@@ -1532,20 +1584,20 @@ public class MXSession {
      * @param nextBatch the token to pass for doing pagination from a previous response.
      * @param callback  the request callback
      */
-    public void searchMediasByName(String name, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
+    public void searchMediaByName(String name, List<String> rooms, String nextBatch, final ApiCallback<SearchResponse> callback) {
         checkIfAlive();
 
         if (null != callback) {
-            mEventsRestClient.searchMediasByText(name, rooms, 0, 0, nextBatch, callback);
+            mEventsRestClient.searchMediaByText(name, rooms, 0, 0, nextBatch, callback);
         }
     }
 
     /**
      * Cancel any pending file search request
      */
-    public void cancelSearchMediasByText() {
+    public void cancelSearchMediaByText() {
         checkIfAlive();
-        mEventsRestClient.cancelSearchMediasByText();
+        mEventsRestClient.cancelSearchMediaByText();
     }
 
     /**
@@ -1913,12 +1965,12 @@ public class MXSession {
     /**
      * Reset the password to a new one.
      *
-     * @param newPassword    the new password
-     * @param threepid_creds the three pids.
-     * @param callback       the callback
+     * @param newPassword         the new password
+     * @param threePidCredentials the three pids.
+     * @param callback            the callback
      */
-    public void resetPassword(final String newPassword, final Map<String, String> threepid_creds, final ApiCallback<Void> callback) {
-        mProfileRestClient.resetPassword(newPassword, threepid_creds, callback);
+    public void resetPassword(final String newPassword, final ThreePidCredentials threePidCredentials, final ApiCallback<Void> callback) {
+        mProfileRestClient.resetPassword(newPassword, threePidCredentials, callback);
     }
 
     /**
@@ -1935,9 +1987,9 @@ public class MXSession {
         }
 
         Map<String, Object> params = new HashMap<>();
-        params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_IGNORED_USERS, ignoredUsersDict);
+        params.put(AccountDataElement.ACCOUNT_DATA_KEY_IGNORED_USERS, ignoredUsersDict);
 
-        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST, params, callback);
+        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataElement.ACCOUNT_DATA_TYPE_IGNORED_USER_LIST, params, callback);
     }
 
     /**
@@ -2049,7 +2101,7 @@ public class MXSession {
         // on the next log in
         enableCrypto(false, null);
 
-        mLoginRestClient.logout(new ApiCallback<JsonObject>() {
+        mLoginRestClient.logout(new ApiCallback<Void>() {
 
             private void clearData() {
                 // required else the clear won't be done
@@ -2066,7 +2118,7 @@ public class MXSession {
             }
 
             @Override
-            public void onSuccess(JsonObject info) {
+            public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "## logout() : succeed -> clearing the application data ");
                 clearData();
             }
@@ -2097,17 +2149,15 @@ public class MXSession {
      * Deactivate the account.
      *
      * @param context       the application context
-     * @param type          type of authentication
      * @param userPassword  current password
      * @param eraseUserData true to also erase all the user data
      * @param callback      the success and failure callback
      */
     public void deactivateAccount(final Context context,
-                                  final String type,
                                   final String userPassword,
                                   final boolean eraseUserData,
                                   final ApiCallback<Void> callback) {
-        mProfileRestClient.deactivateAccount(type, getMyUserId(), userPassword, eraseUserData, new SimpleApiCallback<Void>(callback) {
+        mProfileRestClient.deactivateAccount(getMyUserId(), userPassword, eraseUserData, new SimpleApiCallback<Void>(callback) {
 
             @Override
             public void onSuccess(Void info) {
@@ -2138,10 +2188,10 @@ public class MXSession {
      */
     public void setURLPreviewStatus(final boolean status, final ApiCallback<Void> callback) {
         Map<String, Object> params = new HashMap<>();
-        params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
+        params.put(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
 
         Log.d(LOG_TAG, "## setURLPreviewStatus() : status " + status);
-        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_PREVIEW_URLS, params, new ApiCallback<Void>() {
+        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataElement.ACCOUNT_DATA_TYPE_PREVIEW_URLS, params, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "## setURLPreviewStatus() : succeeds");
@@ -2181,7 +2231,7 @@ public class MXSession {
     public void addUserWidget(final Map<String, Object> params, final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "## addUserWidget()");
 
-        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataRestClient.ACCOUNT_DATA_TYPE_WIDGETS, params, new ApiCallback<Void>() {
+        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataElement.ACCOUNT_DATA_TYPE_WIDGETS, params, new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "## addUserWidget() : succeeds");
@@ -2238,11 +2288,13 @@ public class MXSession {
      * The module that manages E2E encryption.
      * Null if the feature is not enabled
      */
+    @Nullable
     private MXCrypto mCrypto;
 
     /**
      * @return the crypto instance
      */
+    @Nullable
     public MXCrypto getCrypto() {
         return mCrypto;
     }
@@ -2299,14 +2351,11 @@ public class MXSession {
      * Launch it it is was not yet done.
      */
     public void checkCrypto() {
-        MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore(mEnableFileEncryption);
-        fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
-
-        if ((fileCryptoStore.hasData() || mEnableCryptoWhenStartingMXSession) && (null == mCrypto)) {
+        if ((mCryptoStore.hasData() || mEnableCryptoWhenStartingMXSession) && (null == mCrypto)) {
             boolean isStoreLoaded = false;
             try {
                 // open the store
-                fileCryptoStore.open();
+                mCryptoStore.open();
                 isStoreLoaded = true;
             } catch (UnsatisfiedLinkError e) {
                 Log.e(LOG_TAG, "## checkCrypto() failed " + e.getMessage(), e);
@@ -2319,7 +2368,7 @@ public class MXSession {
 
                 try {
                     // open the store
-                    fileCryptoStore.open();
+                    mCryptoStore.open();
                     isStoreLoaded = true;
                 } catch (UnsatisfiedLinkError e) {
                     Log.e(LOG_TAG, "## checkCrypto() failed 2 " + e.getMessage(), e);
@@ -2331,7 +2380,7 @@ public class MXSession {
                 return;
             }
 
-            mCrypto = new MXCrypto(MXSession.this, fileCryptoStore, sCryptoConfig);
+            mCrypto = new MXCrypto(this, mCryptoStore, sCryptoConfig);
             mDataHandler.setCrypto(mCrypto);
             // the room summaries are not stored with decrypted content
             decryptRoomSummaries();
@@ -2353,10 +2402,8 @@ public class MXSession {
         if (cryptoEnabled != isCryptoEnabled()) {
             if (cryptoEnabled) {
                 Log.d(LOG_TAG, "Crypto is enabled");
-                MXFileCryptoStore fileCryptoStore = new MXFileCryptoStore(mEnableFileEncryption);
-                fileCryptoStore.initWithCredentials(mAppContent, mCredentials);
-                fileCryptoStore.open();
-                mCrypto = new MXCrypto(this, fileCryptoStore, sCryptoConfig);
+                mCryptoStore.open();
+                mCrypto = new MXCrypto(this, mCryptoStore, sCryptoConfig);
                 mCrypto.start(true, new SimpleApiCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void info) {
@@ -2368,9 +2415,8 @@ public class MXSession {
                 });
             } else if (null != mCrypto) {
                 Log.d(LOG_TAG, "Crypto is disabled");
-                IMXCryptoStore store = mCrypto.mCryptoStore;
                 mCrypto.close();
-                store.deleteStore();
+                mCryptoStore.deleteStore();
                 mCrypto = null;
                 mDataHandler.setCrypto(null);
 
@@ -2535,14 +2581,34 @@ public class MXSession {
      * ========================================================================================== */
 
     public static class Builder {
-        private MXSession mxSession;
+        private final HomeServerConnectionConfig mHsConfig;
+        private final MXDataHandler mDataHandler;
+        private final Context mContext;
+        @Nullable
+        private String mPushServerUrl;
+        // True if file encryption is enabled
+        private boolean mEnableFileEncryption;
+        // Used by unit tests to test Crypto store migration
+        private boolean mUseLegacyCryptoStore;
+        private MetricsListener mMetricsListener;
 
-        public Builder(HomeServerConnectionConfig hsConfig, MXDataHandler dataHandler, Context context) {
-            mxSession = new MXSession(hsConfig, dataHandler, context);
+
+        public Builder(@NonNull HomeServerConnectionConfig hsConfig,
+                       @NonNull MXDataHandler dataHandler,
+                       @NonNull Context context) {
+            mHsConfig = hsConfig;
+            mDataHandler = dataHandler;
+            mContext = context;
         }
 
         public Builder withFileEncryption(boolean enableFileEncryption) {
-            mxSession.mEnableFileEncryption = enableFileEncryption;
+            mEnableFileEncryption = enableFileEncryption;
+            return this;
+        }
+
+        @VisibleForTesting
+        public Builder withLegacyCryptoStore(boolean useLegacyCryptoStore) {
+            mUseLegacyCryptoStore = useLegacyCryptoStore;
             return this;
         }
 
@@ -2553,26 +2619,7 @@ public class MXSession {
          * @return this builder, to chain calls
          */
         public Builder withPushServerUrl(@Nullable String pushServerUrl) {
-            // If not empty, create a special PushersRestClient
-            PushersRestClient pushersRestClient = null;
-
-            if (!TextUtils.isEmpty(pushServerUrl)) {
-                // pusher uses a custom server
-                try {
-                    HomeServerConnectionConfig alteredHsConfig = new HomeServerConnectionConfig.Builder(mxSession.mPushersRestClient.mHsConfig)
-                            .withHomeServerUri(Uri.parse(pushServerUrl))
-                            .build();
-                    pushersRestClient = new PushersRestClient(alteredHsConfig);
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "## withPushServerUrl() failed " + e.getMessage(), e);
-                }
-            }
-
-            if (null != pushersRestClient) {
-                // Replace the existing client
-                mxSession.mPushersRestClient = pushersRestClient;
-            }
-
+            mPushServerUrl = pushServerUrl;
             return this;
         }
 
@@ -2583,7 +2630,7 @@ public class MXSession {
          * @return this builder, to chain calls
          */
         public Builder withMetricsListener(@Nullable MetricsListener metricsListener) {
-            mxSession.mMetricsListener = metricsListener;
+            mMetricsListener = metricsListener;
 
             return this;
         }
@@ -2591,10 +2638,25 @@ public class MXSession {
         /**
          * Build the session
          *
-         * @return the build session
+         * @return the built session
          */
         public MXSession build() {
-            return mxSession;
+            return new MXSession(mHsConfig,
+                    mDataHandler,
+                    mContext,
+                    mPushServerUrl,
+                    mEnableFileEncryption,
+                    mUseLegacyCryptoStore,
+                    mMetricsListener);
         }
+    }
+
+    /* ==========================================================================================
+     * Debug info
+     * ========================================================================================== */
+
+    @Override
+    public String toString() {
+        return getMyUserId() + " " + super.toString();
     }
 }

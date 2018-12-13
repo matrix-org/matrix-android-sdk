@@ -10,13 +10,13 @@
         android:id="@+id/listView_messages"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:background="#190986"
         android:cacheColorHint="@android:color/transparent"
         android:childDivider="@android:color/transparent"
         android:divider="#ffffff"
         android:dividerHeight="0dp"
         android:listSelector="@android:color/transparent"
         android:transcriptMode="normal"
+        tools:background="#190986"
         tools:layout_height="120dp" />
 
 </FrameLayout>

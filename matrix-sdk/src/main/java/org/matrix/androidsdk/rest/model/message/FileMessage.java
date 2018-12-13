@@ -17,12 +17,11 @@ package org.matrix.androidsdk.rest.model.message;
 
 import android.content.ClipDescription;
 import android.text.TextUtils;
+import android.webkit.MimeTypeMap;
 
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.util.Log;
-
-import android.webkit.MimeTypeMap;
 
 public class FileMessage extends MediaMessage {
     private static final String LOG_TAG = FileMessage.class.getSimpleName();
@@ -30,7 +29,7 @@ public class FileMessage extends MediaMessage {
     public FileInfo info;
     public String url;
 
-    // encrypted medias
+    // encrypted media
     // url and thumbnailUrl are replaced by their dedicated file
     public EncryptedFileInfo file;
 

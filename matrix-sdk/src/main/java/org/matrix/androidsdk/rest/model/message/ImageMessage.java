@@ -25,7 +25,7 @@ public class ImageMessage extends MediaMessage {
     public ImageInfo info;
     public String url;
 
-    // encrypted medias
+    // encrypted media
     // url and thumbnailUrl are replaced by their dedicated file
     public EncryptedFileInfo file;
 

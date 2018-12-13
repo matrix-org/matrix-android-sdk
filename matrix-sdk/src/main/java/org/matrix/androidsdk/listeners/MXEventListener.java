@@ -163,4 +163,8 @@ public class MXEventListener implements IMXEventListener {
     @Override
     public void onGroupInvitedUsersListUpdate(String groupId) {
     }
+
+    @Override
+    public void onAccountDataUpdated() {
+    }
 }

@@ -16,10 +16,9 @@
  */
 package org.matrix.androidsdk.rest.api;
 
-import com.google.gson.JsonObject;
-
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.model.Versions;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.LoginFlowResponse;
 import org.matrix.androidsdk.rest.model.login.LoginParams;
 import org.matrix.androidsdk.rest.model.login.RegistrationParams;
@@ -52,7 +51,7 @@ public interface LoginApi {
      * @param params the registration params
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "register")
-    Call<JsonObject> register(@Body RegistrationParams params);
+    Call<Credentials> register(@Body RegistrationParams params);
 
     /**
      * Pass params to the server for the current login phase.
@@ -60,11 +59,11 @@ public interface LoginApi {
      * @param loginParams the login parameters
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "login")
-    Call<JsonObject> login(@Body LoginParams loginParams);
+    Call<Credentials> login(@Body LoginParams loginParams);
 
     /**
      * Invalidate the access token, so that it can no longer be used for authorization.
      */
     @POST(RestClient.URI_API_PREFIX_PATH_R0 + "logout")
-    Call<JsonObject> logout();
+    Call<Void> logout();
 }

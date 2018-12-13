@@ -48,7 +48,8 @@ succes[^s]
 protected Integer
 
 ### Use the interface declaration. Example: use type "Map" instead of type "HashMap" to declare variable or parameter
-(private|public|protected|    ) (static )?(final )?(HashMap|HashSet|ArrayList)
+# This rule is disabled in Kotlin
+# (private|public|protected|    ) (static )?(final )?(HashMap|HashSet|ArrayList)
 
 ### Prefer comparison the ascending way, when checking for value in range. Use <=
 >= .* &&===3
@@ -129,6 +130,12 @@ ButterKnife\.findById\(
 
 ### Directly use getString() in a Fragment
 getActivity\(\)\.getString\(
+
+### In Kotlin, Void has to be null safe, i.e. use 'Void?' instead of 'Void'
+\: Void\)
+
+### Kotlin conversion tools introduce this, but it can be replaced by trim()
+trim \{ it \<\= \' \' \}
 
 ### Use AlertDialog form v7 compat lib
 android\.app\.AlertDialog

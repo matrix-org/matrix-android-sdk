@@ -73,9 +73,9 @@
     <!-- medium friendly name -->
     <string name="medium_email">Endereço de email</string>
     <string name="medium_phone_number">Número de telefone</string>
-    
-    
-<string name="summary_user_sent_sticker">%1$s enviou um sticker.</string>
+
+
+    <string name="summary_user_sent_sticker">%1$s enviou um sticker.</string>
 
     <string name="message_reply_to_prefix">Em resposta a</string>
 

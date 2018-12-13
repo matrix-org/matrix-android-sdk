@@ -54,9 +54,7 @@ public class CryptoRestTest {
     @Test
     public void test01_testDeviceKeys() throws Exception {
         final Context context = InstrumentationRegistry.getContext();
-        final SessionTestParams testParams = SessionTestParams.newBuilder()
-                .withInitialSync(true)
-                .build();
+        final SessionTestParams testParams = new SessionTestParams(true);
         final MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, testParams);
         final Map<String, Object> results = new HashMap<>();
 
@@ -64,7 +62,7 @@ public class CryptoRestTest {
 
         MXDeviceInfo bobDevice = new MXDeviceInfo("dev1");
         bobDevice.userId = bobSession.getMyUserId();
-        bobDevice.algorithms = Arrays.asList(MXCryptoAlgorithms.MXCRYPTO_ALGORITHM_OLM);
+        bobDevice.algorithms = Arrays.asList(CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM);
 
         Map<String, String> keysMap = new HashMap<>();
         keysMap.put("ed25519:" + bobDevice.deviceId, ed25519key);
@@ -122,9 +120,7 @@ public class CryptoRestTest {
     @Test
     public void test02_testOneTimeKeys() throws Exception {
         Context context = InstrumentationRegistry.getContext();
-        final SessionTestParams testParams = SessionTestParams.newBuilder()
-                .withInitialSync(true)
-                .build();
+        final SessionTestParams testParams = new SessionTestParams(true);
         final MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, testParams);
 
         final Map<String, Object> results = new HashMap<>();
@@ -157,9 +153,7 @@ public class CryptoRestTest {
     @Test
     public void test03_testClaimOneTimeKeysForUsersDevices() throws Exception {
         Context context = InstrumentationRegistry.getContext();
-        final SessionTestParams testParams = SessionTestParams.newBuilder()
-                .withInitialSync(true)
-                .build();
+        final SessionTestParams testParams = new SessionTestParams(true);
         final MXSession bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, testParams);
         final MXSession aliceSession = mTestHelper.createAccount(TestConstants.USER_ALICE, testParams);
 

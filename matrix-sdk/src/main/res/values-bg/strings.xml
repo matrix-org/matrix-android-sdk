@@ -62,7 +62,7 @@
     <string name="medium_email">Имейл адрес</string>
     <string name="medium_phone_number">Телефонен номер</string>
 
-<string name="notice_crypto_error_unkwown_inbound_session_id">Устройството на подателя не изпрати ключовете за това съобщение.</string>
+    <string name="notice_crypto_error_unkwown_inbound_session_id">Устройството на подателя не изпрати ключовете за това съобщение.</string>
 
     <string name="summary_user_sent_sticker">%1$s изпрати стикер.</string>
 

@@ -39,6 +39,8 @@ import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
+import org.matrix.androidsdk.rest.model.sync.AccountData;
+import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
@@ -71,6 +73,7 @@ public class MXMemoryStore implements IMXStore {
     protected Map<String, String> mRoomTokens;
 
     protected Map<String, RoomSummary> mRoomSummaries;
+    protected AccountData mAccountData;
     protected Map<String, RoomAccountData> mRoomAccountData;
 
     // dict of dict of MXReceiptData indexed by userId
@@ -847,7 +850,48 @@ public class MXMemoryStore implements IMXStore {
     }
 
     @Override
-    public void storeAccountData(String roomId, RoomAccountData accountData) {
+    public void storeAccountData(AccountData accountData) {
+        if (mAccountData == null) {
+            // Just copy the received account data
+            mAccountData = accountData;
+        } else {
+            for (AccountDataElement receivedAccountDataElement : accountData.accountDataElements) {
+                String type = receivedAccountDataElement.type;
+
+                // Search existing type in current AccountData
+                for (AccountDataElement existingAccountDataElement : mAccountData.accountDataElements) {
+                    if (existingAccountDataElement.type.equals(type)) {
+                        // Remove
+                        mAccountData.accountDataElements.remove(existingAccountDataElement);
+                        break;
+                    }
+                }
+
+                // Add the received one
+                mAccountData.accountDataElements.add(receivedAccountDataElement);
+            }
+        }
+    }
+
+    @Nullable
+    @Override
+    public AccountDataElement getAccountDataElement(String type) {
+        if (mAccountData == null || mAccountData.accountDataElements == null) {
+            return null;
+        }
+
+        for (AccountDataElement accountDataElement : mAccountData.accountDataElements) {
+            if (type.equals(accountDataElement.type)) {
+                return accountDataElement;
+            }
+        }
+
+        // Not found
+        return null;
+    }
+
+    @Override
+    public void storeRoomAccountData(String roomId, RoomAccountData accountData) {
         try {
             if (null != roomId) {
                 Room room = mRooms.get(roomId);

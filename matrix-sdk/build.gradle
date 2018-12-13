@@ -1,8 +1,20 @@
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-kapt'
+apply plugin: 'realm-android'
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath "io.realm:realm-gradle-plugin:5.8.0"
+    }
+}
 
 android {
     compileSdkVersion 27
-    buildToolsVersion '27.0.3'
 
     packagingOptions {
         exclude 'LICENSE.txt'
@@ -14,9 +26,14 @@ android {
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 26
-        versionCode 913
-        versionName "0.9.13"
+        versionCode 914
+        versionName "0.9.14"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     // prevent the "superClassName is empty" error for classes not annotated as tests
@@ -123,7 +140,12 @@ static def gitRevisionDate() {
 }
 
 dependencies {
+    // Kotlin
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
     implementation 'com.android.support:appcompat-v7:27.1.1'
+    implementation 'com.android.support:preference-v7:27.1.1'
+
     implementation 'com.squareup.retrofit2:retrofit:2.4.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
     implementation 'com.google.code.gson:gson:2.8.2'
@@ -133,6 +155,9 @@ dependencies {
     implementation 'com.facebook.stetho:stetho-okhttp3:1.5.0'
 
     implementation(name: 'olm-sdk', ext: 'aar')
+
+    // Database
+    kapt 'dk.ilios:realmfieldnameshelper:1.1.1'
 
     // replace the compile 'io.pristine:libjingle:9690@aar'
     implementation(name: 'react-native-webrtc', ext: 'aar')

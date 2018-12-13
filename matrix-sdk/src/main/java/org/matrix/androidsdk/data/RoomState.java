@@ -174,7 +174,7 @@ public class RoomState implements Externalizable {
     private final Map<String, RoomThirdPartyInvite> mThirdPartyInvites = new HashMap<>();
 
     /**
-     * Cache for [self memberWithThirdPartyInviteToken].
+     * Cache for memberWithThirdPartyInviteToken.
      * The key is the 3pid invite token.
      */
     private final Map<String, RoomMember> mMembersWithThirdPartyInviteTokenCache = new HashMap<>();

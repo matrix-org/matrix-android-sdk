@@ -364,12 +364,12 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * @param nextBatch   the token to pass for doing pagination from a previous response.
      * @param callback    the request callback
      */
-    public void searchMediasByText(final String name,
-                                   final List<String> rooms,
-                                   final int beforeLimit,
-                                   final int afterLimit,
-                                   final String nextBatch,
-                                   final ApiCallback<SearchResponse> callback) {
+    public void searchMediaByText(final String name,
+                                  final List<String> rooms,
+                                  final int beforeLimit,
+                                  final int afterLimit,
+                                  final String nextBatch,
+                                  final ApiCallback<SearchResponse> callback) {
         SearchParams searchParams = new SearchParams();
         SearchRoomEventCategoryParams searchEventParams = new SearchRoomEventCategoryParams();
 
@@ -405,7 +405,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
         final String uid = System.currentTimeMillis() + "";
         mSearchEventsMediaNameIdentifier = uid + name;
 
-        final String description = "searchMediasByText";
+        final String description = "searchMediaByText";
 
         // don't retry to send the request
         // if the search fails, stop it
@@ -455,7 +455,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
                 }, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        searchMediasByText(name, rooms, beforeLimit, afterLimit, nextBatch, callback);
+                        searchMediaByText(name, rooms, beforeLimit, afterLimit, nextBatch, callback);
                     }
                 }));
     }
@@ -552,7 +552,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
     /**
      * Cancel any pending file search request
      */
-    public void cancelSearchMediasByText() {
+    public void cancelSearchMediaByText() {
         mSearchEventsMediaNameIdentifier = null;
     }
 

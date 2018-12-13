@@ -13,21 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.matrix.androidsdk.rest.model.login
 
-package org.matrix.androidsdk.common;
+import org.matrix.androidsdk.rest.client.LoginRestClient
 
-import android.util.Pair;
+/**
+ * Class to define the authentication parameters for "m.login.password" type
+ */
+class AuthParamsLoginPassword : AuthParams(LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD) {
 
-import org.matrix.androidsdk.MXSession;
+    @JvmField
+    var user: String? = null
 
-public class SessionAndRoomId extends Pair<MXSession, String> {
-    /**
-     * Constructor for a Pair.
-     *
-     * @param first  the first object in the Pair
-     * @param second the second object in the pair
-     */
-    public SessionAndRoomId(MXSession first, String second) {
-        super(first, second);
-    }
+    @JvmField
+    var password: String? = null
 }

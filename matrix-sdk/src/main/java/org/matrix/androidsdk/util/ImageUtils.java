@@ -25,7 +25,7 @@ import android.net.Uri;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.db.MXMediaCache;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -224,10 +224,10 @@ public class ImageUtils {
      * @param context       the application
      * @param imageURL      the genuine image URL.
      * @param rotationAngle angle in degrees
-     * @param mediasCache   the used media cache
+     * @param mediaCache    the used media cache
      * @return the rotated bitmap
      */
-    public static Bitmap rotateImage(Context context, String imageURL, int rotationAngle, MXMediasCache mediasCache) {
+    public static Bitmap rotateImage(Context context, String imageURL, int rotationAngle, MXMediaCache mediaCache) {
         Bitmap rotatedBitmap = null;
 
         try {
@@ -262,8 +262,8 @@ public class ImageUtils {
                     bitmap.recycle();
                 }
 
-                if (null != mediasCache) {
-                    mediasCache.saveBitmap(transformedBitmap, imageURL);
+                if (null != mediaCache) {
+                    mediaCache.saveBitmap(transformedBitmap, imageURL);
                 }
 
                 rotatedBitmap = transformedBitmap;
@@ -284,10 +284,10 @@ public class ImageUtils {
      *
      * @param context     the application
      * @param imageURL    the genuine image URL.
-     * @param mediasCache the used media cache
+     * @param mediaCache  the used media cache
      * @return the rotated bitmap if the operation succeeds.
      */
-    public static Bitmap applyExifRotation(Context context, String imageURL, MXMediasCache mediasCache) {
+    public static Bitmap applyExifRotation(Context context, String imageURL, MXMediaCache mediaCache) {
         Bitmap rotatedBitmap = null;
 
         try {
@@ -296,7 +296,7 @@ public class ImageUtils {
             final int rotationAngle = ImageUtils.getRotationAngleForBitmap(context, imageUri);
 
             if (0 != rotationAngle) {
-                rotatedBitmap = rotateImage(context, imageURL, rotationAngle, mediasCache);
+                rotatedBitmap = rotateImage(context, imageURL, rotationAngle, mediaCache);
             }
 
         } catch (Exception e) {
@@ -314,18 +314,18 @@ public class ImageUtils {
      * @param mimeType      the mime type
      * @param maxSide       reduce the image to this square side.
      * @param rotationAngle the rotation angle
-     * @param mediasCache   the media cache.
+     * @param mediaCache    the media cache.
      * @return the media url
      */
-    public static String scaleAndRotateImage(Context context, InputStream stream, String mimeType, int maxSide, int rotationAngle, MXMediasCache mediasCache) {
+    public static String scaleAndRotateImage(Context context, InputStream stream, String mimeType, int maxSide, int rotationAngle, MXMediaCache mediaCache) {
         String url = null;
 
         // sanity checks
-        if ((null != context) && (null != stream) && (null != mediasCache)) {
+        if ((null != context) && (null != stream) && (null != mediaCache)) {
             try {
                 InputStream scaledStream = ImageUtils.resizeImage(stream, maxSide, 0, 75);
-                url = mediasCache.saveMedia(scaledStream, null, mimeType);
-                rotateImage(context, url, rotationAngle, mediasCache);
+                url = mediaCache.saveMedia(scaledStream, null, mimeType);
+                rotateImage(context, url, rotationAngle, mediaCache);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "rotateAndScale " + e.getMessage(), e);
             }

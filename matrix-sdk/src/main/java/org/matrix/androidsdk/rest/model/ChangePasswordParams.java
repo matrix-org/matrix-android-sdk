@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import org.matrix.androidsdk.rest.model.login.AuthParams;
+
 /**
  * Class to update the password
  */

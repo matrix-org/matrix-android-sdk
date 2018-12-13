@@ -63,7 +63,7 @@
     <string name="medium_email">Email cím</string>
     <string name="medium_phone_number">Telefonszám</string>
 
-<string name="summary_user_sent_sticker">%1$s küldött egy matricát.</string>
+    <string name="summary_user_sent_sticker">%1$s küldött egy matricát.</string>
 
     <string name="message_reply_to_prefix">Válasz erre:</string>
 

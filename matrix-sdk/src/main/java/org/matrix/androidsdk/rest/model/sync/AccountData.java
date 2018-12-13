@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,21 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model;
 
-import java.util.Map;
+package org.matrix.androidsdk.rest.model.sync;
 
-/**
- * Class to define the authentication parameters
- */
-public class AuthParams {
-    //
-    public String type;
+import com.google.gson.annotations.SerializedName;
 
-    // update password (type = m.login.password)
-    public String user;
-    public String password;
+import java.io.Serializable;
+import java.util.List;
 
-    // forget password parameters (type = m.login.email.identity)
-    public Map<String, String> threepid_creds;
+public class AccountData implements Serializable {
+
+    @SerializedName("events")
+    public List<AccountDataElement> accountDataElements;
+
 }

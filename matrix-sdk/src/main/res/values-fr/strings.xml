@@ -10,7 +10,7 @@
     <string name="notice_room_join">%1$s a rejoint la discussion</string>
     <string name="notice_room_leave">%1$s est parti</string>
     <string name="notice_room_reject">%1$s a rejeté l\'invitation</string>
-    <string name="notice_room_kick">%1$s a exclu %2$s</string>
+    <string name="notice_room_kick">%1$s a expulsé %2$s</string>
     <string name="notice_room_unban">%1$s a révoqué le bannissement de %2$s</string>
     <string name="notice_room_ban">%1$s a banni %2$s</string>
     <string name="notice_room_withdraw">%1$s a annulé l\'invitation de %2$s</string>
@@ -64,7 +64,7 @@
     <string name="medium_email">Adresse e-mail</string>
     <string name="medium_phone_number">Numéro de téléphone</string>
 
-<string name="summary_user_sent_sticker">%1$s a envoyé un sticker.</string>
+    <string name="summary_user_sent_sticker">%1$s a envoyé un sticker.</string>
 
     <string name="message_reply_to_prefix">En réponse à</string>
 

@@ -32,7 +32,6 @@ import org.matrix.androidsdk.rest.api.RoomsApi;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
-import org.matrix.androidsdk.rest.model.BannedUser;
 import org.matrix.androidsdk.rest.model.ChunkEvents;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
@@ -44,12 +43,13 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReportContentParams;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
-import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.UserIdAndReason;
 import org.matrix.androidsdk.rest.model.filter.RoomEventFilter;
 import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
 import java.util.HashMap;
@@ -298,23 +298,20 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * Kick a user from a room.
      *
-     * @param roomId   the room id
-     * @param userId   the user id
-     * @param callback the async callback
+     * @param roomId          the room id
+     * @param userIdAndReason the kicked user object (userId and reason for ban)
+     * @param callback        the async callback
      */
-    public void kickFromRoom(final String roomId, final String userId, final ApiCallback<Void> callback) {
-        final String description = "kickFromRoom : roomId " + roomId + " userId " + userId;
+    public void kickFromRoom(final String roomId,
+                             final UserIdAndReason userIdAndReason,
+                             final ApiCallback<Void> callback) {
+        final String description = "kickFromRoom : roomId " + roomId + " userId " + userIdAndReason.userId;
 
-        // TODO It does not look like this in the Matrix spec
-        // Kicking is done by posting that the user is now in a "leave" state
-        RoomMember member = new RoomMember();
-        member.membership = RoomMember.MEMBERSHIP_LEAVE;
-
-        mApi.updateRoomMember(roomId, userId, member)
+        mApi.kick(roomId, userIdAndReason)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        kickFromRoom(roomId, userId, callback);
+                        kickFromRoom(roomId, userIdAndReason, callback);
                     }
                 }));
     }
@@ -322,18 +319,18 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * Ban a user from a room.
      *
-     * @param roomId   the room id
-     * @param user     the banned user object (userId and reason for ban)
-     * @param callback the async callback
+     * @param roomId          the room id
+     * @param userIdAndReason the banned user object (userId and reason for ban)
+     * @param callback        the async callback
      */
-    public void banFromRoom(final String roomId, final BannedUser user, final ApiCallback<Void> callback) {
-        final String description = "banFromRoom : roomId " + roomId + " userId " + user.userId;
+    public void banFromRoom(final String roomId, final UserIdAndReason userIdAndReason, final ApiCallback<Void> callback) {
+        final String description = "banFromRoom : roomId " + roomId + " userId " + userIdAndReason.userId;
 
-        mApi.ban(roomId, user)
+        mApi.ban(roomId, userIdAndReason)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        banFromRoom(roomId, user, callback);
+                        banFromRoom(roomId, userIdAndReason, callback);
                     }
                 }));
     }
@@ -341,18 +338,18 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * Unban an user from a room.
      *
-     * @param roomId   the room id
-     * @param user     the banned user (userId)
-     * @param callback the async callback
+     * @param roomId          the room id
+     * @param userIdAndReason the banned user (userId)
+     * @param callback        the async callback
      */
-    public void unbanFromRoom(final String roomId, final BannedUser user, final ApiCallback<Void> callback) {
-        final String description = "Unban : roomId " + roomId + " userId " + user.userId;
+    public void unbanFromRoom(final String roomId, final UserIdAndReason userIdAndReason, final ApiCallback<Void> callback) {
+        final String description = "Unban : roomId " + roomId + " userId " + userIdAndReason.userId;
 
-        mApi.unban(roomId, user)
+        mApi.unban(roomId, userIdAndReason)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        unbanFromRoom(roomId, user, callback);
+                        unbanFromRoom(roomId, userIdAndReason, callback);
                     }
                 }));
     }
@@ -896,7 +893,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         final String description = "updateURLPreviewStatus : roomId " + roomId + " - status " + status;
 
         Map<String, Object> params = new HashMap<>();
-        params.put(AccountDataRestClient.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
+        params.put(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
 
         mApi.updateAccountData(getCredentials().userId, roomId, Event.EVENT_TYPE_URL_PREVIEW, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {

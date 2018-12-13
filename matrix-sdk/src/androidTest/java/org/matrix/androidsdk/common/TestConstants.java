@@ -16,16 +16,30 @@
 
 package org.matrix.androidsdk.common;
 
+import android.os.Debug;
+
 public class TestConstants {
 
     public static final String TESTS_HOME_SERVER_URL = "http://10.0.2.2:8080";
 
-    // Time out to use when waiting for server response
-    public static final int AWAIT_TIME_OUT_MILLIS = 30000;
+    // Time out to use when waiting for server response. 60s
+    private static final int AWAIT_TIME_OUT_MILLIS = 60_000;
+
+    // Time out to use when waiting for server response, when the debugger is connected. 10 minutes
+    private static final int AWAIT_TIME_OUT_WITH_DEBUGGER_MILLIS = 10 * 60_000;
 
     public static final String USER_ALICE = "Alice";
     public static final String USER_BOB = "Bob";
     public static final String USER_SAM = "Sam";
 
     public static final String PASSWORD = "password";
+
+    public static long getTimeOutMillis() {
+        if (Debug.isDebuggerConnected()) {
+            // Wait more
+            return AWAIT_TIME_OUT_WITH_DEBUGGER_MILLIS;
+        } else {
+            return AWAIT_TIME_OUT_MILLIS;
+        }
+    }
 }

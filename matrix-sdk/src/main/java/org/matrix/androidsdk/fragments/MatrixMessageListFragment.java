@@ -51,7 +51,7 @@ import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.timeline.EventTimelineFactory;
-import org.matrix.androidsdk.db.MXMediasCache;
+import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
@@ -260,7 +260,7 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
      *
      * @return
      */
-    public abstract MXMediasCache getMXMediasCache();
+    public abstract MXMediaCache getMXMediaCache();
 
     /**
      * Get MxSession
@@ -473,14 +473,14 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
             throw new RuntimeException("Must have valid default MXSession.");
         }
 
-        if (null == getMXMediasCache()) {
+        if (null == getMXMediaCache()) {
             if (null != getActivity()) {
-                Log.e(LOG_TAG, "Must have valid default MediasCache.");
+                Log.e(LOG_TAG, "Must have valid default MediaCache.");
                 getActivity().finish();
                 return defaultView;
             }
 
-            throw new RuntimeException("Must have valid default MediasCache.");
+            throw new RuntimeException("Must have valid default MediaCache.");
         }
 
         mRoomId = args.getString(ARG_ROOM_ID);
@@ -2229,7 +2229,7 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
 
 
         if (mIsMediaSearch) {
-            mSession.searchMediasByName(mPattern, roomIds, mNextBatch, callback);
+            mSession.searchMediaByName(mPattern, roomIds, mNextBatch, callback);
         } else {
             mSession.searchMessagesByText(mPattern, roomIds, mNextBatch, callback);
         }
@@ -2374,7 +2374,7 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
                 };
 
                 if (isMediaSearch) {
-                    mSession.searchMediasByName(mPattern, roomIds, null, searchCallback);
+                    mSession.searchMediaByName(mPattern, roomIds, null, searchCallback);
 
                 } else {
                     mSession.searchMessagesByText(mPattern, roomIds, null, searchCallback);
