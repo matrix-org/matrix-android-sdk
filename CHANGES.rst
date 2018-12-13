@@ -1,4 +1,4 @@
-Changes to Matrix Android SDK in 0.9.14 (2018-XX-XX)
+Changes to Matrix Android SDK in 0.9.14 (2018-12-13)
 =======================================================
 
 Features:
@@ -24,17 +24,12 @@ API Change:
  - `MXMediasCache` has been renamed to `MXMediaCache` (and `Medias` to `Media`)
  - Remove IconAndTextDialogFragment, it's up to the application to manage UI.
 
-Translations:
- -
-
-Others:
- -
-
 Build:
  - Introduce Kotlin to the SDK
 
 Test:
- -
+ - New tests for crypto store, including migration from File store to Realm store
+ - New tests for keys backup feature
 
 Changes to Matrix Android SDK in 0.9.13 (2018-11-06)
 =======================================================
@@ -1378,4 +1373,37 @@ Features:
  Bug fixes:
  
  * SYAND-17 Crash on login on master
- 
+
+
+
+=======================================================
++        TEMPLATE WHEN PREPARING A NEW RELEASE        +
+=======================================================
+
+
+Changes to Matrix Android SDK in 0.9.X (2018-XX-XX)
+=======================================================
+
+Features:
+ -
+
+Improvements:
+ -
+
+Bugfix:
+ -
+
+API Change:
+ -
+
+Translations:
+ -
+
+Others:
+ -
+
+Build:
+ -
+
+Test:
+ -
