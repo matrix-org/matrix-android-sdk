@@ -25,6 +25,33 @@ Build:
 Test:
  -
 
+Changes to Matrix Android SDK in 0.9.16 (2018-12-20)
+=======================================================
+
+Features:
+ -
+
+Improvements:
+ - isValidRecoveryKey() ignores now all whitespace characters, not only spaces
+
+Bugfix:
+ -
+
+API Change:
+ -
+
+Translations:
+ -
+
+Others:
+ -
+
+Build:
+ -
+
+Test:
+ - New test for recovery key with newlines in it
+
 Changes to Matrix Android SDK in 0.9.14 (2018-12-13)
 =======================================================
 

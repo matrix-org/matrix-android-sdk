@@ -32,6 +32,9 @@ class RecoveryKeyTest {
 
         // Space should be ignored
         Assert.assertTrue(isValidRecoveryKey("EsTc LW2K PGiF wKEA 3As5 g5c4 BXwk qeeJ ZJV8 Q9fu gUMN UE4d"))
+
+        // All whitespace should be ignored
+        Assert.assertTrue(isValidRecoveryKey("EsTc LW2K PGiF wKEA 3As5 g5c4\r\nBXwk qeeJ ZJV8 Q9fu gUMN UE4d"))
     }
 
     @Test
