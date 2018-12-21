@@ -5,33 +5,6 @@ Features:
  -
 
 Improvements:
- -
-
-Bugfix:
- -
-
-API Change:
- -
-
-Translations:
- -
-
-Others:
- -
-
-Build:
- -
-
-Test:
- -
-
-Changes to Matrix Android SDK in 0.9.16 (2018-12-20)
-=======================================================
-
-Features:
- -
-
-Improvements:
  - isValidRecoveryKey() ignores now all whitespace characters, not only spaces
 
 Bugfix:
