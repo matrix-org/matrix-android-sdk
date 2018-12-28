@@ -19,11 +19,13 @@ package org.matrix.androidsdk.crypto
 import android.support.test.InstrumentationRegistry
 import android.text.TextUtils
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runners.MethodSorters
 import org.matrix.androidsdk.common.*
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
+import org.matrix.androidsdk.crypto.data.MXOlmSession
 import org.matrix.androidsdk.data.RoomState
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore
 import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore
@@ -34,6 +36,7 @@ import org.matrix.androidsdk.rest.model.Event
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody
 import org.matrix.androidsdk.util.Log
 import org.matrix.olm.OlmAccount
+import org.matrix.olm.OlmManager
 import org.matrix.olm.OlmSession
 import java.util.concurrent.CountDownLatch
 
@@ -46,6 +49,11 @@ class CryptoStoreImportationTest {
 
     private val sessionTestParamLegacy = SessionTestParams(withInitialSync = true, withCryptoEnabled = true, withLegacyCryptoStore = true)
     private val sessionTestParamRealm = SessionTestParams(withInitialSync = true, withCryptoEnabled = true, withLegacyCryptoStore = false)
+
+    @Before
+    fun ensureLibLoaded() {
+        OlmManager()
+    }
 
     @Test
     fun test_importationEmptyStore() {
@@ -194,7 +202,7 @@ class CryptoStoreImportationTest {
 
         testImportation(
                 doOnFileStore = {
-                    it.storeSession(session, "deviceID")
+                    it.storeSession(MXOlmSession(session), "deviceID")
                 },
                 checkOnRealmStore = {
                     val sessionsFromRealm = it.getDeviceSessionIds("deviceID")
@@ -205,7 +213,7 @@ class CryptoStoreImportationTest {
                     val sessionFromRealm = it.getDeviceSession(sessionId, "deviceID")
 
                     assertNotNull(sessionFromRealm)
-                    assertEquals(sessionId, sessionFromRealm?.sessionIdentifier())
+                    assertEquals(sessionId, sessionFromRealm?.olmSession?.sessionIdentifier())
                 })
     }
 

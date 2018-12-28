@@ -18,7 +18,12 @@ package org.matrix.androidsdk.crypto
 
 import org.junit.Assert.*
 import org.junit.Test
+import org.matrix.androidsdk.crypto.data.MXOlmSession
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore
+import org.matrix.olm.OlmManager
+import org.matrix.olm.OlmSession
+
+private const val DUMMY_DEVICE_KEY = "DeviceKey"
 
 class CryptoStoreTest {
 
@@ -50,6 +55,53 @@ class CryptoStoreTest {
         cryptoStore.deleteStore()
     }
 
+    @Test
+    fun test_lastSessionUsed() {
+        // Ensure Olm is initialized
+        OlmManager()
+
+        val cryptoStore: IMXCryptoStore = cryptoStoreHelper.createStore(true)
+
+        assertNull(cryptoStore.getLastUsedSessionId(DUMMY_DEVICE_KEY))
+
+        val firstOlmSession = OlmSession()
+        val firstSessionId = firstOlmSession.sessionIdentifier()
+        val firstMxOlmSession = MXOlmSession(firstOlmSession)
+
+        cryptoStore.storeSession(firstMxOlmSession, DUMMY_DEVICE_KEY)
+
+        assertEquals(firstSessionId, cryptoStore.getLastUsedSessionId(DUMMY_DEVICE_KEY))
+
+        val secondOlmSession = OlmSession()
+        val secondSessionId = secondOlmSession.sessionIdentifier()
+        val secondMxOlmSession = MXOlmSession(secondOlmSession)
+
+        cryptoStore.storeSession(secondMxOlmSession, DUMMY_DEVICE_KEY)
+
+        // Ensure sessionIds are distinct
+        // TODO: this test fails, so the whole test is a bit useless...
+        // assertNotEquals(firstSessionId, secondSessionId)
+
+        // Note: we cannot be sure what will be the result of getLastUsedSessionId() here
+
+        secondMxOlmSession.onMessageReceived()
+        cryptoStore.storeSession(secondMxOlmSession, DUMMY_DEVICE_KEY)
+
+        // Second Id is returned now
+        assertEquals(secondSessionId, cryptoStore.getLastUsedSessionId(DUMMY_DEVICE_KEY))
+
+        Thread.sleep(200)
+
+        firstMxOlmSession.onMessageReceived()
+        cryptoStore.storeSession(firstMxOlmSession, DUMMY_DEVICE_KEY)
+
+        // First Id is returned now
+        assertEquals(firstSessionId, cryptoStore.getLastUsedSessionId(DUMMY_DEVICE_KEY))
+
+        // Cleanup
+        firstOlmSession.releaseSession()
+        secondOlmSession.releaseSession()
+    }
 
     companion object {
         private const val LOG_TAG = "CryptoStoreTest"

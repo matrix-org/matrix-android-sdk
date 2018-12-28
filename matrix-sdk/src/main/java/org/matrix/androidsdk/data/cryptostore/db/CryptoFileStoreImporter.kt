@@ -187,6 +187,7 @@ internal class CryptoFileStoreImporter(private val enableFileEncryption: Boolean
                                     deviceKey = deviceKeyToMap.key
                                     sessionId = olmSessionIdToOlmSession.key
                                     putOlmSession(olmSessionIdToOlmSession.value)
+                                    lastReceivedMessageTs = 0
                                 }
                     }
                 }

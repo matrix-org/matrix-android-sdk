@@ -8,7 +8,7 @@ Improvements:
  - isValidRecoveryKey() ignores now all whitespace characters, not only spaces
 
 Bugfix:
- -
+ - MXCrypto: Use the last olm session that got a message (vector-im/riot-android#2772).
 
 API Change:
  -
