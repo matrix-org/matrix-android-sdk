@@ -65,56 +65,63 @@ class CryptoStoreTest {
 
         assertNull(cryptoStore.getLastUsedSessionId(DUMMY_DEVICE_KEY))
 
-        val firstOlmAccount = OlmAccount().apply {
+        val olmAccount1 = OlmAccount().apply {
             generateOneTimeKeys(1)
         }
 
-        val firstOlmSession = OlmSession()
-        firstOlmSession.initOutboundSession(firstOlmAccount,
-                firstOlmAccount.identityKeys()[OlmAccount.JSON_KEY_IDENTITY_KEY],
-                firstOlmAccount.oneTimeKeys()[OlmAccount.JSON_KEY_ONE_TIME_KEY]?.values?.first())
-        val firstSessionId = firstOlmSession.sessionIdentifier()
-        val firstMxOlmSession = MXOlmSession(firstOlmSession)
+        val olmSession1 = OlmSession().apply {
+            initOutboundSession(olmAccount1,
+                    olmAccount1.identityKeys()[OlmAccount.JSON_KEY_IDENTITY_KEY],
+                    olmAccount1.oneTimeKeys()[OlmAccount.JSON_KEY_ONE_TIME_KEY]?.values?.first())
+        }
 
-        cryptoStore.storeSession(firstMxOlmSession, DUMMY_DEVICE_KEY)
+        val sessionId1 = olmSession1.sessionIdentifier()
+        val mxOlmSession1 = MXOlmSession(olmSession1)
 
-        assertEquals(firstSessionId, cryptoStore.getLastUsedSessionId(DUMMY_DEVICE_KEY))
+        cryptoStore.storeSession(mxOlmSession1, DUMMY_DEVICE_KEY)
 
-        val secondOlmAccount = OlmAccount().apply {
+        assertEquals(sessionId1, cryptoStore.getLastUsedSessionId(DUMMY_DEVICE_KEY))
+
+        val olmAccount2 = OlmAccount().apply {
             generateOneTimeKeys(1)
         }
 
-        val secondOlmSession = OlmSession()
-        secondOlmSession.initOutboundSession(secondOlmAccount,
-                secondOlmAccount.identityKeys()[OlmAccount.JSON_KEY_IDENTITY_KEY],
-                secondOlmAccount.oneTimeKeys()[OlmAccount.JSON_KEY_ONE_TIME_KEY]?.values?.first())
-        val secondSessionId = secondOlmSession.sessionIdentifier()
-        val secondMxOlmSession = MXOlmSession(secondOlmSession)
+        val olmSession2 = OlmSession().apply {
+            initOutboundSession(olmAccount2,
+                    olmAccount2.identityKeys()[OlmAccount.JSON_KEY_IDENTITY_KEY],
+                    olmAccount2.oneTimeKeys()[OlmAccount.JSON_KEY_ONE_TIME_KEY]?.values?.first())
+        }
 
-        cryptoStore.storeSession(secondMxOlmSession, DUMMY_DEVICE_KEY)
+        val sessionId2 = olmSession2.sessionIdentifier()
+        val mxOlmSession2 = MXOlmSession(olmSession2)
+
+        cryptoStore.storeSession(mxOlmSession2, DUMMY_DEVICE_KEY)
 
         // Ensure sessionIds are distinct
-        assertNotEquals(firstSessionId, secondSessionId)
+        assertNotEquals(sessionId1, sessionId2)
 
         // Note: we cannot be sure what will be the result of getLastUsedSessionId() here
 
-        secondMxOlmSession.onMessageReceived()
-        cryptoStore.storeSession(secondMxOlmSession, DUMMY_DEVICE_KEY)
+        mxOlmSession2.onMessageReceived()
+        cryptoStore.storeSession(mxOlmSession2, DUMMY_DEVICE_KEY)
 
-        // Second Id is returned now
-        assertEquals(secondSessionId, cryptoStore.getLastUsedSessionId(DUMMY_DEVICE_KEY))
+        // sessionId2 is returned now
+        assertEquals(sessionId2, cryptoStore.getLastUsedSessionId(DUMMY_DEVICE_KEY))
 
-        Thread.sleep(200)
+        Thread.sleep(2)
 
-        firstMxOlmSession.onMessageReceived()
-        cryptoStore.storeSession(firstMxOlmSession, DUMMY_DEVICE_KEY)
+        mxOlmSession1.onMessageReceived()
+        cryptoStore.storeSession(mxOlmSession1, DUMMY_DEVICE_KEY)
 
-        // First Id is returned now
-        assertEquals(firstSessionId, cryptoStore.getLastUsedSessionId(DUMMY_DEVICE_KEY))
+        // sessionId1 is returned now
+        assertEquals(sessionId1, cryptoStore.getLastUsedSessionId(DUMMY_DEVICE_KEY))
 
         // Cleanup
-        firstOlmSession.releaseSession()
-        secondOlmSession.releaseSession()
+        olmSession1.releaseSession()
+        olmSession2.releaseSession()
+
+        olmAccount1.releaseAccount()
+        olmAccount2.releaseAccount()
     }
 
     companion object {
