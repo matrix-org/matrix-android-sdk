@@ -38,7 +38,7 @@ import org.matrix.olm.OlmSession
 import java.util.concurrent.CountDownLatch
 
 @FixMethodOrder(MethodSorters.JVM)
-class CryptoStoreMigrationTest {
+class CryptoStoreImportationTest {
 
     private val mTestHelper = CommonTestHelper()
     private val mCryptoTestHelper = CryptoTestHelper(mTestHelper)
@@ -48,8 +48,8 @@ class CryptoStoreMigrationTest {
     private val sessionTestParamRealm = SessionTestParams(withInitialSync = true, withCryptoEnabled = true, withLegacyCryptoStore = false)
 
     @Test
-    fun test_migrationEmptyStore() {
-        testMigration(
+    fun test_importationEmptyStore() {
+        testImportation(
                 doOnFileStore = {
                     // Nothing to do for this test
                 },
@@ -61,10 +61,10 @@ class CryptoStoreMigrationTest {
     }
 
     @Test
-    fun test_migrationOlmAccount() {
+    fun test_importationOlmAccount() {
         val olmAccount = OlmAccount()
 
-        testMigration(
+        testImportation(
                 doOnFileStore = {
                     it.storeAccount(olmAccount)
                 },
@@ -77,8 +77,8 @@ class CryptoStoreMigrationTest {
     }
 
     @Test
-    fun test_migrationRooms() {
-        testMigration(
+    fun test_importationRooms() {
+        testImportation(
                 doOnFileStore = {
                     it.storeRoomAlgorithm("roomId1", "algo1")
                     it.storeRoomAlgorithm("roomId2", "algo2")
@@ -94,12 +94,12 @@ class CryptoStoreMigrationTest {
     }
 
     @Test
-    fun test_migrationUsers() {
+    fun test_importationUsers() {
         val deviceTrackingStatus = HashMap<String, Int>().apply {
             put("userId1", MXDeviceList.TRACKING_STATUS_DOWNLOAD_IN_PROGRESS)
         }
 
-        testMigration(
+        testImportation(
                 doOnFileStore = {
                     it.storeUserDevice("userId1", MXDeviceInfo().apply {
                         deviceId = "deviceId1"
@@ -118,7 +118,7 @@ class CryptoStoreMigrationTest {
     }
 
     @Test
-    fun test_migrationOutgoingRoomKeyRequest() {
+    fun test_importationOutgoingRoomKeyRequest() {
         val request = OutgoingRoomKeyRequest(
                 // Request body
                 HashMap<String, String>().apply {
@@ -136,7 +136,7 @@ class CryptoStoreMigrationTest {
                     mCancellationTxnId = "mCancellationTxnId"
                 }
 
-        testMigration(
+        testImportation(
                 doOnFileStore = {
                     it.getOrAddOutgoingRoomKeyRequest(request)
                 },
@@ -154,7 +154,7 @@ class CryptoStoreMigrationTest {
     }
 
     @Test
-    fun test_migrationIncomingRoomKeyRequest() {
+    fun test_importationIncomingRoomKeyRequest() {
         val request = IncomingRoomKeyRequest().apply {
             mUserId = "userId"
             mDeviceId = "DeviceId"
@@ -167,7 +167,7 @@ class CryptoStoreMigrationTest {
             }
         }
 
-        testMigration(
+        testImportation(
                 doOnFileStore = {
                     it.storeIncomingRoomKeyRequest(request)
                 },
@@ -187,12 +187,12 @@ class CryptoStoreMigrationTest {
     }
 
     @Test
-    fun test_migrationOlmSessions() {
+    fun test_importationOlmSessions() {
         val session = OlmSession()
 
         val sessionId = session.sessionIdentifier()
 
-        testMigration(
+        testImportation(
                 doOnFileStore = {
                     it.storeSession(session, "deviceID")
                 },
@@ -210,8 +210,8 @@ class CryptoStoreMigrationTest {
     }
 
     @Test
-    fun test_migrationInboundGroupSessions() {
-        // This is tested in test_integration_migrationInboundGroupSession
+    fun test_importationInboundGroupSessions() {
+        // This is tested in test_integration_importationInboundGroupSession
     }
 
     /* ==========================================================================================
@@ -219,7 +219,7 @@ class CryptoStoreMigrationTest {
      * ========================================================================================== */
 
     @Test
-    fun test_integration_migrationEmptyStore() {
+    fun test_integration_importationEmptyStore() {
         Log.e(LOG_TAG, "test01_testCryptoNoDeviceId")
 
         // Create an account using the file store
@@ -232,10 +232,10 @@ class CryptoStoreMigrationTest {
 
         assertNotNull(bobSession.credentials.deviceId)
 
-        // Open again the session, with the Realm store. It will trigger the migration
+        // Open again the session, with the Realm store. It will trigger the importation
         val bobSession2 = mTestHelper.createNewSession(bobSession, sessionTestParamRealm)
 
-        // Migration should be ok
+        // Importation should be ok
         assertNotNull(bobSession2.crypto)
         assertNotNull(bobSession2.crypto?.cryptoStore)
         assertTrue(bobSession2.crypto?.cryptoStore is RealmCryptoStore)
@@ -248,8 +248,8 @@ class CryptoStoreMigrationTest {
     }
 
     @Test
-    fun test_integration_migrationInboundGroupSession() {
-        Log.e(LOG_TAG, "test_integration_migrationInboundGroupSession")
+    fun test_integration_importationInboundGroupSession() {
+        Log.e(LOG_TAG, "test_integration_importationInboundGroupSession")
 
         val context = InstrumentationRegistry.getContext()
         val results = java.util.HashMap<String, Any>()
@@ -345,8 +345,8 @@ class CryptoStoreMigrationTest {
      * Private
      * ========================================================================================== */
 
-    private fun testMigration(doOnFileStore: (IMXCryptoStore) -> Unit,
-                              checkOnRealmStore: (IMXCryptoStore) -> Unit) {
+    private fun testImportation(doOnFileStore: (IMXCryptoStore) -> Unit,
+                                checkOnRealmStore: (IMXCryptoStore) -> Unit) {
         val context = InstrumentationRegistry.getContext()
 
         val credentials = cryptoStoreHelper.createCredential()
@@ -359,7 +359,7 @@ class CryptoStoreMigrationTest {
         // Let each test do what they want to configure the file store
         doOnFileStore.invoke(fileCryptoStore)
 
-        // It will trigger the migration
+        // It will trigger the importation
         val realmCryptoStore = RealmCryptoStore()
         realmCryptoStore.initWithCredentials(context, credentials)
 
@@ -374,6 +374,6 @@ class CryptoStoreMigrationTest {
     }
 
     companion object {
-        private const val LOG_TAG = "CryptoStoreMigrationTest"
+        private const val LOG_TAG = "CryptoStoreImportationTest"
     }
 }

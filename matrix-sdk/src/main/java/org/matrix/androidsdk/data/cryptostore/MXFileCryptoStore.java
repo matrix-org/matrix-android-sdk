@@ -1817,7 +1817,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     /* ==========================================================================================
-     * Accessors for the Realm migration
+     * Accessors for the Realm importation
      * ========================================================================================== */
 
     public Map<String, String> getRoomsAlgorithms() {
