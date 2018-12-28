@@ -15,6 +15,8 @@
  */
 package org.matrix.androidsdk.rest.model.message;
 
+import android.support.annotation.Nullable;
+
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 
@@ -31,6 +33,7 @@ public class VideoMessage extends MediaMessage {
         msgtype = MSGTYPE_VIDEO;
     }
 
+    @Nullable
     @Override
     public String getUrl() {
         if (null != url) {
@@ -53,6 +56,7 @@ public class VideoMessage extends MediaMessage {
         }
     }
 
+    @Nullable
     @Override
     public String getThumbnailUrl() {
         if ((null != info) && (null != info.thumbnail_url)) {
@@ -97,6 +101,7 @@ public class VideoMessage extends MediaMessage {
         return copy;
     }
 
+    @Nullable
     @Override
     public String getMimeType() {
         if (null != info) {
