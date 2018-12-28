@@ -20,6 +20,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.matrix.androidsdk.crypto.data.MXOlmSession
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore
+import org.matrix.olm.OlmAccount
 import org.matrix.olm.OlmManager
 import org.matrix.olm.OlmSession
 
@@ -64,7 +65,14 @@ class CryptoStoreTest {
 
         assertNull(cryptoStore.getLastUsedSessionId(DUMMY_DEVICE_KEY))
 
+        val firstOlmAccount = OlmAccount().apply {
+            generateOneTimeKeys(1)
+        }
+
         val firstOlmSession = OlmSession()
+        firstOlmSession.initOutboundSession(firstOlmAccount,
+                firstOlmAccount.identityKeys()[OlmAccount.JSON_KEY_IDENTITY_KEY],
+                firstOlmAccount.oneTimeKeys()[OlmAccount.JSON_KEY_ONE_TIME_KEY]?.values?.first())
         val firstSessionId = firstOlmSession.sessionIdentifier()
         val firstMxOlmSession = MXOlmSession(firstOlmSession)
 
@@ -72,15 +80,21 @@ class CryptoStoreTest {
 
         assertEquals(firstSessionId, cryptoStore.getLastUsedSessionId(DUMMY_DEVICE_KEY))
 
+        val secondOlmAccount = OlmAccount().apply {
+            generateOneTimeKeys(1)
+        }
+
         val secondOlmSession = OlmSession()
+        secondOlmSession.initOutboundSession(secondOlmAccount,
+                secondOlmAccount.identityKeys()[OlmAccount.JSON_KEY_IDENTITY_KEY],
+                secondOlmAccount.oneTimeKeys()[OlmAccount.JSON_KEY_ONE_TIME_KEY]?.values?.first())
         val secondSessionId = secondOlmSession.sessionIdentifier()
         val secondMxOlmSession = MXOlmSession(secondOlmSession)
 
         cryptoStore.storeSession(secondMxOlmSession, DUMMY_DEVICE_KEY)
 
         // Ensure sessionIds are distinct
-        // TODO: this test fails, so the whole test is a bit useless...
-        // assertNotEquals(firstSessionId, secondSessionId)
+        assertNotEquals(firstSessionId, secondSessionId)
 
         // Note: we cannot be sure what will be the result of getLastUsedSessionId() here
 
