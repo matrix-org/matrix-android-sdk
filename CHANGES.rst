@@ -9,6 +9,7 @@ Improvements:
 
 Bugfix:
  - MXCrypto: Use the last olm session that got a message (vector-im/riot-android#2772).
+ - Ensure there is no ghost device in the Realm crypto store (vector-im/riot-android#2784)
 
 API Change:
  -

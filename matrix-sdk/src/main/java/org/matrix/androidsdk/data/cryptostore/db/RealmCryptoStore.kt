@@ -187,8 +187,9 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
                 putDeviceInfo(deviceInfo)
             }
 
-            // TODO Test if it is not added twice
-            user.devices.add(deviceInfoEntity)
+            if (!user.devices.contains(deviceInfoEntity)) {
+                user.devices.add(deviceInfoEntity)
+            }
         }
     }
 
@@ -222,18 +223,20 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
         if (userId == null) {
             return
         }
-        doRealmTransaction(realmConfiguration) { r ->
+        doRealmTransaction(realmConfiguration) { realm ->
             if (devices == null) {
                 // Remove the user
-                UserEntity.delete(r, userId)
+                UserEntity.delete(realm, userId)
             } else {
-                UserEntity.getOrCreate(r, userId)
+                UserEntity.getOrCreate(realm, userId)
                         .let { u ->
                             // Add the devices
-                            u.devices.clear()
+                            // Ensure all other devices are deleted
+                            u.devices.deleteAllFromRealm()
+
                             u.devices.addAll(
                                     devices.map {
-                                        DeviceInfoEntity.getOrCreate(r, userId, it.value.deviceId).apply {
+                                        DeviceInfoEntity.getOrCreate(realm, userId, it.value.deviceId).apply {
                                             deviceId = it.value.deviceId
                                             identityKey = it.value.identityKey()
                                             putDeviceInfo(it.value)

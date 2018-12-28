@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.rest.model.message;
 
 import android.content.ClipDescription;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 
@@ -81,6 +82,7 @@ public class FileMessage extends MediaMessage {
         return copy;
     }
 
+    @Nullable
     @Override
     public String getMimeType() {
         if (null != info) {

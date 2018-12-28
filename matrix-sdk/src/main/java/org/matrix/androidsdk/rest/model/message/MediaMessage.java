@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.rest.model.message;
 
 import android.net.Uri;
+import android.support.annotation.Nullable;
 
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.util.Log;
@@ -28,10 +29,10 @@ public class MediaMessage extends Message {
     /**
      * @return the media URL
      */
+    @Nullable
     public String getUrl() {
         return null;
     }
-
 
     public void setUrl(MXEncryptedAttachments.EncryptionResult encryptionResult, String url) {
     }
@@ -39,6 +40,7 @@ public class MediaMessage extends Message {
     /**
      * @return the thumbnail url
      */
+    @Nullable
     public String getThumbnailUrl() {
         return null;
     }
@@ -65,6 +67,7 @@ public class MediaMessage extends Message {
     /**
      * @return The image mimetype. null is not defined.
      */
+    @Nullable
     public String getMimeType() {
         return null;
     }
