@@ -59,6 +59,7 @@ import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
+import org.matrix.olm.OlmAccount;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -2148,7 +2149,7 @@ public class MXCrypto {
         final Map<String, Map<String, String>> oneTimeKeys = mOlmDevice.getOneTimeKeys();
         Map<String, Object> oneTimeJson = new HashMap<>();
 
-        Map<String, String> curve25519Map = oneTimeKeys.get("curve25519");
+        Map<String, String> curve25519Map = oneTimeKeys.get(OlmAccount.JSON_KEY_ONE_TIME_KEY);
 
         if (null != curve25519Map) {
             for (String key_id : curve25519Map.keySet()) {

@@ -28,7 +28,8 @@ fun OlmSessionEntity.Companion.createPrimaryKey(sessionId: String, deviceKey: St
 open class OlmSessionEntity(@PrimaryKey var primaryKey: String = "",
                             var sessionId: String? = null,
                             var deviceKey: String? = null,
-                            var olmSessionData: String? = null)
+                            var olmSessionData: String? = null,
+                            var lastReceivedMessageTs: Long = 0)
     : RealmObject() {
 
     fun getOlmSession(): OlmSession? {
