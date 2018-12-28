@@ -8,7 +8,7 @@ Improvements:
  - isValidRecoveryKey() ignores now all whitespace characters, not only spaces
 
 Bugfix:
- -
+ - Ensure there is no ghost device in the Realm crypto store (vector-im/riot-android#2784)
 
 API Change:
  -
