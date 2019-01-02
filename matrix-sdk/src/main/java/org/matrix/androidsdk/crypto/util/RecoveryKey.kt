@@ -81,7 +81,7 @@ fun extractCurveKeyFromRecoveryKey(recoveryKey: String?): ByteArray? {
     }
 
     // Remove any space
-    val spaceFreeRecoveryKey = recoveryKey.replace(" ".toRegex(), "")
+    val spaceFreeRecoveryKey = recoveryKey.replace("""\s""".toRegex(), "")
 
     val b58DecodedKey = base58decode(spaceFreeRecoveryKey)
 

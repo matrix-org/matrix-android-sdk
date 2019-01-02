@@ -28,6 +28,7 @@ import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
+import org.matrix.androidsdk.crypto.data.MXOlmSession;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.CompatUtil;
@@ -727,8 +728,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         saveDeviceTrackingStatuses();
     }
 
+    // Note: we keep this code for Unit test only.
     @Override
-    public void storeSession(final OlmSession olmSession, final String deviceKey) {
+    public void storeSession(final MXOlmSession olmSession, final String deviceKey) {
         if (!mIsReady) {
             Log.e(LOG_TAG, "## storeSession() : the store is not ready");
             return;
@@ -738,7 +740,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
         if (null != olmSession) {
             try {
-                sessionIdentifier = olmSession.sessionIdentifier();
+                sessionIdentifier = olmSession.getOlmSession().sessionIdentifier();
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## storeSession : session.sessionIdentifier() failed " + e.getMessage(), e);
             }
@@ -753,11 +755,11 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 OlmSession prevOlmSession = mOlmSessions.get(deviceKey).get(sessionIdentifier);
 
                 // test if the session is a new one
-                if (olmSession != prevOlmSession) {
+                if (olmSession.getOlmSession() != prevOlmSession) {
                     if (null != prevOlmSession) {
                         prevOlmSession.releaseSession();
                     }
-                    mOlmSessions.get(deviceKey).put(sessionIdentifier, olmSession);
+                    mOlmSessions.get(deviceKey).put(sessionIdentifier, olmSession.getOlmSession());
                 }
             }
 
@@ -767,7 +769,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                 keyFolder.mkdir();
             }
 
-            storeObject(olmSession, keyFolder, encodeFilename(sessionIdentifier), "Store olm session " + deviceKey + " " + sessionIdentifier);
+            storeObject(olmSession.getOlmSession(), keyFolder, encodeFilename(sessionIdentifier), "Store olm session " + deviceKey + " " + sessionIdentifier);
         }
     }
 
@@ -796,24 +798,15 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
     @Nullable
     @Override
-    public OlmSession getDeviceSession(String sessionId, String deviceKey) {
-        if (!mIsReady) {
-            Log.e(LOG_TAG, "## storeSession() : the store is not ready");
-            return null;
-        }
+    public MXOlmSession getDeviceSession(String sessionId, String deviceKey) {
+        // No op
+        return null;
+    }
 
-        if (null != deviceKey) {
-            Map<String, OlmSession> map;
-
-            synchronized (mOlmSessionsLock) {
-                map = mOlmSessions.get(deviceKey);
-            }
-
-            if (map != null) {
-                return map.get(sessionId);
-            }
-        }
-
+    @Nullable
+    @Override
+    public String getLastUsedSessionId(String deviceKey) {
+        // No op
         return null;
     }
 
@@ -1817,7 +1810,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     /* ==========================================================================================
-     * Accessors for the Realm migration
+     * Accessors for the Realm importation
      * ========================================================================================== */
 
     public Map<String, String> getRoomsAlgorithms() {

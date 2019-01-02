@@ -24,6 +24,7 @@ import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.crypto.algorithms.MXDecryptionResult;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
+import org.matrix.androidsdk.crypto.data.MXOlmSession;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
@@ -35,8 +36,6 @@ import org.matrix.olm.OlmSession;
 import org.matrix.olm.OlmUtility;
 
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -228,7 +227,7 @@ public class MXOlmDevice {
      *
      * @param theirIdentityKey the remote user's Curve25519 identity key
      * @param theirOneTimeKey  the remote user's one-time Curve25519 key
-     * @return the session id for the outbound session. @TODO OLMSession?
+     * @return the session id for the outbound session.
      */
     public String createOutboundSession(String theirIdentityKey, String theirOneTimeKey) {
         Log.d(LOG_TAG, "## createOutboundSession() ; theirIdentityKey " + theirIdentityKey + " theirOneTimeKey " + theirOneTimeKey);
@@ -237,7 +236,15 @@ public class MXOlmDevice {
         try {
             olmSession = new OlmSession();
             olmSession.initOutboundSession(mOlmAccount, theirIdentityKey, theirOneTimeKey);
-            mStore.storeSession(olmSession, theirIdentityKey);
+
+            MXOlmSession mxOlmSession = new MXOlmSession(olmSession, 0);
+
+            // Pretend we've received a message at this point, otherwise
+            // if we try to send a message to the device, it won't use
+            // this session
+            mxOlmSession.onMessageReceived();
+
+            mStore.storeSession(mxOlmSession, theirIdentityKey);
 
             String sessionIdentifier = olmSession.sessionIdentifier();
 
@@ -302,7 +309,12 @@ public class MXOlmDevice {
 
             try {
                 payloadString = olmSession.decryptMessage(olmMessage);
-                mStore.storeSession(olmSession, theirDeviceIdentityKey);
+
+                MXOlmSession mxOlmSession = new MXOlmSession(olmSession, 0);
+                // This counts as a received message: set last received message time to now
+                mxOlmSession.onMessageReceived();
+
+                mStore.storeSession(mxOlmSession, theirDeviceIdentityKey);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## createInboundSession() : decryptMessage failed " + e.getMessage(), e);
             }
@@ -345,19 +357,11 @@ public class MXOlmDevice {
      * Get the right olm session id for encrypting messages to the given identity key.
      *
      * @param theirDeviceIdentityKey the Curve25519 identity key for the remote device.
-     * @return the session id, or nil if no established session.
+     * @return the session id, or null if no established session.
      */
+    @Nullable
     public String getSessionId(String theirDeviceIdentityKey) {
-        String sessionId = null;
-        Set<String> sessionIds = getSessionIds(theirDeviceIdentityKey);
-
-        if ((null != sessionIds) && (0 != sessionIds.size())) {
-            List<String> sessionIdsList = new ArrayList<>(sessionIds);
-            Collections.sort(sessionIdsList);
-            sessionId = sessionIdsList.get(0);
-        }
-
-        return sessionId;
+        return mStore.getLastUsedSessionId(theirDeviceIdentityKey);
     }
 
     /**
@@ -371,15 +375,15 @@ public class MXOlmDevice {
     public Map<String, Object> encryptMessage(String theirDeviceIdentityKey, String sessionId, String payloadString) {
         Map<String, Object> res = null;
         OlmMessage olmMessage;
-        OlmSession olmSession = getSessionForDevice(theirDeviceIdentityKey, sessionId);
+        MXOlmSession mxOlmSession = getSessionForDevice(theirDeviceIdentityKey, sessionId);
 
-        if (null != olmSession) {
+        if (mxOlmSession != null) {
             try {
-                Log.d(LOG_TAG, "## encryptMessage() : olmSession.sessionIdentifier: " + olmSession.sessionIdentifier());
+                Log.d(LOG_TAG, "## encryptMessage() : olmSession.sessionIdentifier: " + sessionId);
                 //Log.d(LOG_TAG, "## encryptMessage() : payloadString: " + payloadString);
 
-                olmMessage = olmSession.encryptMessage(payloadString);
-                mStore.storeSession(olmSession, theirDeviceIdentityKey);
+                olmMessage = mxOlmSession.getOlmSession().encryptMessage(payloadString);
+                mStore.storeSession(mxOlmSession, theirDeviceIdentityKey);
                 res = new HashMap<>();
 
                 res.put("body", olmMessage.mCipherText);
@@ -404,16 +408,17 @@ public class MXOlmDevice {
     public String decryptMessage(String ciphertext, int messageType, String sessionId, String theirDeviceIdentityKey) {
         String payloadString = null;
 
-        OlmSession olmSession = getSessionForDevice(theirDeviceIdentityKey, sessionId);
+        MXOlmSession mxOlmSession = getSessionForDevice(theirDeviceIdentityKey, sessionId);
 
-        if (null != olmSession) {
+        if (null != mxOlmSession) {
             OlmMessage olmMessage = new OlmMessage();
             olmMessage.mCipherText = ciphertext;
             olmMessage.mType = messageType;
 
             try {
-                payloadString = olmSession.decryptMessage(olmMessage);
-                mStore.storeSession(olmSession, theirDeviceIdentityKey);
+                payloadString = mxOlmSession.getOlmSession().decryptMessage(olmMessage);
+                mxOlmSession.onMessageReceived();
+                mStore.storeSession(mxOlmSession, theirDeviceIdentityKey);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## decryptMessage() : decryptMessage failed " + e.getMessage(), e);
             }
@@ -436,8 +441,8 @@ public class MXOlmDevice {
             return false;
         }
 
-        OlmSession olmSession = getSessionForDevice(theirDeviceIdentityKey, sessionId);
-        return (null != olmSession) && olmSession.matchesInboundSession(ciphertext);
+        MXOlmSession mxOlmSession = getSessionForDevice(theirDeviceIdentityKey, sessionId);
+        return (null != mxOlmSession) && mxOlmSession.getOlmSession().matchesInboundSession(ciphertext);
     }
 
 
@@ -757,7 +762,8 @@ public class MXOlmDevice {
      * @param sessionId              the session Id
      * @return the olm session
      */
-    private OlmSession getSessionForDevice(String theirDeviceIdentityKey, String sessionId) {
+    @Nullable
+    private MXOlmSession getSessionForDevice(String theirDeviceIdentityKey, String sessionId) {
         // sanity check
         if (!TextUtils.isEmpty(theirDeviceIdentityKey) && !TextUtils.isEmpty(sessionId)) {
             return mStore.getDeviceSession(sessionId, theirDeviceIdentityKey);

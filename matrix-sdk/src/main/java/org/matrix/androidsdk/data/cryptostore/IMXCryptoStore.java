@@ -24,9 +24,9 @@ import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
+import org.matrix.androidsdk.crypto.data.MXOlmSession;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.olm.OlmAccount;
-import org.matrix.olm.OlmSession;
 
 import java.util.List;
 import java.util.Map;
@@ -159,7 +159,7 @@ public interface IMXCryptoStore {
      * @param session   the end-to-end session.
      * @param deviceKey the public key of the other device.
      */
-    void storeSession(OlmSession session, String deviceKey);
+    void storeSession(MXOlmSession session, String deviceKey);
 
     /**
      * Retrieve the end-to-end session ids between the logged-in user and another
@@ -172,7 +172,7 @@ public interface IMXCryptoStore {
     Set<String> getDeviceSessionIds(String deviceKey);
 
     /**
-     * Retrieve the end-to-end sessions between the logged-in user and another
+     * Retrieve an end-to-end session between the logged-in user and another
      * device.
      *
      * @param sessionId the session Id.
@@ -180,7 +180,16 @@ public interface IMXCryptoStore {
      * @return The Base64 end-to-end session, or null if not found
      */
     @Nullable
-    OlmSession getDeviceSession(String sessionId, String deviceKey);
+    MXOlmSession getDeviceSession(String sessionId, String deviceKey);
+
+    /**
+     * Retrieve the last used sessionId, regarding `lastReceivedMessageTs`, or null if no session exist
+     *
+     * @param deviceKey the public key of the other device.
+     * @return last used sessionId, or null if not found
+     */
+    @Nullable
+    String getLastUsedSessionId(String deviceKey);
 
     /**
      * Store an inbound group session.
@@ -305,7 +314,7 @@ public interface IMXCryptoStore {
      * Get the tracking status of a specified userId devices.
      *
      * @param userId       the user id
-     * @param defaultValue the default avlue
+     * @param defaultValue the default value
      * @return the tracking status
      */
     int getDeviceTrackingStatus(String userId, int defaultValue);

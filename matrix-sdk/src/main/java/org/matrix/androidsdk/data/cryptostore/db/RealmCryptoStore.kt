@@ -20,11 +20,13 @@ import android.content.Context
 import android.text.TextUtils
 import io.realm.Realm
 import io.realm.RealmConfiguration
+import io.realm.Sort
 import io.realm.kotlin.where
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest
 import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2
+import org.matrix.androidsdk.crypto.data.MXOlmSession
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore
 import org.matrix.androidsdk.data.cryptostore.db.model.*
 import org.matrix.androidsdk.data.cryptostore.db.query.delete
@@ -34,7 +36,6 @@ import org.matrix.androidsdk.rest.model.login.Credentials
 import org.matrix.androidsdk.util.Log
 import org.matrix.olm.OlmAccount
 import org.matrix.olm.OlmException
-import org.matrix.olm.OlmSession
 import java.io.File
 import kotlin.collections.set
 
@@ -49,7 +50,7 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
     private var olmAccount: OlmAccount? = null
 
     // Cache for OlmSession, to release them properly
-    private val olmSessionsToRelease = HashMap<String, OlmSession>()
+    private val olmSessionsToRelease = HashMap<String, MXOlmSession>()
 
     // Cache for InboundGroupSession, to release them properly
     private val inboundGroupSessionToRelease = HashMap<String, MXOlmInboundGroupSession2>()
@@ -131,7 +132,7 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
 
     override fun close() {
         olmSessionsToRelease.forEach {
-            it.value.releaseSession()
+            it.value.olmSession.releaseSession()
         }
         olmSessionsToRelease.clear()
 
@@ -186,8 +187,9 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
                 putDeviceInfo(deviceInfo)
             }
 
-            // TODO Test if it is not added twice
-            user.devices.add(deviceInfoEntity)
+            if (!user.devices.contains(deviceInfoEntity)) {
+                user.devices.add(deviceInfoEntity)
+            }
         }
     }
 
@@ -221,18 +223,20 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
         if (userId == null) {
             return
         }
-        doRealmTransaction(realmConfiguration) { r ->
+        doRealmTransaction(realmConfiguration) { realm ->
             if (devices == null) {
                 // Remove the user
-                UserEntity.delete(r, userId)
+                UserEntity.delete(realm, userId)
             } else {
-                UserEntity.getOrCreate(r, userId)
+                UserEntity.getOrCreate(realm, userId)
                         .let { u ->
                             // Add the devices
-                            u.devices.clear()
+                            // Ensure all other devices are deleted
+                            u.devices.deleteAllFromRealm()
+
                             u.devices.addAll(
                                     devices.map {
-                                        DeviceInfoEntity.getOrCreate(r, userId, it.value.deviceId).apply {
+                                        DeviceInfoEntity.getOrCreate(realm, userId, it.value.deviceId).apply {
                                             deviceId = it.value.deviceId
                                             identityKey = it.value.identityKey()
                                             putDeviceInfo(it.value)
@@ -269,7 +273,7 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
                 ?.algorithm
     }
 
-    override fun storeSession(session: OlmSession?, deviceKey: String?) {
+    override fun storeSession(session: MXOlmSession?, deviceKey: String?) {
         if (session == null || deviceKey == null) {
             return
         }
@@ -277,7 +281,7 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
         var sessionIdentifier: String? = null
 
         try {
-            sessionIdentifier = session.sessionIdentifier()
+            sessionIdentifier = session.olmSession.sessionIdentifier()
         } catch (e: OlmException) {
             Log.e(LOG_TAG, "## storeSession() : sessionIdentifier failed " + e.message, e)
         }
@@ -286,8 +290,8 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
             val key = OlmSessionEntity.createPrimaryKey(sessionIdentifier, deviceKey)
 
             // Release memory of previously known session, if it is not the same one
-            if (olmSessionsToRelease[key] != session) {
-                olmSessionsToRelease[key]?.releaseSession()
+            if (olmSessionsToRelease[key]?.olmSession != session.olmSession) {
+                olmSessionsToRelease[key]?.olmSession?.releaseSession()
             }
 
             olmSessionsToRelease[key] = session
@@ -297,7 +301,8 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
                     primaryKey = key
                     sessionId = sessionIdentifier
                     this.deviceKey = deviceKey
-                    putOlmSession(session)
+                    putOlmSession(session.olmSession)
+                    lastReceivedMessageTs = session.lastReceivedMessageTs
                 }
 
                 it.insertOrUpdate(realmOlmSession)
@@ -305,7 +310,7 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
         }
     }
 
-    override fun getDeviceSession(sessionId: String?, deviceKey: String?): OlmSession? {
+    override fun getDeviceSession(sessionId: String?, deviceKey: String?): MXOlmSession? {
         if (sessionId == null || deviceKey == null) {
             return null
         }
@@ -319,13 +324,25 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
                         .equalTo(OlmSessionEntityFields.PRIMARY_KEY, key)
                         .findFirst()
             }
-                    ?.getOlmSession()
                     ?.let {
-                        olmSessionsToRelease[key] = it
+                        val olmSession = it.getOlmSession()
+                        if (olmSession != null && it.sessionId != null) {
+                            olmSessionsToRelease[key] = MXOlmSession(olmSession, it.lastReceivedMessageTs)
+                        }
                     }
         }
 
         return olmSessionsToRelease[key]
+    }
+
+    override fun getLastUsedSessionId(deviceKey: String?): String? {
+        return doRealmQueryAndCopy(realmConfiguration) {
+            it.where<OlmSessionEntity>()
+                    .equalTo(OlmSessionEntityFields.DEVICE_KEY, deviceKey)
+                    .sort(OlmSessionEntityFields.LAST_RECEIVED_MESSAGE_TS, Sort.DESCENDING)
+                    .findFirst()
+        }
+                ?.sessionId
     }
 
     override fun getDeviceSessionIds(deviceKey: String?): MutableSet<String> {

@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.rest.model.message;
 
 import android.media.ExifInterface;
+import android.support.annotation.Nullable;
 
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
@@ -51,6 +52,7 @@ public class ImageMessage extends MediaMessage {
         return copy;
     }
 
+    @Nullable
     @Override
     public String getUrl() {
         if (null != url) {
@@ -73,6 +75,7 @@ public class ImageMessage extends MediaMessage {
         }
     }
 
+    @Nullable
     @Override
     public String getThumbnailUrl() {
         if (null != info) {
@@ -96,6 +99,7 @@ public class ImageMessage extends MediaMessage {
         }
     }
 
+    @Nullable
     @Override
     public String getMimeType() {
         if (null != file) {
