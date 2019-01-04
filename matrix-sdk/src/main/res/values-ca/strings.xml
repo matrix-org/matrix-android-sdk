@@ -67,7 +67,7 @@
     <string name="notice_placed_voice_call">%s ha iniciat una trucada de veu.</string>
 
     <!-- Room display name -->
-    <string name="room_displayname_invite_from">Convideu des de %s</string>
+    <string name="room_displayname_invite_from">Convidat per %s</string>
     <string name="room_displayname_room_invite">Convideu a la sala</string>
     <string name="room_displayname_two_members">%1$s i %2$s</string>
     <string name="room_displayname_empty_room">Sala buida</string>
