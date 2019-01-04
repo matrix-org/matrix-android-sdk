@@ -1,15 +1,14 @@
-Changes to Matrix Android SDK in 0.9.15 (2018-XX-XX)
+Changes to Matrix Android SDK in 0.9.16 (2018-XX-XX)
 =======================================================
 
 Features:
  -
 
 Improvements:
- - isValidRecoveryKey() ignores now all whitespace characters, not only spaces
+ -
 
 Bugfix:
- - MXCrypto: Use the last olm session that got a message (vector-im/riot-android#2772).
- - Ensure there is no ghost device in the Realm crypto store (vector-im/riot-android#2784)
+ -
 
 API Change:
  -
@@ -22,6 +21,19 @@ Others:
 
 Build:
  -
+
+Test:
+ -
+
+Changes to Matrix Android SDK in 0.9.15 (2018-01-02)
+=======================================================
+
+Improvements:
+ - isValidRecoveryKey() ignores now all whitespace characters, not only spaces
+
+Bugfix:
+ - MXCrypto: Use the last olm session that got a message (vector-im/riot-android#2772).
+ - Ensure there is no ghost device in the Realm crypto store (vector-im/riot-android#2784)
 
 Test:
  - New test for recovery key with newlines in it
