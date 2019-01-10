@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ -  do not attempt to serialize unserializable fields on MatrixError in Event::writeExternal
 
 API Change:
  -
@@ -17,7 +17,7 @@ Translations:
  -
 
 Others:
- -
+ - fix typo in CHANGES.rst (wrong year)
 
 Build:
  -
@@ -25,7 +25,7 @@ Build:
 Test:
  -
 
-Changes to Matrix Android SDK in 0.9.15 (2018-01-02)
+Changes to Matrix Android SDK in 0.9.15 (2019-01-02)
 =======================================================
 
 Improvements:
