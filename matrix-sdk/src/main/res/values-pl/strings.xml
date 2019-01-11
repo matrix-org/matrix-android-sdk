@@ -54,7 +54,7 @@
         <item quantity="one">%1$s i jeden inny</item>
         <item quantity="few">%1$s i kilku innych</item>
         <item quantity="many">%1$s i %2$d innych</item>
-        <item quantity="other" />
+        <item quantity="other"/>
     </plurals>
 
     <string name="notice_crypto_unable_to_decrypt">** Nie można odszyfrować: %s **</string>
@@ -64,7 +64,7 @@
     <string name="notice_room_visibility_invited">wszyscy członkowie pokoju, od momentu w którym zostali zaproszeni.</string>
     <string name="notice_room_visibility_joined">wszyscy członkowie pokoju, od momentu w którym dołączyli.</string>
     <string name="notice_room_visibility_unknown">nieznane (%s).</string>
-    <string name="notice_requested_voip_conference">%1$s zażądał grupowego połączenia VoIP</string>
+    <string name="notice_requested_voip_conference">%1$s zażądał(a) grupowego połączenia VoIP</string>
     <string name="notice_voip_started">Rozpoczęto grupowe połączenie głosowe VoIP</string>
     <string name="notice_voip_finished">Zakończono grupowe połączenie głosowe VoIP</string>
 
