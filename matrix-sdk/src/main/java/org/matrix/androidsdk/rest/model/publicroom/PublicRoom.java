@@ -17,12 +17,13 @@ package org.matrix.androidsdk.rest.model.publicroom;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * Class representing the objects returned by /publicRooms call.
  */
-public class PublicRoom {
+public class PublicRoom implements Serializable {
 
     public List<String> aliases;
 
