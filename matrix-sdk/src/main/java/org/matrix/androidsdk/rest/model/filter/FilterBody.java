@@ -28,7 +28,7 @@ import java.util.List;
  * https://matrix.org/docs/spec/client_server/r0.3.0.html#post-matrix-client-r0-user-userid-filter
  */
 public class FilterBody {
-    public static final String LOG_TAG = FilterBody.class.getSimpleName();
+    private static final String LOG_TAG = FilterBody.class.getSimpleName();
 
     @SerializedName("event_fields")
     public List<String> eventFields;

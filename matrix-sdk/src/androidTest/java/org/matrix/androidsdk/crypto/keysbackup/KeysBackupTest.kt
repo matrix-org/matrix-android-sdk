@@ -349,7 +349,7 @@ class KeysBackupTest {
         )
         mTestHelper.await(latch2)
 
-        checkRestoreSuccess(testData.aliceKeys, testData.aliceSession2, importRoomKeysResult!!.totalNumberOfKeys, importRoomKeysResult!!.successfullyNumberOfImportedKeys)
+        checkRestoreSuccess(testData, importRoomKeysResult!!.totalNumberOfKeys, importRoomKeysResult!!.successfullyNumberOfImportedKeys)
 
         testData.cryptoTestData.clear(context)
     }
@@ -360,6 +360,7 @@ class KeysBackupTest {
      * - Try to restore the e2e backup with a wrong recovery key
      * - It must fail
      */
+    @Test
     fun restoreKeyBackupWithAWrongRecoveryKeyTest() {
         val context = InstrumentationRegistry.getContext()
 
@@ -417,7 +418,7 @@ class KeysBackupTest {
         )
         mTestHelper.await(latch2)
 
-        checkRestoreSuccess(testData.aliceKeys, testData.aliceSession2, importRoomKeysResult!!.totalNumberOfKeys, importRoomKeysResult!!.successfullyNumberOfImportedKeys)
+        checkRestoreSuccess(testData, importRoomKeysResult!!.totalNumberOfKeys, importRoomKeysResult!!.successfullyNumberOfImportedKeys)
 
         testData.cryptoTestData.clear(context)
     }
@@ -428,6 +429,7 @@ class KeysBackupTest {
      * - Try to restore the e2e backup with a wrong password
      * - It must fail
      */
+    @Test
     fun restoreKeyBackupWithAWrongPasswordTest() {
         val password = "password"
         val wrongPassword = "passw0rd"
@@ -488,7 +490,7 @@ class KeysBackupTest {
         )
         mTestHelper.await(latch2)
 
-        checkRestoreSuccess(testData.aliceKeys, testData.aliceSession2, importRoomKeysResult!!.totalNumberOfKeys, importRoomKeysResult!!.successfullyNumberOfImportedKeys)
+        checkRestoreSuccess(testData, importRoomKeysResult!!.totalNumberOfKeys, importRoomKeysResult!!.successfullyNumberOfImportedKeys)
 
         testData.cryptoTestData.clear(context)
     }
@@ -934,20 +936,19 @@ class KeysBackupTest {
      * - The new device must have the same count of megolm keys
      * - Alice must have the same keys on both devices
      */
-    private fun checkRestoreSuccess(aliceKeys: List<MXOlmInboundGroupSession2>,
-                                    aliceSession: MXSession,
+    private fun checkRestoreSuccess(testData: KeyBackupScenarioData,
                                     total: Int,
                                     imported: Int) {
         // - Imported keys number must be correct
-        assertEquals(aliceKeys.size, total)
+        assertEquals(testData.aliceKeys.size, total)
         assertEquals(total, imported)
 
         // - The new device must have the same count of megolm keys
-        assertEquals(aliceKeys.size, aliceSession.crypto!!.cryptoStore.inboundGroupSessionsCount(false))
+        assertEquals(testData.aliceKeys.size, testData.aliceSession2.crypto!!.cryptoStore.inboundGroupSessionsCount(false))
 
         // - Alice must have the same keys on both devices
-        for (aliceKey1 in aliceKeys) {
-            val aliceKey2 = aliceSession.crypto!!
+        for (aliceKey1 in testData.aliceKeys) {
+            val aliceKey2 = testData.aliceSession2.crypto!!
                     .cryptoStore.getInboundGroupSession(aliceKey1.mSession.sessionIdentifier(), aliceKey1.mSenderKey)
             assertNotNull(aliceKey2)
             assertKeysEquals(aliceKey1.exportKeys(), aliceKey2!!.exportKeys())

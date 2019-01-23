@@ -297,13 +297,13 @@ class TimelineJoinRoomSyncHandler {
             }
         }
 
-        // TODO LazyLoading, maybe this should be done earlier, because nb of members can be usefull in the instruction above.
+        // TODO LazyLoading, maybe this should be done earlier, because nb of members can be useful in the instruction above.
         if (mRoomSync.roomSyncSummary != null) {
             RoomSummary summary = store.getSummary(roomId);
 
             if (summary == null) {
                 // Should never happen here
-                Log.e(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!! RoomSummary is null !!!!!!!!!!!!!!!!!!!!!");
+                Log.e(LOG_TAG, "## RoomSummary is null");
             } else {
                 summary.setRoomSyncSummary(mRoomSync.roomSyncSummary);
 
