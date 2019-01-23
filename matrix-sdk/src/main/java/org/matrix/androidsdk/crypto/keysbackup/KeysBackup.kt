@@ -40,6 +40,7 @@ import org.matrix.olm.OlmException
 import org.matrix.olm.OlmPkDecryption
 import org.matrix.olm.OlmPkEncryption
 import org.matrix.olm.OlmPkMessage
+import java.security.InvalidParameterException
 import java.util.*
 
 /**
@@ -88,18 +89,31 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      * The returned [MegolmBackupCreationInfo] object has a `recoveryKey` member with
      * the user-facing recovery key string.
      *
+     * @param password an optional passphrase string that can be entered by the user
+     * when restoring the backup as an alternative to entering the recovery key.
      * @param callback Asynchronous callback
      */
-    fun prepareKeysBackupVersion(callback: SuccessErrorCallback<MegolmBackupCreationInfo>) {
+    fun prepareKeysBackupVersion(password: String?,
+                                 callback: SuccessErrorCallback<MegolmBackupCreationInfo>) {
         mCrypto.decryptingThreadHandler.post {
             try {
                 val olmPkDecryption = OlmPkDecryption()
-                val publicKey = olmPkDecryption.generateKey()
-                val signatures = mapOf("public_key" to publicKey)
-                val megolmBackupAuthData = MegolmBackupAuthData(
-                        publicKey = publicKey,
-                        signatures = mCrypto.signObject(JsonUtils.getCanonicalizedJsonString(signatures))
-                )
+                val megolmBackupAuthData = MegolmBackupAuthData()
+
+                if (password != null) {
+                    // Generate a private key from the password
+                    val generatePrivateKeyResult = generatePrivateKeyWithPassword(password)
+                    megolmBackupAuthData.publicKey = olmPkDecryption.setPrivateKey(generatePrivateKeyResult.privateKey)
+                    megolmBackupAuthData.privateKeySalt = generatePrivateKeyResult.salt
+                    megolmBackupAuthData.privateKeyIterations = generatePrivateKeyResult.iterations
+                } else {
+                    val publicKey = olmPkDecryption.generateKey()
+
+                    megolmBackupAuthData.publicKey = publicKey
+                }
+
+                megolmBackupAuthData.signatures = mCrypto.signObject(JsonUtils.getCanonicalizedJsonString(megolmBackupAuthData.signalableJSONDictionary()))
+
 
                 val megolmBackupCreationInfo = MegolmBackupCreationInfo()
                 megolmBackupCreationInfo.algorithm = MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
@@ -307,7 +321,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     }
 
     /**
-     * Restore a backup from a given backup version stored on the homeserver.
+     * Restore a backup with a recovery key from a given backup version stored on the homeserver.
      *
      * @param version     the backup version to restore from.
      * @param recoveryKey the recovery key to decrypt the retrieved backup.
@@ -315,18 +329,18 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      * @param sessionId   the id of the session to restore.
      * @param callback    Callback. It provides the number of found keys and the number of successfully imported keys.
      */
-    fun restoreKeyBackup(version: String,
-                         recoveryKey: String,
-                         roomId: String?,
-                         sessionId: String?,
-                         callback: ApiCallback<ImportRoomKeysResult>?) {
-        Log.d(LOG_TAG, "restoreKeyBackup: From backup version: $version")
+    fun restoreKeyBackupWithRecoveryKey(version: String,
+                                        recoveryKey: String,
+                                        roomId: String?,
+                                        sessionId: String?,
+                                        callback: ApiCallback<ImportRoomKeysResult>?) {
+        Log.d(LOG_TAG, "restoreKeyBackupWithRecoveryKey: From backup version: $version")
 
         mCrypto.decryptingThreadHandler.post(Runnable {
             // Get a PK decryption instance
             val decryption = pkDecryptionFromRecoveryKey(recoveryKey)
             if (decryption == null) {
-                Log.e(LOG_TAG, "restoreKeyBackup: Invalid recovery key. Error")
+                Log.e(LOG_TAG, "restoreKeyBackupWithRecoveryKey: Invalid recovery key. Error")
                 if (callback != null) {
                     mCrypto.uiHandler.post { callback.onUnexpectedError(Exception("Invalid recovery key")) }
                 }
@@ -356,8 +370,11 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 override fun onSuccess(keysBackupData: KeysBackupData) {
                     val sessionsData = ArrayList<MegolmSessionData>()
                     // Restore that data
+                    var sessionsFromHsCount = 0
                     for (roomIdLoop in keysBackupData.roomIdToRoomKeysBackupData.keys) {
                         for (sessionIdLoop in keysBackupData.roomIdToRoomKeysBackupData[roomIdLoop]!!.sessionIdToKeyBackupData.keys) {
+                            sessionsFromHsCount++
+
                             val keyBackupData = keysBackupData.roomIdToRoomKeysBackupData[roomIdLoop]!!.sessionIdToKeyBackupData[sessionIdLoop]!!
 
                             val sessionData = decryptKeyBackupData(keyBackupData, sessionIdLoop, roomIdLoop, decryption)
@@ -367,17 +384,65 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                             }
                         }
                     }
-                    Log.d(LOG_TAG, "restoreKeyBackup: Got " + sessionsData.size + " keys from the backup store on the homeserver")
+                    Log.d(LOG_TAG, "restoreKeyBackupWithRecoveryKey: Decrypted " + sessionsData.size + " keys out of "
+                            + sessionsFromHsCount + " from the backup store on the homeserver")
+
+                    if (sessionsFromHsCount > 0 && sessionsData.size == 0) {
+                        // If we fail to decrypt all sessions, we have a credential problem
+                        Log.e(LOG_TAG, "[MXKeyBackup] restoreKeyBackup: Invalid recovery key or password")
+                        onUnexpectedError(InvalidParameterException("Invalid recovery key or password"))
+                        return
+                    }
+
                     // Do not trigger a backup for them if they come from the backup version we are using
                     val backUp = version != mKeysBackupVersion?.version
                     if (backUp) {
-                        Log.d(LOG_TAG, "restoreKeyBackup: Those keys will be backed up to backup version: " + mKeysBackupVersion?.version)
+                        Log.d(LOG_TAG, "restoreKeyBackupWithRecoveryKey: Those keys will be backed up to backup version: " + mKeysBackupVersion?.version)
                     }
 
                     // Import them into the crypto store
                     mCrypto.importMegolmSessionsData(sessionsData, backUp, callback)
                 }
             })
+        })
+    }
+
+    /**
+     * Restore a backup with a password from a given backup version stored on the homeserver.
+     *
+     * @param version the backup version to restore from.
+     * @param password the password to decrypt the retrieved backup.
+     * @param roomId the id of the room to get backup data from.
+     * @param sessionId the id of the session to restore.
+     * @param callback Callback. It provides the number of found keys and the number of successfully imported keys.
+     */
+    fun restoreKeyBackupWithPassword(version: String,
+                                     password: String,
+                                     roomId: String?,
+                                     sessionId: String?,
+                                     callback: ApiCallback<ImportRoomKeysResult>) {
+        Log.d(LOG_TAG, "[MXKeyBackup] restoreKeyBackup with password: From backup version: $version")
+
+        // Fetch authentication info about this version
+        // to retrieve the private key from the password
+        getVersion(version, object : SimpleApiCallback<KeysVersionResult>(callback) {
+            override fun onSuccess(info: KeysVersionResult) {
+                val megolmBackupAuthData = info.getAuthDataAsMegolmBackupAuthData()
+
+                if (megolmBackupAuthData.privateKeySalt == null || megolmBackupAuthData.privateKeyIterations == null) {
+                    callback.onUnexpectedError(IllegalStateException("Salt and/or iterations not found: this backup cannot be restored with a password"))
+                    return
+                }
+
+                // This is the recovery key
+                val privateKey = retrievePrivateKeyWithPassword(password,
+                        megolmBackupAuthData.privateKeySalt!!,
+                        megolmBackupAuthData.privateKeyIterations!!)
+
+                val recoveryKey = computeRecoveryKey(privateKey)
+
+                restoreKeyBackupWithRecoveryKey(version, recoveryKey, roomId, sessionId, callback)
+            }
         })
     }
 
@@ -466,6 +531,32 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 Log.d(LOG_TAG, "maybeSendKeyBackup: Skip it because state: $state")
             }
         }
+    }
+
+    /**
+     * Get information about a backup version defined on the homeserver.
+     *
+     * It can be different than mKeysBackupVersion.
+     * @param version the backup version
+     * @param callback
+     */
+    fun getVersion(version: String,
+                   callback: ApiCallback<KeysVersionResult?>) {
+        mRoomKeysRestClient.getKeysBackupVersion(version, object : SimpleApiCallback<KeysVersionResult>(callback) {
+            override fun onSuccess(info: KeysVersionResult) {
+                callback.onSuccess(info)
+            }
+
+            override fun onMatrixError(e: MatrixError) {
+                // Workaround because the homeserver currently returns M_NOT_FOUND when there is no key backup
+                if (e.errcode == MatrixError.NOT_FOUND) {
+                    callback.onSuccess(null)
+                } else {
+                    // Transmit the error
+                    callback.onMatrixError(e)
+                }
+            }
+        })
     }
 
     /**

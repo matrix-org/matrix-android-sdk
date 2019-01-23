@@ -51,3 +51,22 @@ fun assertDictEquals(dict1: Map<String, Any>?, dict2: Map<String, Any>?) {
         }
     }
 }
+
+/**
+ * Compare two byte arrays content.
+ * Note that if the arrays have not the same size, it also fails.
+ */
+fun assertByteArrayNotEqual(a1: ByteArray, a2: ByteArray) {
+    if (a1.size != a2.size) {
+        fail("Arrays have not the same size.")
+    }
+
+    for (index in a1.indices) {
+        if (a1[index] != a2[index]) {
+            // Difference found!
+            return
+        }
+    }
+
+    fail("Arrays are equals.")
+}

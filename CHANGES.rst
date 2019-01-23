@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - MXCrypto: Add key backup passphrase support (vector-im/riot-android#2771).
 
 Bugfix:
  -
