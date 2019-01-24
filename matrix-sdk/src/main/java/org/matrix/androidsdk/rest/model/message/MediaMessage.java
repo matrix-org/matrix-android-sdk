@@ -24,7 +24,7 @@ import org.matrix.androidsdk.util.Log;
 import java.io.File;
 
 public class MediaMessage extends Message {
-    public static final String LOG_TAG = MediaMessage.class.getSimpleName();
+    private static final String LOG_TAG = MediaMessage.class.getSimpleName();
 
     /**
      * @return the media URL

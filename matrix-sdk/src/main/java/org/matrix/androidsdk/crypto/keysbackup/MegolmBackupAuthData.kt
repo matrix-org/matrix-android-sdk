@@ -27,16 +27,38 @@ data class MegolmBackupAuthData(
          * The curve25519 public key used to encrypt the backups.
          */
         @SerializedName("public_key")
-        val publicKey: String = "",
+        var publicKey: String = "",
+
+        /**
+         * In case of a backup created from a password, the salt associated with the backup
+         * private key.
+         */
+        @SerializedName("private_key_salt")
+        var privateKeySalt: String? = null,
+
+        /**
+         * In case of a backup created from a password, the number of key derivations.
+         */
+        @SerializedName("private_key_iterations")
+        var privateKeyIterations: Int? = null,
 
         /**
          * Signatures of the public key.
          */
-        val signatures: Map<String, Map<String, String>>? = null
+        var signatures: Map<String, Map<String, String>>? = null
 ) {
     /**
      * Same as the parent [MXJSONModel JSONDictionary] but return only
      * data that must be signed.
      */
-    fun signalableJSONDictionary(): Map<String, Any> = mapOf("public_key" to publicKey)
+    fun signalableJSONDictionary(): Map<String, Any> = HashMap<String, Any>().apply {
+        put("public_key", publicKey)
+
+        privateKeySalt?.let {
+            put("private_key_salt", it)
+        }
+        privateKeyIterations?.let {
+            put("private_key_iterations", it)
+        }
+    }
 }
