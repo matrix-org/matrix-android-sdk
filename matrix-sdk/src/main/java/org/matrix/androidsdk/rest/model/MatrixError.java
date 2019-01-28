@@ -87,9 +87,7 @@ public class MatrixError implements java.io.Serializable {
     // extracted from the error response
     public Integer mStatus;
     public String mReason;
-    public ResponseBody mErrorBody;
     public String mErrorBodyAsString;
-    public MediaType mErrorBodyMimeType;
 
     /**
      * Default creator

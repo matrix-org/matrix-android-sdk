@@ -1006,14 +1006,7 @@ public class Event implements Externalizable {
 
         output.writeBoolean(null != unsentMatrixError);
         if (null != unsentMatrixError) {
-            //dont write some instance variable because they're not serializable
-            ResponseBody notSerializableBody = unsentMatrixError.mErrorBody;
-            MediaType notSerializableMimeType = unsentMatrixError.mErrorBodyMimeType;
-            unsentMatrixError.mErrorBody = null;
-            unsentMatrixError.mErrorBodyMimeType = null;
             output.writeObject(unsentMatrixError);
-            unsentMatrixError.mErrorBody = notSerializableBody;
-            unsentMatrixError.mErrorBodyMimeType = notSerializableMimeType;
         }
 
         output.writeObject(mSentState);
