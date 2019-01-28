@@ -16,10 +16,11 @@
 
 package org.matrix.androidsdk.crypto.keysbackup
 
+import org.matrix.androidsdk.crypto.MXCrypto
 import org.matrix.androidsdk.util.Log
 import java.util.*
 
-class KeysBackupStateManager {
+class KeysBackupStateManager(val crypto: MXCrypto) {
 
     private val mListeners = ArrayList<KeysBackupStateListener>()
 
@@ -30,10 +31,12 @@ class KeysBackupStateManager {
 
             field = newState
 
-            // Notify listeners about the state change
+            // Notify listeners about the state change, on the ui thread
             synchronized(mListeners) {
-                mListeners.forEach {
-                    it.onStateChange(state)
+                crypto.uiHandler.post {
+                    mListeners.forEach {
+                        it.onStateChange(state)
+                    }
                 }
             }
         }
@@ -77,6 +80,7 @@ class KeysBackupStateManager {
      *              +<---------------+
      * </pre>
      */
+    // TODO Missing state: KeyBackup exist and waiting for recovery key
     enum class KeysBackupState {
         // Need to check the current backup version on the homeserver
         Unknown,

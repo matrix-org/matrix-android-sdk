@@ -51,7 +51,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
     private val mRoomKeysRestClient = session.roomKeysRestClient
 
-    private val mKeysBackupStateManager = KeysBackupStateManager()
+    private val mKeysBackupStateManager = KeysBackupStateManager(mCrypto)
 
     // The backup version being used.
     private var mKeysBackupVersion: KeysVersionResult? = null

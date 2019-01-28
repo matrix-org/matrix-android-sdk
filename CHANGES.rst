@@ -8,7 +8,8 @@ Improvements:
  - MXCrypto: Add key backup passphrase support (vector-im/riot-android#2771).
 
 Bugfix:
- -  remove unserializable fields in MatrixError
+ - remove un-serializable fields in MatrixError
+ - MXCrypto: ensure listeners are called on the UiThread
 
 API Change:
  -
