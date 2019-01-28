@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -  do not attempt to serialize unserializable fields on MatrixError in Event::writeExternal
+ -  remove unserializable fields in MatrixError
 
 API Change:
  -
