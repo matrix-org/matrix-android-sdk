@@ -54,8 +54,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
-import okhttp3.MediaType;
-import okhttp3.ResponseBody;
+
 
 /**
  * Generic event class with all possible fields for events.
