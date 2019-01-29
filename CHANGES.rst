@@ -8,7 +8,7 @@ Improvements:
  - MXCrypto: Add key backup passphrase support (vector-im/riot-android#2771).
 
 Bugfix:
- -
+ -  remove unserializable fields in MatrixError
 
 API Change:
  -
@@ -17,7 +17,7 @@ Translations:
  -
 
 Others:
- -
+ - fix typo in CHANGES.rst (wrong year)
 
 Build:
  -
@@ -25,7 +25,7 @@ Build:
 Test:
  -
 
-Changes to Matrix Android SDK in 0.9.15 (2018-01-02)
+Changes to Matrix Android SDK in 0.9.15 (2019-01-02)
 =======================================================
 
 Improvements:
