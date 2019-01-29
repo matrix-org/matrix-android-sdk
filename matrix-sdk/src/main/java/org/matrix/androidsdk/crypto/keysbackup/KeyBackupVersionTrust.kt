@@ -17,7 +17,7 @@
 package org.matrix.androidsdk.crypto.keysbackup
 
 /**
- * Data model for response to [KeysBackup.isKeyBackupTrusted()].
+ * Data model for response to [KeysBackup.getKeyBackupTrust()].
  */
 class KeyBackupVersionTrust {
     /**

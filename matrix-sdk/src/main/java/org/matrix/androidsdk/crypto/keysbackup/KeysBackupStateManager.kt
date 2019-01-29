@@ -35,7 +35,8 @@ class KeysBackupStateManager(val crypto: MXCrypto) {
             synchronized(mListeners) {
                 crypto.uiHandler.post {
                     mListeners.forEach {
-                        it.onStateChange(state)
+                        // Use newState because state may have already changed again
+                        it.onStateChange(newState)
                     }
                 }
             }
@@ -94,9 +95,9 @@ class KeysBackupStateManager(val crypto: MXCrypto) {
         Enabling,
         // Backup is enabled and ready to send backup to the homeserver
         ReadyToBackUp,
-        // Backup is going to be send to the homeserver
+        // e2e keys are going to be sent to the homeserver
         WillBackUp,
-        // Backup is being sent to the homeserver
+        // e2e keys are being sent to the homeserver
         BackingUp
     }
 

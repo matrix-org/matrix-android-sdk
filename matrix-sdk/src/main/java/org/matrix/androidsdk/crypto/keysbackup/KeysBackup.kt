@@ -16,7 +16,9 @@
 
 package org.matrix.androidsdk.crypto.keysbackup
 
+import android.support.annotation.UiThread
 import android.support.annotation.VisibleForTesting
+import android.support.annotation.WorkerThread
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM
 import org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
@@ -141,7 +143,9 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         createKeysBackupVersionBody.algorithm = keyBackupCreationInfo.algorithm
         createKeysBackupVersionBody.authData = JsonUtils.getBasicGson().toJsonTree(keyBackupCreationInfo.authData)
 
-        mRoomKeysRestClient.createKeysBackupVersion(createKeysBackupVersionBody, object : SimpleApiCallback<KeysVersion>(callback) {
+        mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Enabling
+
+        mRoomKeysRestClient.createKeysBackupVersion(createKeysBackupVersionBody, object : ApiCallback<KeysVersion> {
             override fun onSuccess(info: KeysVersion) {
                 // Reset backup markers.
                 mCrypto.cryptoStore.resetBackupMarkers()
@@ -154,6 +158,21 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 enableKeyBackup(keyBackupVersion)
 
                 callback.onSuccess(info)
+            }
+
+            override fun onUnexpectedError(e: java.lang.Exception?) {
+                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
+                callback.onUnexpectedError(e)
+            }
+
+            override fun onNetworkError(e: java.lang.Exception?) {
+                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
+                callback.onNetworkError(e)
+            }
+
+            override fun onMatrixError(e: MatrixError?) {
+                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
+                callback.onMatrixError(e)
             }
         })
     }
@@ -174,7 +193,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Unknown
             }
 
-            mRoomKeysRestClient.deleteKeysBackup(version, callback)
+            mCrypto.uiHandler.post { mRoomKeysRestClient.deleteKeysBackup(version, callback) }
         }
     }
 
@@ -232,8 +251,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      * @param keyBackupVersion the backup version to check.
      * @param callback block called when the operations completes.
      */
-    fun isKeyBackupTrusted(keyBackupVersion: KeysVersionResult,
-                           callback: SuccessCallback<KeyBackupVersionTrust>) {
+    fun getKeyBackupTrust(keyBackupVersion: KeysVersionResult,
+                          callback: SuccessCallback<KeyBackupVersionTrust>) {
         mCrypto.decryptingThreadHandler.post {
             val myUserId = mCrypto.myDevice.userId
 
@@ -244,14 +263,14 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     || authData == null
                     || authData.publicKey.isEmpty()
                     || authData.signatures?.isEmpty() == true) {
-                Log.d(LOG_TAG, "isKeyBackupTrusted: Key backup is absent or missing required data")
+                Log.d(LOG_TAG, "getKeyBackupTrust: Key backup is absent or missing required data")
                 mCrypto.uiHandler.post { callback.onSuccess(keyBackupVersionTrust) }
                 return@post
             }
 
             val mySigs: Map<String, *> = authData.signatures!![myUserId] as Map<String, *>
             if (mySigs.isEmpty()) {
-                Log.d(LOG_TAG, "isKeyBackupTrusted: Ignoring key backup because it lacks any signatures from this user")
+                Log.d(LOG_TAG, "getKeyBackupTrust: Ignoring key backup because it lacks any signatures from this user")
                 mCrypto.uiHandler.post { callback.onSuccess(keyBackupVersionTrust) }
                 return@post
             }
@@ -269,7 +288,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     device = mCrypto.cryptoStore.getUserDevice(deviceId, myUserId)
                 }
                 if (device == null) {
-                    Log.d(LOG_TAG, "isKeyBackupTrusted: Ignoring signature from unknown key $deviceId")
+                    Log.d(LOG_TAG, "getKeyBackupTrust: Ignoring signature from unknown key $deviceId")
                     continue
                 }
 
@@ -279,7 +298,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                         it.verifySignature(device.fingerprint(), authData.signalableJSONDictionary(), mySigs[keyId] as String)
                         isSignatureValid = true
                     } catch (e: OlmException) {
-                        Log.d(LOG_TAG, "isKeyBackupTrusted: Bad signature from device " + device.deviceId + " " + e.localizedMessage)
+                        Log.d(LOG_TAG, "getKeyBackupTrust: Bad signature from device " + device.deviceId + " " + e.localizedMessage)
                     }
                 }
 
@@ -333,7 +352,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                                         recoveryKey: String,
                                         roomId: String?,
                                         sessionId: String?,
-                                        callback: ApiCallback<ImportRoomKeysResult>?) {
+                                        callback: ApiCallback<ImportRoomKeysResult>) {
         Log.d(LOG_TAG, "restoreKeyBackupWithRecoveryKey: From backup version: $version")
 
         mCrypto.decryptingThreadHandler.post(Runnable {
@@ -341,30 +360,22 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
             val decryption = pkDecryptionFromRecoveryKey(recoveryKey)
             if (decryption == null) {
                 Log.e(LOG_TAG, "restoreKeyBackupWithRecoveryKey: Invalid recovery key. Error")
-                if (callback != null) {
-                    mCrypto.uiHandler.post { callback.onUnexpectedError(Exception("Invalid recovery key")) }
-                }
+                mCrypto.uiHandler.post { callback.onUnexpectedError(InvalidParameterException("Invalid recovery key")) }
                 return@Runnable
             }
 
             // Get backup from the homeserver
             keyBackupForSession(sessionId, roomId, version, object : ApiCallback<KeysBackupData> {
                 override fun onUnexpectedError(e: Exception) {
-                    if (callback != null) {
-                        mCrypto.uiHandler.post { callback.onUnexpectedError(e) }
-                    }
+                    mCrypto.uiHandler.post { callback.onUnexpectedError(e) }
                 }
 
                 override fun onNetworkError(e: Exception) {
-                    if (callback != null) {
-                        mCrypto.uiHandler.post { callback.onNetworkError(e) }
-                    }
+                    mCrypto.uiHandler.post { callback.onNetworkError(e) }
                 }
 
                 override fun onMatrixError(e: MatrixError) {
-                    if (callback != null) {
-                        mCrypto.uiHandler.post { callback.onMatrixError(e) }
-                    }
+                    mCrypto.uiHandler.post { callback.onMatrixError(e) }
                 }
 
                 override fun onSuccess(keysBackupData: KeysBackupData) {
@@ -488,6 +499,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     }
 
     @VisibleForTesting
+    @WorkerThread
     fun pkDecryptionFromRecoveryKey(recoveryKey: String): OlmPkDecryption? {
         // Extract the primary key
         val privateKey = extractCurveKeyFromRecoveryKey(recoveryKey)
@@ -525,7 +537,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 // new key is sent
                 val delayInMs = mRandom.nextInt(KEY_BACKUP_WAITING_TIME_TO_SEND_KEY_BACKUP_MILLIS).toLong()
 
-                mCrypto.decryptingThreadHandler.postDelayed({ sendKeyBackup() }, delayInMs)
+                mCrypto.uiHandler.postDelayed({ sendKeyBackup() }, delayInMs)
             }
             else -> {
                 Log.d(LOG_TAG, "maybeSendKeyBackup: Skip it because state: $state")
@@ -563,7 +575,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      * Retrieve the current version of the backup from the home server
      *
      * It can be different than mKeysBackupVersion.
-     * @param callback
+     * @param callback onSuccess(null) will be called if there is no backup on the server
      */
     fun getCurrentVersion(callback: ApiCallback<KeysVersionResult?>) {
         mRoomKeysRestClient.getKeysBackupLastVersion(object : SimpleApiCallback<KeysVersionResult>(callback) {
@@ -604,9 +616,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     Log.d(LOG_TAG, "checkAndStartKeyBackup: Found no key backup version on the homeserver")
                     disableKeyBackup()
                 } else {
-                    isKeyBackupTrusted(keyBackupVersion, SuccessCallback { trustInfo ->
-                        mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
-
+                    getKeyBackupTrust(keyBackupVersion, SuccessCallback { trustInfo ->
                         if (trustInfo.usable) {
                             Log.d(LOG_TAG, "checkAndStartKeyBackup: Found usable key backup. version: " + keyBackupVersion.version)
                             when {
@@ -623,6 +633,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                                 }
                                 mKeysBackupVersion!!.version.equals(keyBackupVersion.version) -> {
                                     Log.d(LOG_TAG, "   -> same backup version (" + keyBackupVersion.version + "). Keep using it")
+                                    mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
                                 }
                                 else -> {
                                     Log.d(LOG_TAG, "   -> disable the current version (" + mKeysBackupVersion!!.version
@@ -635,6 +646,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                             Log.d(LOG_TAG, "checkAndStartKeyBackup: No usable key backup. version: " + keyBackupVersion.version)
                             if (mKeysBackupVersion == null) {
                                 Log.d(LOG_TAG, "   -> not enabling key backup")
+                                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
                             } else {
                                 Log.d(LOG_TAG, "   -> disabling key backup")
                                 disableKeyBackup()
@@ -692,9 +704,11 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 maybeSendKeyBackup()
             } else {
                 Log.e(LOG_TAG, "Invalid authentication data")
+                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
             }
         } else {
             Log.e(LOG_TAG, "Invalid authentication data")
+            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
         }
     }
 
@@ -716,6 +730,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     /**
      * Send a chunk of keys to backup
      */
+    @UiThread
     private fun sendKeyBackup() {
         Log.d(LOG_TAG, "sendKeyBackup")
 
@@ -750,98 +765,109 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
         mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.BackingUp
 
-        Log.d(LOG_TAG, "sendKeyBackup: 2 - Encrypting keys")
+        mCrypto.encryptingThreadHandler.post {
+            Log.d(LOG_TAG, "sendKeyBackup: 2 - Encrypting keys")
 
-        // Gather data to send to the homeserver
-        // roomId -> sessionId -> MXKeyBackupData
-        val keysBackupData = KeysBackupData()
-        keysBackupData.roomIdToRoomKeysBackupData = HashMap()
+            // Gather data to send to the homeserver
+            // roomId -> sessionId -> MXKeyBackupData
+            val keysBackupData = KeysBackupData()
+            keysBackupData.roomIdToRoomKeysBackupData = HashMap()
 
-        for (session in sessions) {
-            val keyBackupData = encryptGroupSession(session)
-            if (keysBackupData.roomIdToRoomKeysBackupData[session.mRoomId] == null) {
-                val roomKeysBackupData = RoomKeysBackupData()
-                roomKeysBackupData.sessionIdToKeyBackupData = HashMap()
-                keysBackupData.roomIdToRoomKeysBackupData[session.mRoomId] = roomKeysBackupData
-            }
+            for (session in sessions) {
+                val keyBackupData = encryptGroupSession(session)
+                if (keysBackupData.roomIdToRoomKeysBackupData[session.mRoomId] == null) {
+                    val roomKeysBackupData = RoomKeysBackupData()
+                    roomKeysBackupData.sessionIdToKeyBackupData = HashMap()
+                    keysBackupData.roomIdToRoomKeysBackupData[session.mRoomId] = roomKeysBackupData
+                }
 
-            try {
-                keysBackupData.roomIdToRoomKeysBackupData[session.mRoomId]!!.sessionIdToKeyBackupData[session.mSession.sessionIdentifier()] = keyBackupData
-            } catch (e: OlmException) {
-                Log.e(LOG_TAG, "OlmException", e)
-            }
-        }
-
-        Log.d(LOG_TAG, "sendKeyBackup: 4 - Sending request")
-
-        // Make the request
-        mRoomKeysRestClient.sendKeysBackup(mKeysBackupVersion!!.version!!, keysBackupData, object : ApiCallback<Void> {
-            override fun onNetworkError(e: Exception) {
-                backupAllGroupSessionsCallback?.onNetworkError(e)
-                resetBackupAllGroupSessionsListeners()
-
-                onError()
-            }
-
-            private fun onError() {
-                Log.e(LOG_TAG, "sendKeyBackup: sendKeysBackup failed.")
-
-                // Retry a bit later
-                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
-                maybeSendKeyBackup()
-            }
-
-            override fun onMatrixError(e: MatrixError) {
-                Log.e(LOG_TAG, "sendKeyBackup: sendKeysBackup failed. Error: " + e.localizedMessage)
-
-                if (e.errcode == MatrixError.WRONG_ROOM_KEYS_VERSION) {
-                    mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WrongBackUpVersion
-                    backupAllGroupSessionsCallback?.onMatrixError(e)
-                    resetBackupAllGroupSessionsListeners()
-                    disableKeyBackup()
-
-                    // disableKeyBackup() set state to Disable, so ensure it is WrongBackUpVersion
-                    mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WrongBackUpVersion
-                } else {
-                    // Come back to the ready state so that we will retry on the next received key
-                    mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
+                try {
+                    keysBackupData.roomIdToRoomKeysBackupData[session.mRoomId]!!.sessionIdToKeyBackupData[session.mSession.sessionIdentifier()] = keyBackupData
+                } catch (e: OlmException) {
+                    Log.e(LOG_TAG, "OlmException", e)
                 }
             }
 
-            override fun onUnexpectedError(e: Exception) {
-                backupAllGroupSessionsCallback?.onUnexpectedError(e)
-                resetBackupAllGroupSessionsListeners()
+            Log.d(LOG_TAG, "sendKeyBackup: 4 - Sending request")
 
-                onError()
-            }
+            // Make the request
+            mRoomKeysRestClient.sendKeysBackup(mKeysBackupVersion!!.version!!, keysBackupData, object : ApiCallback<Void> {
+                override fun onNetworkError(e: Exception) {
+                    mCrypto.uiHandler.post {
+                        backupAllGroupSessionsCallback?.onNetworkError(e)
+                        resetBackupAllGroupSessionsListeners()
 
-            override fun onSuccess(info: Void?) {
-                Log.d(LOG_TAG, "sendKeyBackup: 5a - Request complete")
-
-                // Mark keys as backed up
-                for (session in sessions) {
-                    try {
-                        mCrypto.cryptoStore.markBackupDoneForInboundGroupSessionWithId(session.mSession.sessionIdentifier(), session.mSenderKey)
-                    } catch (e: OlmException) {
-                        Log.e(LOG_TAG, "OlmException", e)
+                        onError()
                     }
                 }
 
-                if (sessions.size < KEY_BACKUP_SEND_KEYS_MAX_COUNT) {
-                    Log.d(LOG_TAG, "sendKeyBackup: All keys have been backed up")
-                    // Note: Changing state will trigger the call to backupAllGroupSessionsCallback.onSuccess()
-                    mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
-                } else {
-                    Log.d(LOG_TAG, "sendKeyBackup: Continue to back up keys")
-                    mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WillBackUp
+                private fun onError() {
+                    Log.e(LOG_TAG, "sendKeyBackup: sendKeysBackup failed.")
 
-                    sendKeyBackup()
+                    // Retry a bit later
+                    mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
+                    maybeSendKeyBackup()
                 }
-            }
-        })
+
+                override fun onMatrixError(e: MatrixError) {
+                    mCrypto.uiHandler.post {
+                        Log.e(LOG_TAG, "sendKeyBackup: sendKeysBackup failed. Error: " + e.localizedMessage)
+
+                        if (e.errcode == MatrixError.WRONG_ROOM_KEYS_VERSION) {
+                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WrongBackUpVersion
+                            backupAllGroupSessionsCallback?.onMatrixError(e)
+                            resetBackupAllGroupSessionsListeners()
+                            disableKeyBackup()
+
+                            // disableKeyBackup() set state to Disable, so ensure it is WrongBackUpVersion
+                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WrongBackUpVersion
+                        } else {
+                            // Come back to the ready state so that we will retry on the next received key
+                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
+                        }
+                    }
+                }
+
+                override fun onUnexpectedError(e: Exception) {
+                    mCrypto.uiHandler.post {
+                        backupAllGroupSessionsCallback?.onUnexpectedError(e)
+                        resetBackupAllGroupSessionsListeners()
+
+                        onError()
+                    }
+                }
+
+                override fun onSuccess(info: Void?) {
+                    mCrypto.uiHandler.post {
+                        Log.d(LOG_TAG, "sendKeyBackup: 5a - Request complete")
+
+                        // Mark keys as backed up
+                        for (session in sessions) {
+                            try {
+                                mCrypto.cryptoStore.markBackupDoneForInboundGroupSessionWithId(session.mSession.sessionIdentifier(), session.mSenderKey)
+                            } catch (e: OlmException) {
+                                Log.e(LOG_TAG, "OlmException", e)
+                            }
+                        }
+
+                        if (sessions.size < KEY_BACKUP_SEND_KEYS_MAX_COUNT) {
+                            Log.d(LOG_TAG, "sendKeyBackup: All keys have been backed up")
+                            // Note: Changing state will trigger the call to backupAllGroupSessionsCallback.onSuccess()
+                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
+                        } else {
+                            Log.d(LOG_TAG, "sendKeyBackup: Continue to back up keys")
+                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WillBackUp
+
+                            sendKeyBackup()
+                        }
+                    }
+                }
+            })
+        }
     }
 
     @VisibleForTesting
+    @WorkerThread
     fun encryptGroupSession(session: MXOlmInboundGroupSession2): KeyBackupData {
         // Gather information for each key
         val device = mCrypto.deviceWithIdentityKey(session.mSenderKey, MXCRYPTO_ALGORITHM_MEGOLM)
@@ -885,6 +911,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     }
 
     @VisibleForTesting
+    @WorkerThread
     fun decryptKeyBackupData(keyBackupData: KeyBackupData, sessionId: String, roomId: String, decryption: OlmPkDecryption): MegolmSessionData? {
         var sessionBackupData: MegolmSessionData? = null
 

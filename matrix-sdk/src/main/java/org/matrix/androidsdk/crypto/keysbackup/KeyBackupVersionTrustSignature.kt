@@ -29,7 +29,7 @@ class KeyBackupVersionTrustSignature {
     var device: MXDeviceInfo? = null
 
     /**
-     *Flag to indicate the signature from this device is valid.
+     * Flag to indicate the signature from this device is valid.
      */
     var valid = false
 

@@ -208,30 +208,34 @@ class KeysBackupTest {
         assertEquals(2, cryptoStore.inboundGroupSessionsCount(false))
         assertEquals(0, cryptoStore.inboundGroupSessionsCount(true))
 
+        val stateList = ArrayList<KeysBackupStateManager.KeysBackupState>()
+
         keysBackup.addListener(object : KeysBackupStateManager.KeysBackupStateListener {
             override fun onStateChange(newState: KeysBackupStateManager.KeysBackupState) {
-                // Check the several backup state changes
-                when (counter) {
-                    0 -> assertEquals(KeysBackupStateManager.KeysBackupState.ReadyToBackUp, newState)
-                    1 -> assertEquals(KeysBackupStateManager.KeysBackupState.WillBackUp, newState)
-                    2 -> assertEquals(KeysBackupStateManager.KeysBackupState.BackingUp, newState)
-                    3 -> {
-                        assertEquals(KeysBackupStateManager.KeysBackupState.ReadyToBackUp, newState)
+                stateList.add(newState)
 
-                        // Last state
-                        // Remove itself from the list of listeners
-                        keysBackup.removeListener(this)
-
-                        latch.countDown()
-                    }
-                }
                 counter++
+
+                if (counter == 5) {
+                    // Last state
+                    // Remove itself from the list of listeners
+                    keysBackup.removeListener(this)
+
+                    latch.countDown()
+                }
             }
         })
 
         prepareAndCreateKeyBackupData(keysBackup)
 
         mTestHelper.await(latch)
+
+        // Check the several backup state changes
+        assertEquals(KeysBackupStateManager.KeysBackupState.Enabling, stateList[0])
+        assertEquals(KeysBackupStateManager.KeysBackupState.ReadyToBackUp, stateList[1])
+        assertEquals(KeysBackupStateManager.KeysBackupState.WillBackUp, stateList[2])
+        assertEquals(KeysBackupStateManager.KeysBackupState.BackingUp, stateList[3])
+        assertEquals(KeysBackupStateManager.KeysBackupState.ReadyToBackUp, stateList[4])
 
         val nbOfKeys = cryptoStore.inboundGroupSessionsCount(false)
         val backedUpKeys = cryptoStore.inboundGroupSessionsCount(true)
@@ -560,7 +564,7 @@ class KeysBackupTest {
         // - Check the returned KeyBackupVersion is trusted
         val latch = CountDownLatch(1)
         var keyBackupVersionTrust: KeyBackupVersionTrust? = null
-        keysBackup.isKeyBackupTrusted(keysVersionResult!!, SuccessCallback { info ->
+        keysBackup.getKeyBackupTrust(keysVersionResult!!, SuccessCallback { info ->
             keyBackupVersionTrust = info
 
             latch.countDown()
@@ -657,7 +661,7 @@ class KeysBackupTest {
         keysBackup.addListener(object : KeysBackupStateManager.KeysBackupStateListener {
             override fun onStateChange(newState: KeysBackupStateManager.KeysBackupState) {
                 // Check the backup completes
-                if (keysBackup.state == KeysBackupStateManager.KeysBackupState.ReadyToBackUp) {
+                if (newState == KeysBackupStateManager.KeysBackupState.ReadyToBackUp) {
                     count++
 
                     if (count == 2) {
