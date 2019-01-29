@@ -615,6 +615,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 if (keyBackupVersion == null) {
                     Log.d(LOG_TAG, "checkAndStartKeyBackup: Found no key backup version on the homeserver")
                     disableKeyBackup()
+                    mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
                 } else {
                     getKeyBackupTrust(keyBackupVersion, SuccessCallback { trustInfo ->
                         if (trustInfo.usable) {
@@ -646,11 +647,12 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                             Log.d(LOG_TAG, "checkAndStartKeyBackup: No usable key backup. version: " + keyBackupVersion.version)
                             if (mKeysBackupVersion == null) {
                                 Log.d(LOG_TAG, "   -> not enabling key backup")
-                                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
                             } else {
                                 Log.d(LOG_TAG, "   -> disabling key backup")
                                 disableKeyBackup()
                             }
+
+                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
                         }
                     })
                 }
@@ -714,6 +716,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
     /**
      * Disable backing up of keys.
+     * Note: This method does not update the state
      */
     private fun disableKeyBackup() {
         resetBackupAllGroupSessionsListeners()
@@ -721,7 +724,6 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         mKeysBackupVersion = null
         mCrypto.cryptoStore.keyBackupVersion = null
         mBackupKey = null
-        mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
 
         // Reset backup markers
         mCrypto.cryptoStore.resetBackupMarkers()

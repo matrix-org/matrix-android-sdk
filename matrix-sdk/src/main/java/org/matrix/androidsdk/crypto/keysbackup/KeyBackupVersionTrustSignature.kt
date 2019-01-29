@@ -19,7 +19,7 @@ package org.matrix.androidsdk.crypto.keysbackup
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 
 /**
- * A signature in a the `KeyBackupVersionTrust` object.
+ * A signature in a `KeyBackupVersionTrust` object.
  */
 class KeyBackupVersionTrustSignature {
 

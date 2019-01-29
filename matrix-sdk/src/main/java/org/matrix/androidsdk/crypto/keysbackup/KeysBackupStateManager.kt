@@ -44,8 +44,8 @@ class KeysBackupStateManager(val crypto: MXCrypto) {
 
     val isEnabled: Boolean
         get() = state == KeysBackupStateManager.KeysBackupState.ReadyToBackUp
-                || state == KeysBackupStateManager.KeysBackupState.BackingUp
                 || state == KeysBackupStateManager.KeysBackupState.WillBackUp
+                || state == KeysBackupStateManager.KeysBackupState.BackingUp
 
     /**
      * E2e keys backup states.
