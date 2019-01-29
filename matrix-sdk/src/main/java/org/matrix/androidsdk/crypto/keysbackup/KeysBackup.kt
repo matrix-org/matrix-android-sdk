@@ -649,12 +649,12 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                             Log.d(LOG_TAG, "checkAndStartKeysBackup: No usable key backup. version: " + keyBackupVersion.version)
                             if (mKeysBackupVersion == null) {
                                 Log.d(LOG_TAG, "   -> not enabling key backup")
-                                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.NotTrusted
                             } else {
                                 Log.d(LOG_TAG, "   -> disabling key backup")
                                 disableKeysBackup()
-                                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
                             }
+
+                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.NotTrusted
                         }
                     })
                 }
