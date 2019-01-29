@@ -12,7 +12,7 @@ Bugfix:
  - MXCrypto: ensure listeners are called on the UiThread
 
 API Change:
- -
+ - Some KeysBackup methods have been renamed for clarity
 
 Translations:
  -

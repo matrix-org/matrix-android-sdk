@@ -16,21 +16,18 @@
 
 package org.matrix.androidsdk.crypto.keysbackup
 
-import org.matrix.androidsdk.crypto.data.MXDeviceInfo
-
 /**
- * A signature in a `KeyBackupVersionTrust` object.
+ * Data model for response to [KeysBackup.getKeysBackupTrust()].
  */
-class KeyBackupVersionTrustSignature {
+class KeysBackupVersionTrust {
+    /**
+     * Flag to indicate if the backup is trusted.
+     * true if there is a signature that is valid & from a trusted device.
+     */
+    var usable = false
 
     /**
-     * The device that signed the backup version.
+     * Signatures found in the backup version.
      */
-    var device: MXDeviceInfo? = null
-
-    /**
-     * Flag to indicate the signature from this device is valid.
-     */
-    var valid = false
-
+    var signatures: MutableList<KeysBackupVersionTrustSignature> = ArrayList()
 }

@@ -193,17 +193,17 @@ class RoomKeysRestClientTest {
         val sessionId = "ASession"
 
         lock = CountDownLatch(1)
-        // Send the backup
+        // Backup the key
         bobSession.roomKeysRestClient
-                .sendKeyBackup(roomId, sessionId, version!!, keyBackupData, TestApiCallback(lock))
+                .backupKey(roomId, sessionId, version!!, keyBackupData, TestApiCallback(lock))
         mTestHelper.await(lock)
 
-        // Get the backup back
+        // Get the keys back
         var keysBackupDataResult: KeysBackupData? = null
         lock = CountDownLatch(1)
-        // Retrieve the version and check we get the same content
+        // Retrieve the keys and check we get the same content
         bobSession.roomKeysRestClient
-                .getKeysBackup(version, object : TestApiCallback<KeysBackupData>(lock) {
+                .getKeys(version, object : TestApiCallback<KeysBackupData>(lock) {
                     override fun onSuccess(info: KeysBackupData) {
                         keysBackupDataResult = info
                         super.onSuccess(info)
@@ -271,24 +271,24 @@ class RoomKeysRestClientTest {
         val roomId = "!aRoomId:matrix.org"
         val sessionId = "ASession"
 
-        // Send the backup
+        // Backup the key
         lock = CountDownLatch(1)
         bobSession.roomKeysRestClient
-                .sendKeyBackup(roomId, sessionId, version!!, keyBackupData, TestApiCallback(lock))
+                .backupKey(roomId, sessionId, version!!, keyBackupData, TestApiCallback(lock))
         mTestHelper.await(lock)
 
-        // Delete the backup
+        // Delete the key from backup
         lock = CountDownLatch(1)
         bobSession.roomKeysRestClient
-                .deleteKeyBackup(roomId, sessionId, version, TestApiCallback(lock))
+                .deleteRoomKey(roomId, sessionId, version, TestApiCallback(lock))
         mTestHelper.await(lock)
 
-        // Get the backup back
+        // Get the key back
         var keysBackupDataResult: KeysBackupData? = null
         lock = CountDownLatch(1)
         // Retrieve the version and check it is empty
         bobSession.roomKeysRestClient
-                .getKeysBackup(version, object : TestApiCallback<KeysBackupData>(lock) {
+                .getKeys(version, object : TestApiCallback<KeysBackupData>(lock) {
                     override fun onSuccess(info: KeysBackupData) {
                         keysBackupDataResult = info
                         super.onSuccess(info)
@@ -296,7 +296,7 @@ class RoomKeysRestClientTest {
                 })
         mTestHelper.await(lock)
 
-        // Check that all the fields are the same
+        // Check that the backup is now empty
         assertNotNull(keysBackupDataResult)
         assertTrue(keysBackupDataResult!!.roomIdToRoomKeysBackupData.isEmpty())
 

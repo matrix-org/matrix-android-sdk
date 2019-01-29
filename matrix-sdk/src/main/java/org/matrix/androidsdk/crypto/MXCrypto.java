@@ -476,7 +476,7 @@ public class MXCrypto {
 
                                                             mOutgoingRoomKeyRequestManager.start();
 
-                                                            mKeysBackup.checkAndStartKeyBackup();
+                                                            mKeysBackup.checkAndStartKeysBackup();
 
                                                             synchronized (mInitializationCallbacks) {
                                                                 for (ApiCallback<Void> callback : mInitializationCallbacks) {
@@ -846,7 +846,7 @@ public class MXCrypto {
                         // If one of the user's own devices is being marked as verified / unverified,
                         // check the key backup status, since whether or not we use this depends on
                         // whether it has a signature from a verified device
-                        mKeysBackup.checkAndStartKeyBackup();
+                        mKeysBackup.checkAndStartKeysBackup();
                     }
                 }
 
@@ -2412,7 +2412,7 @@ public class MXCrypto {
 
                                 // Do not back up the key if it comes from a backup recovery
                                 if (backUpKeys) {
-                                    mKeysBackup.maybeSendKeyBackup();
+                                    mKeysBackup.maybeBackupKeys();
                                 } else {
                                     mCryptoStore.markBackupDoneForInboundGroupSessionWithId(sessionId, session.mSenderKey);
                                 }

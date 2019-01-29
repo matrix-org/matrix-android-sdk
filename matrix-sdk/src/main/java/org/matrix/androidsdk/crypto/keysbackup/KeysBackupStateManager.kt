@@ -55,14 +55,14 @@ class KeysBackupStateManager(val crypto: MXCrypto) {
      *                               V        deleteKeyBackupVersion (on current backup)
      *  +---------------------->  UNKNOWN  <-------------
      *  |                            |
-     *  |                            | checkAndStartKeyBackup (at startup or on new verified device or a new detected backup)
+     *  |                            | checkAndStartKeysBackup (at startup or on new verified device or a new detected backup)
      *  |                            V
      *  |                     CHECKING BACKUP
      *  |                            |
      *  |    Network error           |
      *  +<----------+----------------+-------> DISABLED <----------------------+
      *  |           |                |            |                            |
-     *  |           |                |            | createKeyBackupVersion     |
+     *  |           |                |            | createKeysBackupVersion    |
      *  |           V                |            V                            |
      *  +<---  WRONG VERSION         |         ENABLING                        |
      *              ^                |            |                            |
