@@ -24,7 +24,13 @@ import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 class KeysBackupVersionTrustSignature {
 
     /**
+     * The id of the device that signed the backup version.
+     */
+    var deviceId: String? = null
+
+    /**
      * The device that signed the backup version.
+     * Can be null if the device is not known.
      */
     var device: MXDeviceInfo? = null
 

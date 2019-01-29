@@ -286,30 +286,32 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 var device: MXDeviceInfo? = null
                 if (deviceId != null) {
                     device = mCrypto.cryptoStore.getUserDevice(deviceId, myUserId)
-                }
-                if (device == null) {
-                    Log.d(LOG_TAG, "getKeysBackupTrust: Ignoring signature from unknown key $deviceId")
-                    continue
-                }
 
-                var isSignatureValid = false
-                mCrypto.olmDevice?.let {
-                    try {
-                        it.verifySignature(device.fingerprint(), authData.signalableJSONDictionary(), mySigs[keyId] as String)
-                        isSignatureValid = true
-                    } catch (e: OlmException) {
-                        Log.d(LOG_TAG, "getKeysBackupTrust: Bad signature from device " + device.deviceId + " " + e.localizedMessage)
+                    var isSignatureValid = false
+
+                    if (device == null) {
+                        Log.d(LOG_TAG, "getKeysBackupTrust: Signature from unknown device $deviceId")
+                    } else {
+                        mCrypto.olmDevice?.let {
+                            try {
+                                it.verifySignature(device.fingerprint(), authData.signalableJSONDictionary(), mySigs[keyId] as String)
+                                isSignatureValid = true
+                            } catch (e: OlmException) {
+                                Log.d(LOG_TAG, "getKeysBackupTrust: Bad signature from device " + device.deviceId + " " + e.localizedMessage)
+                            }
+                        }
+
+                        if (isSignatureValid && device.isVerified) {
+                            keysBackupVersionTrust.usable = true
+                        }
                     }
-                }
 
-                if (isSignatureValid && device.isVerified) {
-                    keysBackupVersionTrust.usable = true
+                    val signature = KeysBackupVersionTrustSignature()
+                    signature.device = device
+                    signature.valid = isSignatureValid
+                    signature.deviceId = deviceId
+                    keysBackupVersionTrust.signatures.add(signature)
                 }
-
-                val signature = KeysBackupVersionTrustSignature()
-                signature.device = device
-                signature.valid = isSignatureValid
-                keysBackupVersionTrust.signatures.add(signature)
             }
 
             mCrypto.uiHandler.post { callback.onSuccess(keysBackupVersionTrust) }
@@ -647,12 +649,12 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                             Log.d(LOG_TAG, "checkAndStartKeysBackup: No usable key backup. version: " + keyBackupVersion.version)
                             if (mKeysBackupVersion == null) {
                                 Log.d(LOG_TAG, "   -> not enabling key backup")
+                                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.NotTrusted
                             } else {
                                 Log.d(LOG_TAG, "   -> disabling key backup")
                                 disableKeysBackup()
+                                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
                             }
-
-                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
                         }
                     })
                 }

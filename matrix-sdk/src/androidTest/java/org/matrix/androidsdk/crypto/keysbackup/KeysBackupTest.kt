@@ -578,6 +578,7 @@ class KeysBackupTest {
         val signature = keysBackupVersionTrust!!.signatures[0]
         assertTrue(signature.valid)
         assertNotNull(signature.device)
+        assertEquals(cryptoTestData.firstSession.crypto?.myDevice?.deviceId, signature.deviceId)
         assertEquals(signature.device!!.deviceId, cryptoTestData.firstSession.credentials.deviceId)
 
         cryptoTestData.clear(context)
@@ -643,7 +644,7 @@ class KeysBackupTest {
      * - Make alice back up her keys to her homeserver
      * - Create a new backup with fake data on the homeserver
      * - Make alice back up all her keys again
-     * -> That must fail and her backup state must be disabled
+     * -> That must fail and her backup state must be WrongBackUpVersion
      */
     @Test
     fun testBackupWhenAnotherBackupWasCreated() {
@@ -703,7 +704,7 @@ class KeysBackupTest {
         }, TestApiCallback(latch2, false))
         mTestHelper.await(latch2)
 
-        // -> That must fail and her backup state must be disabled
+        // -> That must fail and her backup state must be WrongBackUpVersion
         assertEquals(KeysBackupStateManager.KeysBackupState.WrongBackUpVersion, keysBackup.state)
         assertFalse(keysBackup.isEnabled)
 
@@ -715,7 +716,7 @@ class KeysBackupTest {
      * - Log Alice on a new device
      * - Post a message to have a new megolm session
      * - Try to backup all
-     * -> It must fail
+     * -> It must fail. Backup state must be NotTrusted
      * - Validate the old device from the new one
      * -> Backup should automatically enable on the new device
      * -> It must use the same backup version
@@ -777,6 +778,9 @@ class KeysBackupTest {
         mTestHelper.await(latch2)
 
         assertFalse(isSuccessful)
+
+        // Backup state must be NotTrusted
+        assertEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, keysBackup2.state)
         assertFalse(keysBackup2.isEnabled)
 
         // - Validate the old device from the new one

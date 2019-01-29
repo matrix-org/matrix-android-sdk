@@ -65,11 +65,11 @@ class KeysBackupStateManager(val crypto: MXCrypto) {
      *  |           |                |            | createKeysBackupVersion    |
      *  |           V                |            V                            |
      *  +<---  WRONG VERSION         |         ENABLING                        |
-     *              ^                |            |                            |
-     *              |                V       ok   |     error                  |
-     *              |     +------> READY <--------+----------------------------+
-     *              |     |          |
-     *              |     |          | on new key
+     *      |       ^                |            |                            |
+     *      |       |                V       ok   |     error                  |
+     *      |       |     +------> READY <--------+----------------------------+
+     *      V       |     |          |
+     * NOT TRUSTED  |     |          | on new key
      *              |     |          V
      *              |     |     WILL BACK UP (waiting a random duration)
      *              |     |          |
@@ -81,7 +81,6 @@ class KeysBackupStateManager(val crypto: MXCrypto) {
      *              +<---------------+
      * </pre>
      */
-    // TODO Missing state: KeyBackup exist and waiting for recovery key
     enum class KeysBackupState {
         // Need to check the current backup version on the homeserver
         Unknown,
@@ -91,6 +90,11 @@ class KeysBackupStateManager(val crypto: MXCrypto) {
         WrongBackUpVersion,
         // Backup from this device is not enabled
         Disabled,
+        // There is a backup available on the homeserver but it is not trusted.
+        // It is not trusted because the signature is invalid or the device that created it is not verified
+        // Use [KeysBackup.getKeysBackupTrust()] to get trust details.
+        // Consequently, the backup from this device is not enabled.
+        NotTrusted,
         // Backup is being enabled: the backup version is being created on the homeserver
         Enabling,
         // Backup is enabled and ready to send backup to the homeserver
