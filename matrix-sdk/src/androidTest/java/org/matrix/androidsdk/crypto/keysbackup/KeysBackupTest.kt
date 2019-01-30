@@ -30,6 +30,7 @@ import org.matrix.androidsdk.crypto.MegolmSessionData
 import org.matrix.androidsdk.crypto.data.ImportRoomKeysResult
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2
+import org.matrix.androidsdk.listeners.ProgressListener
 import org.matrix.androidsdk.rest.callback.SuccessCallback
 import org.matrix.androidsdk.rest.callback.SuccessErrorCallback
 import org.matrix.androidsdk.rest.model.keys.CreateKeysBackupVersionBody
@@ -113,7 +114,7 @@ class KeysBackupTest {
 
         val latch = CountDownLatch(1)
 
-        keysBackup.prepareKeysBackupVersion(null, object : SuccessErrorCallback<MegolmBackupCreationInfo> {
+        keysBackup.prepareKeysBackupVersion(null, null, object : SuccessErrorCallback<MegolmBackupCreationInfo> {
             override fun onSuccess(info: MegolmBackupCreationInfo?) {
                 assertNotNull(info)
 
@@ -151,7 +152,7 @@ class KeysBackupTest {
 
         var megolmBackupCreationInfo: MegolmBackupCreationInfo? = null
         val latch = CountDownLatch(1)
-        keysBackup.prepareKeysBackupVersion(null, object : SuccessErrorCallback<MegolmBackupCreationInfo> {
+        keysBackup.prepareKeysBackupVersion(null, null, object : SuccessErrorCallback<MegolmBackupCreationInfo> {
 
             override fun onSuccess(info: MegolmBackupCreationInfo) {
                 megolmBackupCreationInfo = info
@@ -269,10 +270,10 @@ class KeysBackupTest {
 
         var lastBackedUpKeysProgress = 0
 
-        keysBackup.backupAllGroupSessions(object : KeysBackup.BackupProgressListener {
-            override fun onProgress(backedUp: Int, total: Int) {
+        keysBackup.backupAllGroupSessions(object : ProgressListener {
+            override fun onProgress(progress: Int, total: Int) {
                 assertEquals(nbOfKeys, total)
-                lastBackedUpKeysProgress = backedUp
+                lastBackedUpKeysProgress = progress
             }
 
         }, TestApiCallback(latch))
@@ -697,8 +698,8 @@ class KeysBackupTest {
 
         // - Make alice back up all her keys again
         val latch2 = CountDownLatch(1)
-        keysBackup.backupAllGroupSessions(object : KeysBackup.BackupProgressListener {
-            override fun onProgress(backedUp: Int, total: Int) {
+        keysBackup.backupAllGroupSessions(object : ProgressListener {
+            override fun onProgress(progress: Int, total: Int) {
             }
 
         }, TestApiCallback(latch2, false))
@@ -736,8 +737,8 @@ class KeysBackupTest {
 
         // Wait for keys backup to finish by asking again to backup keys.
         val latch = CountDownLatch(1)
-        keysBackup.backupAllGroupSessions(object : KeysBackup.BackupProgressListener {
-            override fun onProgress(backedUp: Int, total: Int) {
+        keysBackup.backupAllGroupSessions(object : ProgressListener {
+            override fun onProgress(progress: Int, total: Int) {
 
             }
         }, TestApiCallback(latch))
@@ -765,8 +766,8 @@ class KeysBackupTest {
 
         var isSuccessful = false
         val latch2 = CountDownLatch(1)
-        keysBackup2.backupAllGroupSessions(object : KeysBackup.BackupProgressListener {
-            override fun onProgress(backedUp: Int, total: Int) {
+        keysBackup2.backupAllGroupSessions(object : ProgressListener {
+            override fun onProgress(progress: Int, total: Int) {
             }
 
         }, object : TestApiCallback<Void?>(latch2, false) {
@@ -828,7 +829,7 @@ class KeysBackupTest {
                                                password: String? = null): PrepareKeysBackupDataResult {
         var megolmBackupCreationInfo: MegolmBackupCreationInfo? = null
         val latch = CountDownLatch(1)
-        keysBackup.prepareKeysBackupVersion(password, object : SuccessErrorCallback<MegolmBackupCreationInfo> {
+        keysBackup.prepareKeysBackupVersion(password, null, object : SuccessErrorCallback<MegolmBackupCreationInfo> {
 
             override fun onSuccess(info: MegolmBackupCreationInfo) {
                 megolmBackupCreationInfo = info
@@ -913,17 +914,17 @@ class KeysBackupTest {
         val prepareKeysBackupDataResult = prepareAndCreateKeysBackupData(keysBackup, password)
 
         val latch = CountDownLatch(1)
-        var lastBackup = 0
+        var lastProgress = 0
         var lastTotal = 0
-        keysBackup.backupAllGroupSessions(object : KeysBackup.BackupProgressListener {
-            override fun onProgress(backedUp: Int, total: Int) {
-                lastBackup = backedUp
+        keysBackup.backupAllGroupSessions(object : ProgressListener {
+            override fun onProgress(progress: Int, total: Int) {
+                lastProgress = progress
                 lastTotal = total
             }
         }, TestApiCallback(latch))
         mTestHelper.await(latch)
 
-        assertEquals(2, lastBackup)
+        assertEquals(2, lastProgress)
         assertEquals(2, lastTotal)
 
         // - Log Alice on a new device
