@@ -9,15 +9,17 @@ Improvements:
 
 Bugfix:
  - Fix RestClient exception in case of non-ASCII application label (#419)
+ - remove un-serializable fields in MatrixError
+ - MXCrypto: ensure listeners are called on the UiThread
 
 API Change:
- -
+ - Some KeysBackup methods have been renamed for clarity
 
 Translations:
  -
 
 Others:
- -
+ - fix typo in CHANGES.rst (wrong year)
 
 Build:
  -
@@ -25,7 +27,7 @@ Build:
 Test:
  -
 
-Changes to Matrix Android SDK in 0.9.15 (2018-01-02)
+Changes to Matrix Android SDK in 0.9.15 (2019-01-02)
 =======================================================
 
 Improvements:
