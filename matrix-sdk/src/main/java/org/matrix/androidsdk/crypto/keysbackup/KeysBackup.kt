@@ -391,7 +391,10 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         mKeysBackupStateListener = null
     }
 
-    private fun getBackupProgress(progressListener: ProgressListener) {
+    /**
+     * Return the current progress of the backup
+     */
+    fun getBackupProgress(progressListener: ProgressListener) {
         mCrypto.decryptingThreadHandler.post {
             val backedUpKeys = mCrypto.cryptoStore.inboundGroupSessionsCount(true)
             val total = mCrypto.cryptoStore.inboundGroupSessionsCount(false)
