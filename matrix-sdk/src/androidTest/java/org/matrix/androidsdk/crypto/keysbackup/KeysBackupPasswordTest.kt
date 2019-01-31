@@ -17,8 +17,7 @@
 package org.matrix.androidsdk.crypto.keysbackup
 
 import android.support.test.runner.AndroidJUnit4
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.FixMethodOrder
 import org.junit.Test
@@ -63,28 +62,27 @@ class KeysBackupPasswordTest {
      */
     @Test
     fun passwordConverter_progress_ok() {
-        var firstProgress: Int? = null
-        var numberOfProgress = 0
-        var lastProgress: Int? = null
+        val progressValues = ArrayList<Int>(101)
         var lastTotal = 0
 
         generatePrivateKeyWithPassword(PASSWORD, object : ProgressListener {
             override fun onProgress(progress: Int, total: Int) {
-                if (firstProgress == null) {
-                    firstProgress = progress
+                if (!progressValues.contains(progress)) {
+                    progressValues.add(progress)
                 }
 
-                lastProgress = progress
                 lastTotal = total
-
-                numberOfProgress++
             }
         })
 
-        assertEquals(0, firstProgress)
-        assertEquals(100, lastProgress)
         assertEquals(100, lastTotal)
-        assertEquals(101, numberOfProgress)
+
+        // Ensure all values are here
+        assertEquals(101, progressValues.size)
+
+        for (i in 0..100) {
+            assertTrue(progressValues[i] == i)
+        }
     }
 
     /**
