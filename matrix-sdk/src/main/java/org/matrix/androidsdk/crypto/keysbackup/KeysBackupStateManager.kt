@@ -32,8 +32,8 @@ class KeysBackupStateManager(val crypto: MXCrypto) {
             field = newState
 
             // Notify listeners about the state change, on the ui thread
-            synchronized(mListeners) {
-                crypto.uiHandler.post {
+            crypto.uiHandler.post {
+                synchronized(mListeners) {
                     mListeners.forEach {
                         // Use newState because state may have already changed again
                         it.onStateChange(newState)
