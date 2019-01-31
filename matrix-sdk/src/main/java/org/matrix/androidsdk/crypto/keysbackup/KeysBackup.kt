@@ -657,6 +657,38 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     }
 
     /**
+     * This method fetches the last backup version on the server, then compare to the currently backup version use.
+     * If versions are not the same, the backup is started again, using the last version.
+     *
+     * @param callback true if backup is already using the last version, and false if it is not the case
+     */
+    fun forceRefresh(callback: ApiCallback<Boolean>) {
+        getCurrentVersion(object : SimpleApiCallback<KeysVersionResult?>(callback) {
+            override fun onSuccess(info: KeysVersionResult?) {
+                if (info == null) {
+                    // No backup on the server, so consider we are up to date
+                    callback.onSuccess(true)
+                } else {
+                    if (mKeysBackupVersion?.version == info.version) {
+                        // We are up to date
+                        callback.onSuccess(true)
+                    } else {
+                        // We are not using the last version
+                        callback.onSuccess(false)
+
+                        // Start using the last version
+                        mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Unknown
+                        resetKeysBackupData()
+                        mKeysBackupVersion = null
+
+                        checkAndStartKeysBackup()
+                    }
+                }
+            }
+        })
+    }
+
+    /**
      * Check the server for an active key backup.
      *
      * If one is present and has a valid signature from one of the user's verified
@@ -788,7 +820,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     private fun backupKeys() {
         Log.d(LOG_TAG, "backupKeys")
 
-        // Sanity check
+        // Sanity check, as this method can be called after a delay, the state may have change during the delay
         if (!isEnabled || mBackupKey == null || mKeysBackupVersion == null) {
             Log.d(LOG_TAG, "backupKeys: Invalid configuration")
             backupAllGroupSessionsCallback?.onUnexpectedError(IllegalStateException("Invalid configuration"))
