@@ -867,16 +867,21 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     mCrypto.uiHandler.post {
                         Log.e(LOG_TAG, "backupKeys: backupKeys failed. Error: " + e.localizedMessage)
 
-                        if (e.errcode == MatrixError.WRONG_ROOM_KEYS_VERSION) {
-                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WrongBackUpVersion
-                            backupAllGroupSessionsCallback?.onMatrixError(e)
-                            resetBackupAllGroupSessionsListeners()
-                            resetKeysBackupData()
+                        when (e.errcode) {
+                            MatrixError.NOT_FOUND,
+                            MatrixError.WRONG_ROOM_KEYS_VERSION -> {
+                                // Backup has been deleted on the server, or we are not using the last backup version
+                                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WrongBackUpVersion
+                                backupAllGroupSessionsCallback?.onMatrixError(e)
+                                resetBackupAllGroupSessionsListeners()
+                                resetKeysBackupData()
+                                mKeysBackupVersion = null
 
-                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WrongBackUpVersion
-                        } else {
-                            // Come back to the ready state so that we will retry on the next received key
-                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
+                                // Do not stay in KeysBackupState.WrongBackUpVersion but check what is available on the homeserver
+                                checkAndStartKeysBackup()
+                            }
+                            else -> // Come back to the ready state so that we will retry on the next received key
+                                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
                         }
                     }
                 }
