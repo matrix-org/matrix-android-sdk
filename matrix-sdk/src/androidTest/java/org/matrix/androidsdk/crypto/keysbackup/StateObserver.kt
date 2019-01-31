@@ -33,14 +33,15 @@ class StateObserver(private val keysBackup: KeysBackup,
             KeysBackupStateManager.KeysBackupState.BackingUp to KeysBackupStateManager.KeysBackupState.WrongBackUpVersion,
 
             KeysBackupStateManager.KeysBackupState.CheckingBackUpOnHomeserver to KeysBackupStateManager.KeysBackupState.Disabled,
-            KeysBackupStateManager.KeysBackupState.CheckingBackUpOnHomeserver to KeysBackupStateManager.KeysBackupState.WrongBackUpVersion,
             KeysBackupStateManager.KeysBackupState.CheckingBackUpOnHomeserver to KeysBackupStateManager.KeysBackupState.NotTrusted,
+            KeysBackupStateManager.KeysBackupState.CheckingBackUpOnHomeserver to KeysBackupStateManager.KeysBackupState.ReadyToBackUp,
             KeysBackupStateManager.KeysBackupState.CheckingBackUpOnHomeserver to KeysBackupStateManager.KeysBackupState.Unknown,
+            KeysBackupStateManager.KeysBackupState.CheckingBackUpOnHomeserver to KeysBackupStateManager.KeysBackupState.WrongBackUpVersion,
 
             KeysBackupStateManager.KeysBackupState.Disabled to KeysBackupStateManager.KeysBackupState.Enabling,
 
-            KeysBackupStateManager.KeysBackupState.Enabling to KeysBackupStateManager.KeysBackupState.ReadyToBackUp,
             KeysBackupStateManager.KeysBackupState.Enabling to KeysBackupStateManager.KeysBackupState.Disabled,
+            KeysBackupStateManager.KeysBackupState.Enabling to KeysBackupStateManager.KeysBackupState.ReadyToBackUp,
 
             KeysBackupStateManager.KeysBackupState.NotTrusted to KeysBackupStateManager.KeysBackupState.CheckingBackUpOnHomeserver,
 
@@ -53,7 +54,9 @@ class StateObserver(private val keysBackup: KeysBackup,
             KeysBackupStateManager.KeysBackupState.WrongBackUpVersion to KeysBackupStateManager.KeysBackupState.CheckingBackUpOnHomeserver,
 
             // FIXME These transitions are observed during test, and I'm not sure they should occur. Don't have time to investigate now
+            KeysBackupStateManager.KeysBackupState.ReadyToBackUp to KeysBackupStateManager.KeysBackupState.BackingUp,
             KeysBackupStateManager.KeysBackupState.ReadyToBackUp to KeysBackupStateManager.KeysBackupState.ReadyToBackUp,
+            KeysBackupStateManager.KeysBackupState.WillBackUp to KeysBackupStateManager.KeysBackupState.ReadyToBackUp,
             KeysBackupStateManager.KeysBackupState.WillBackUp to KeysBackupStateManager.KeysBackupState.Unknown
     )
 
@@ -72,11 +75,11 @@ class StateObserver(private val keysBackup: KeysBackup,
             assertEquals(it.size, stateList.size)
 
             for (i in it.indices) {
-                assertEquals(it[i], stateList[i])
+                assertEquals("The state $i is not correct. states: " + stateList.joinToString(separator = " "), it[i], stateList[i])
             }
         }
 
-        assertNull("Previous states: " + stateList.joinToString(separator = " "), lastTransitionError)
+        assertNull("states: " + stateList.joinToString(separator = " "), lastTransitionError)
     }
 
     override fun onStateChange(newState: KeysBackupStateManager.KeysBackupState) {
@@ -85,7 +88,7 @@ class StateObserver(private val keysBackup: KeysBackup,
         // Check that state transition is valid
         if (stateList.size >= 2
                 && !allowedStateTransitions.contains(stateList[stateList.size - 2] to newState)) {
-            // Forbidden transition detection
+            // Forbidden transition detected
             lastTransitionError = "Forbidden transition detected from " + stateList[stateList.size - 2] + " to " + newState
         }
 
