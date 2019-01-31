@@ -110,6 +110,8 @@ class KeysBackupTest {
 
         val keysBackup = bobSession.crypto!!.keysBackup
 
+        val stateObserver = StateObserver(keysBackup)
+
         assertFalse(keysBackup.isEnabled)
 
         val latch = CountDownLatch(1)
@@ -135,6 +137,7 @@ class KeysBackupTest {
         })
         latch.await()
 
+        stateObserver.stopAndCheckStates(null)
         bobSession.clear(InstrumentationRegistry.getContext())
     }
 
@@ -147,6 +150,8 @@ class KeysBackupTest {
         bobSession.enableCrypto(mTestHelper)
 
         val keysBackup = bobSession.crypto!!.keysBackup
+
+        val stateObserver = StateObserver(keysBackup)
 
         assertFalse(keysBackup.isEnabled)
 
@@ -188,6 +193,7 @@ class KeysBackupTest {
         // Backup must be enable now
         assertTrue(keysBackup.isEnabled)
 
+        stateObserver.stopAndCheckStates(null)
         bobSession.clear(InstrumentationRegistry.getContext())
     }
 
@@ -204,39 +210,16 @@ class KeysBackupTest {
         val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
 
         val latch = CountDownLatch(1)
-        var counter = 0
 
         assertEquals(2, cryptoStore.inboundGroupSessionsCount(false))
         assertEquals(0, cryptoStore.inboundGroupSessionsCount(true))
 
-        val stateList = ArrayList<KeysBackupStateManager.KeysBackupState>()
-
-        keysBackup.addListener(object : KeysBackupStateManager.KeysBackupStateListener {
-            override fun onStateChange(newState: KeysBackupStateManager.KeysBackupState) {
-                stateList.add(newState)
-
-                counter++
-
-                if (counter == 5) {
-                    // Last state
-                    // Remove itself from the list of listeners
-                    keysBackup.removeListener(this)
-
-                    latch.countDown()
-                }
-            }
-        })
+        val stateObserver = StateObserver(keysBackup, latch, 5)
 
         prepareAndCreateKeysBackupData(keysBackup)
 
         mTestHelper.await(latch)
 
-        // Check the several backup state changes
-        assertEquals(KeysBackupStateManager.KeysBackupState.Enabling, stateList[0])
-        assertEquals(KeysBackupStateManager.KeysBackupState.ReadyToBackUp, stateList[1])
-        assertEquals(KeysBackupStateManager.KeysBackupState.WillBackUp, stateList[2])
-        assertEquals(KeysBackupStateManager.KeysBackupState.BackingUp, stateList[3])
-        assertEquals(KeysBackupStateManager.KeysBackupState.ReadyToBackUp, stateList[4])
 
         val nbOfKeys = cryptoStore.inboundGroupSessionsCount(false)
         val backedUpKeys = cryptoStore.inboundGroupSessionsCount(true)
@@ -244,6 +227,16 @@ class KeysBackupTest {
         assertEquals(2, nbOfKeys)
         assertEquals("All keys must have been marked as backed up", nbOfKeys, backedUpKeys)
 
+        // Check the several backup state changes
+        stateObserver.stopAndCheckStates(
+                listOf(
+                        KeysBackupStateManager.KeysBackupState.Enabling,
+                        KeysBackupStateManager.KeysBackupState.ReadyToBackUp,
+                        KeysBackupStateManager.KeysBackupState.WillBackUp,
+                        KeysBackupStateManager.KeysBackupState.BackingUp,
+                        KeysBackupStateManager.KeysBackupState.ReadyToBackUp
+                )
+        )
         cryptoTestData.clear(context)
     }
 
@@ -258,6 +251,8 @@ class KeysBackupTest {
 
         val cryptoStore = cryptoTestData.firstSession.crypto!!.cryptoStore
         val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
+
+        val stateObserver = StateObserver(keysBackup)
 
         prepareAndCreateKeysBackupData(keysBackup)
 
@@ -285,6 +280,7 @@ class KeysBackupTest {
 
         assertEquals("All keys must have been marked as backed up", nbOfKeys, backedUpKeys)
 
+        stateObserver.stopAndCheckStates(null)
         cryptoTestData.clear(context)
     }
 
@@ -303,6 +299,8 @@ class KeysBackupTest {
 
         val cryptoStore = cryptoTestData.firstSession.crypto!!.cryptoStore
         val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
+
+        val stateObserver = StateObserver(keysBackup)
 
         // - Pick a megolm key
         val session = cryptoStore.inboundGroupSessionsToBackup(1)[0]
@@ -323,6 +321,7 @@ class KeysBackupTest {
         // - Compare the decrypted megolm key with the original one
         assertKeysEquals(session.exportKeys(), sessionData)
 
+        stateObserver.stopAndCheckStates(null)
         cryptoTestData.clear(context)
     }
 
@@ -546,6 +545,8 @@ class KeysBackupTest {
 
         val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
 
+        val stateObserver = StateObserver(keysBackup)
+
         // - Do an e2e backup to the homeserver
         prepareAndCreateKeysBackupData(keysBackup)
 
@@ -582,6 +583,7 @@ class KeysBackupTest {
         assertEquals(cryptoTestData.firstSession.crypto?.myDevice?.deviceId, signature.deviceId)
         assertEquals(signature.device!!.deviceId, cryptoTestData.firstSession.credentials.deviceId)
 
+        stateObserver.stopAndCheckStates(null)
         cryptoTestData.clear(context)
     }
 
@@ -600,6 +602,8 @@ class KeysBackupTest {
 
         val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
 
+        val stateObserver = StateObserver(keysBackup)
+
         assertFalse(keysBackup.isEnabled)
 
         val keyBackupCreationInfo = prepareAndCreateKeysBackupData(keysBackup)
@@ -613,6 +617,8 @@ class KeysBackupTest {
         cryptoTestData.clear(context)
 
         val keysBackup2 = aliceSession2.crypto!!.keysBackup
+
+        val stateObserver2 = StateObserver(keysBackup2)
 
         // -> The new alice session must back up to the same version
         val latch = CountDownLatch(1)
@@ -636,6 +642,8 @@ class KeysBackupTest {
 
         assertEquals(keyBackupCreationInfo.version, keysBackup2.currentBackupVersion)
 
+        stateObserver.stopAndCheckStates(null)
+        stateObserver2.stopAndCheckStates(null)
         aliceSession2.clear(context)
     }
 
@@ -654,6 +662,8 @@ class KeysBackupTest {
         val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true)
 
         val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
+
+        val stateObserver = StateObserver(keysBackup)
 
         assertFalse(keysBackup.isEnabled)
 
@@ -709,6 +719,7 @@ class KeysBackupTest {
         assertEquals(KeysBackupStateManager.KeysBackupState.WrongBackUpVersion, keysBackup.state)
         assertFalse(keysBackup.isEnabled)
 
+        stateObserver.stopAndCheckStates(null)
         cryptoTestData.clear(context)
     }
 
@@ -731,6 +742,8 @@ class KeysBackupTest {
         val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true)
 
         val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
+
+        val stateObserver = StateObserver(keysBackup)
 
         // - Make alice back up her keys to her homeserver
         prepareAndCreateKeysBackupData(keysBackup)
@@ -763,6 +776,8 @@ class KeysBackupTest {
 
         // - Try to backup all in aliceSession2, it must fail
         val keysBackup2 = aliceSession2.crypto!!.keysBackup
+
+        val stateObserver2 = StateObserver(keysBackup2)
 
         var isSuccessful = false
         val latch2 = CountDownLatch(1)
@@ -814,6 +829,8 @@ class KeysBackupTest {
         // -> It must success
         assertTrue(aliceSession2.crypto!!.keysBackup.isEnabled)
 
+        stateObserver.stopAndCheckStates(null)
+        stateObserver2.stopAndCheckStates(null)
         aliceSession2.clear(context)
         cryptoTestData.clear(context)
     }
@@ -829,6 +846,8 @@ class KeysBackupTest {
         val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true)
 
         val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
+
+        val stateObserver = StateObserver(keysBackup)
 
         assertFalse(keysBackup.isEnabled)
 
@@ -846,6 +865,7 @@ class KeysBackupTest {
         // Backup is now disabled
         assertFalse(keysBackup.isEnabled)
 
+        stateObserver.stopAndCheckStates(null)
         cryptoTestData.clear(context)
     }
 
@@ -858,6 +878,8 @@ class KeysBackupTest {
 
     private fun prepareAndCreateKeysBackupData(keysBackup: KeysBackup,
                                                password: String? = null): PrepareKeysBackupDataResult {
+        val stateObserver = StateObserver(keysBackup)
+
         var megolmBackupCreationInfo: MegolmBackupCreationInfo? = null
         val latch = CountDownLatch(1)
         keysBackup.prepareKeysBackupVersion(password, null, object : SuccessErrorCallback<MegolmBackupCreationInfo> {
@@ -899,6 +921,7 @@ class KeysBackupTest {
         })
         mTestHelper.await(latch2)
 
+        stateObserver.stopAndCheckStates(null)
         return PrepareKeysBackupDataResult(megolmBackupCreationInfo!!, version!!)
     }
 
@@ -939,6 +962,8 @@ class KeysBackupTest {
         val cryptoStore = cryptoTestData.firstSession.crypto!!.cryptoStore
         val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
 
+        val stateObserver = StateObserver(keysBackup)
+
         val aliceKeys = cryptoStore.inboundGroupSessionsToBackup(100)
 
         // - Do an e2e backup to the homeserver
@@ -963,6 +988,8 @@ class KeysBackupTest {
 
         // Test check: aliceSession2 has no keys at login
         assertEquals(0, aliceSession2.crypto!!.cryptoStore.inboundGroupSessionsCount(false))
+
+        stateObserver.stopAndCheckStates(null)
 
         return KeysBackupScenarioData(cryptoTestData,
                 aliceKeys,
