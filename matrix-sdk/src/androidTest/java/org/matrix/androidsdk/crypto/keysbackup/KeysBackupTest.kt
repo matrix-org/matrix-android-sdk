@@ -818,6 +818,37 @@ class KeysBackupTest {
         cryptoTestData.clear(context)
     }
 
+    /**
+     * - Do an e2e backup to the homeserver with a recovery key
+     * - Delete the backup
+     */
+    @Test
+    fun deleteKeysBackupTest() {
+        // - Create a backup version
+        val context = InstrumentationRegistry.getContext()
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true)
+
+        val keysBackup = cryptoTestData.firstSession.crypto!!.keysBackup
+
+        assertFalse(keysBackup.isEnabled)
+
+        val keyBackupCreationInfo = prepareAndCreateKeysBackupData(keysBackup)
+
+        assertTrue(keysBackup.isEnabled)
+
+        val latch = CountDownLatch(1)
+
+        // Delete the backup
+        keysBackup.deleteBackup(keyBackupCreationInfo.version, TestApiCallback(latch))
+
+        mTestHelper.await(latch)
+
+        // Backup is now disabled
+        assertFalse(keysBackup.isEnabled)
+
+        cryptoTestData.clear(context)
+    }
+
     /* ==========================================================================================
      * Private
      * ========================================================================================== */
