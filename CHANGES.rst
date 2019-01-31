@@ -8,6 +8,7 @@ Improvements:
  - MXCrypto: Add key backup passphrase support (vector-im/riot-android#2771).
 
 Bugfix:
+ - Fix RestClient exception in case of non-ASCII application label (#419)
  - remove un-serializable fields in MatrixError
  - MXCrypto: ensure listeners are called on the UiThread
 
