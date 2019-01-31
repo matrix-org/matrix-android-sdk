@@ -19,6 +19,7 @@
  */
 package org.matrix.androidsdk.crypto.keysbackup
 
+import org.matrix.androidsdk.listeners.ProgressListener
 import org.matrix.androidsdk.util.Log
 import java.util.*
 import javax.crypto.Mac
@@ -44,10 +45,10 @@ data class GeneratePrivateKeyResult(
  *
  * @return a {privateKey, salt, iterations} tuple.
  */
-fun generatePrivateKeyWithPassword(password: String): GeneratePrivateKeyResult {
+fun generatePrivateKeyWithPassword(password: String, progressListener: ProgressListener?): GeneratePrivateKeyResult {
     val salt = generateSalt()
     val iterations = DEFAULT_ITERATION
-    val privateKey = deriveKey(password, salt, iterations)
+    val privateKey = deriveKey(password, salt, iterations, progressListener)
 
     return GeneratePrivateKeyResult(privateKey, salt, iterations)
 }
@@ -64,7 +65,7 @@ fun generatePrivateKeyWithPassword(password: String): GeneratePrivateKeyResult {
 fun retrievePrivateKeyWithPassword(password: String,
                                    salt: String,
                                    iterations: Int): ByteArray {
-    return deriveKey(password, salt, iterations)
+    return deriveKey(password, salt, iterations, null)
 }
 
 /**
@@ -72,12 +73,14 @@ fun retrievePrivateKeyWithPassword(password: String,
  * @param password the password.
  * @param salt the salt.
  * @param iterations number of derivations.
+ * @param progressListener a listener to follow progress.
  *
  * @return a private key.
  */
 private fun deriveKey(password: String,
                       salt: String,
-                      iterations: Int): ByteArray {
+                      iterations: Int,
+                      progressListener: ProgressListener?): ByteArray {
     // Note: copied and adapted from MXMegolmExportEncryption
     val t0 = System.currentTimeMillis()
 
@@ -104,6 +107,8 @@ private fun deriveKey(password: String,
     // copy to the key
     System.arraycopy(uc, 0, dk, 0, dk.size)
 
+    var lastProgress = -1
+
     for (index in 2..iterations) {
         // Uc = PRF(Password, Uc-1)
         prf.update(uc)
@@ -112,6 +117,12 @@ private fun deriveKey(password: String,
         // F(Password, Salt, c, i) = U1 ^ U2 ^ ... ^ Uc
         for (byteIndex in dk.indices) {
             dk[byteIndex] = dk[byteIndex] xor uc[byteIndex]
+        }
+
+        val progress = (index + 1) * 100 / iterations
+        if (progress != lastProgress) {
+            lastProgress = progress
+            progressListener?.onProgress(lastProgress, 100)
         }
     }
 

@@ -17,14 +17,14 @@
 package org.matrix.androidsdk.crypto.keysbackup
 
 import android.support.test.runner.AndroidJUnit4
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
 import org.matrix.androidsdk.common.assertByteArrayNotEqual
+import org.matrix.androidsdk.listeners.ProgressListener
 import org.matrix.olm.OlmManager
 import org.matrix.olm.OlmPkDecryption
 
@@ -42,7 +42,7 @@ class KeysBackupPasswordTest {
      */
     @Test
     fun passwordConverter_ok() {
-        val generatePrivateKeyResult = generatePrivateKeyWithPassword(PASSWORD)
+        val generatePrivateKeyResult = generatePrivateKeyWithPassword(PASSWORD, null)
 
         assertEquals(32, generatePrivateKeyResult.salt.length)
         assertEquals(500_000, generatePrivateKeyResult.iterations)
@@ -58,11 +58,39 @@ class KeysBackupPasswordTest {
     }
 
     /**
+     * Check generatePrivateKeyWithPassword progress listener behavior
+     */
+    @Test
+    fun passwordConverter_progress_ok() {
+        val progressValues = ArrayList<Int>(101)
+        var lastTotal = 0
+
+        generatePrivateKeyWithPassword(PASSWORD, object : ProgressListener {
+            override fun onProgress(progress: Int, total: Int) {
+                if (!progressValues.contains(progress)) {
+                    progressValues.add(progress)
+                }
+
+                lastTotal = total
+            }
+        })
+
+        assertEquals(100, lastTotal)
+
+        // Ensure all values are here
+        assertEquals(101, progressValues.size)
+
+        for (i in 0..100) {
+            assertTrue(progressValues[i] == i)
+        }
+    }
+
+    /**
      * Check KeysBackupPassword utilities, with bad password
      */
     @Test
     fun passwordConverter_badPassword_ok() {
-        val generatePrivateKeyResult = generatePrivateKeyWithPassword(PASSWORD)
+        val generatePrivateKeyResult = generatePrivateKeyWithPassword(PASSWORD, null)
 
         assertEquals(32, generatePrivateKeyResult.salt.length)
         assertEquals(500_000, generatePrivateKeyResult.iterations)
@@ -82,7 +110,7 @@ class KeysBackupPasswordTest {
      */
     @Test
     fun passwordConverter_badIteration_ok() {
-        val generatePrivateKeyResult = generatePrivateKeyWithPassword(PASSWORD)
+        val generatePrivateKeyResult = generatePrivateKeyWithPassword(PASSWORD, null)
 
         assertEquals(32, generatePrivateKeyResult.salt.length)
         assertEquals(500_000, generatePrivateKeyResult.iterations)
@@ -102,7 +130,7 @@ class KeysBackupPasswordTest {
      */
     @Test
     fun passwordConverter_badSalt_ok() {
-        val generatePrivateKeyResult = generatePrivateKeyWithPassword(PASSWORD)
+        val generatePrivateKeyResult = generatePrivateKeyWithPassword(PASSWORD, null)
 
         assertEquals(32, generatePrivateKeyResult.salt.length)
         assertEquals(500_000, generatePrivateKeyResult.iterations)

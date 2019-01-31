@@ -29,6 +29,7 @@ import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2
 import org.matrix.androidsdk.crypto.util.computeRecoveryKey
 import org.matrix.androidsdk.crypto.util.extractCurveKeyFromRecoveryKey
+import org.matrix.androidsdk.listeners.ProgressListener
 import org.matrix.androidsdk.rest.callback.ApiCallback
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback
 import org.matrix.androidsdk.rest.callback.SuccessCallback
@@ -93,9 +94,11 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      *
      * @param password an optional passphrase string that can be entered by the user
      * when restoring the backup as an alternative to entering the recovery key.
+     * @param progressListener a progress listener, as generating private key from password may take a while
      * @param callback Asynchronous callback
      */
     fun prepareKeysBackupVersion(password: String?,
+                                 progressListener: ProgressListener?,
                                  callback: SuccessErrorCallback<MegolmBackupCreationInfo>) {
         mCrypto.decryptingThreadHandler.post {
             try {
@@ -104,7 +107,23 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
                 if (password != null) {
                     // Generate a private key from the password
-                    val generatePrivateKeyResult = generatePrivateKeyWithPassword(password)
+                    val backgroundProgressListener = if (progressListener == null) {
+                        null
+                    } else {
+                        object : ProgressListener {
+                            override fun onProgress(progress: Int, total: Int) {
+                                mCrypto.uiHandler.post {
+                                    try {
+                                        progressListener.onProgress(progress, total)
+                                    } catch (e: Exception) {
+                                        Log.e(LOG_TAG, "prepareKeysBackupVersion: onProgress failure", e)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    val generatePrivateKeyResult = generatePrivateKeyWithPassword(password, backgroundProgressListener)
                     megolmBackupAuthData.publicKey = olmPkDecryption.setPrivateKey(generatePrivateKeyResult.privateKey)
                     megolmBackupAuthData.privateKeySalt = generatePrivateKeyResult.salt
                     megolmBackupAuthData.privateKeyIterations = generatePrivateKeyResult.iterations
@@ -203,17 +222,21 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      * @param progress the callback to follow the progress
      * @param callback the main callback
      */
-    fun backupAllGroupSessions(progress: BackupProgressListener?,
+    fun backupAllGroupSessions(progressListener: ProgressListener?,
                                callback: ApiCallback<Void?>?) {
         // Get a status right now
-        getBackupProgress(object : BackupProgressListener {
-            override fun onProgress(backedUp: Int, total: Int) {
+        getBackupProgress(object : ProgressListener {
+            override fun onProgress(progress: Int, total: Int) {
                 // Reset previous listeners if any
                 resetBackupAllGroupSessionsListeners()
-                Log.d(LOG_TAG, "backupAllGroupSessions: backupProgress: $backedUp/$total")
-                progress?.onProgress(backedUp, total)
+                Log.d(LOG_TAG, "backupAllGroupSessions: backupProgress: $progress/$total")
+                try {
+                    progressListener?.onProgress(progress, total)
+                } catch (e: Exception) {
+                    Log.e(LOG_TAG, "backupAllGroupSessions: onProgress failure", e)
+                }
 
-                if (backedUp == total) {
+                if (progress == total) {
                     Log.d(LOG_TAG, "backupAllGroupSessions: complete")
                     callback?.onSuccess(null)
                     return
@@ -224,9 +247,13 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 // Listen to `state` change to determine when to call onBackupProgress and onComplete
                 mKeysBackupStateListener = object : KeysBackupStateManager.KeysBackupStateListener {
                     override fun onStateChange(newState: KeysBackupStateManager.KeysBackupState) {
-                        getBackupProgress(object : BackupProgressListener {
-                            override fun onProgress(backedUp: Int, total: Int) {
-                                progress?.onProgress(backedUp, total)
+                        getBackupProgress(object : ProgressListener {
+                            override fun onProgress(progress: Int, total: Int) {
+                                try {
+                                    progressListener?.onProgress(progress, total)
+                                } catch (e: Exception) {
+                                    Log.e(LOG_TAG, "backupAllGroupSessions: onProgress failure 2", e)
+                                }
 
                                 // If backup is finished, notify the main listener
                                 if (state === KeysBackupStateManager.KeysBackupState.ReadyToBackUp) {
@@ -328,16 +355,12 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         mKeysBackupStateListener = null
     }
 
-    interface BackupProgressListener {
-        fun onProgress(backedUp: Int, total: Int)
-    }
-
-    private fun getBackupProgress(listener: BackupProgressListener) {
+    private fun getBackupProgress(progressListener: ProgressListener) {
         mCrypto.decryptingThreadHandler.post {
             val backedUpKeys = mCrypto.cryptoStore.inboundGroupSessionsCount(true)
             val total = mCrypto.cryptoStore.inboundGroupSessionsCount(false)
 
-            mCrypto.uiHandler.post { listener.onProgress(backedUpKeys, total) }
+            mCrypto.uiHandler.post { progressListener.onProgress(backedUpKeys, total) }
         }
     }
 
@@ -447,7 +470,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     return
                 }
 
-                // This is the recovery key
+                // Compute the recovery key
                 val privateKey = retrievePrivateKeyWithPassword(password,
                         megolmBackupAuthData.privateKeySalt!!,
                         megolmBackupAuthData.privateKeyIterations!!)
