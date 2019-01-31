@@ -112,7 +112,13 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     } else {
                         object : ProgressListener {
                             override fun onProgress(progress: Int, total: Int) {
-                                mCrypto.uiHandler.post { progressListener.onProgress(progress, total) }
+                                mCrypto.uiHandler.post {
+                                    try {
+                                        progressListener.onProgress(progress, total)
+                                    } catch (e: Exception) {
+                                        Log.e(LOG_TAG, "prepareKeysBackupVersion: onProgress failure", e)
+                                    }
+                                }
                             }
                         }
                     }
@@ -224,7 +230,11 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 // Reset previous listeners if any
                 resetBackupAllGroupSessionsListeners()
                 Log.d(LOG_TAG, "backupAllGroupSessions: backupProgress: $progress/$total")
-                progressListener?.onProgress(progress, total)
+                try {
+                    progressListener?.onProgress(progress, total)
+                } catch (e: Exception) {
+                    Log.e(LOG_TAG, "backupAllGroupSessions: onProgress failure", e)
+                }
 
                 if (progress == total) {
                     Log.d(LOG_TAG, "backupAllGroupSessions: complete")
@@ -239,7 +249,11 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     override fun onStateChange(newState: KeysBackupStateManager.KeysBackupState) {
                         getBackupProgress(object : ProgressListener {
                             override fun onProgress(progress: Int, total: Int) {
-                                progressListener?.onProgress(progress, total)
+                                try {
+                                    progressListener?.onProgress(progress, total)
+                                } catch (e: Exception) {
+                                    Log.e(LOG_TAG, "backupAllGroupSessions: onProgress failure 2", e)
+                                }
 
                                 // If backup is finished, notify the main listener
                                 if (state === KeysBackupStateManager.KeysBackupState.ReadyToBackUp) {
