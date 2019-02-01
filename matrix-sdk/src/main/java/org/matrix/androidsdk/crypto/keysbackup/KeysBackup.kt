@@ -207,7 +207,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      * @param version  the backup version to delete.
      * @param callback Asynchronous callback
      */
-    fun deleteBackup(version: String, callback: ApiCallback<Void>) {
+    fun deleteBackup(version: String, callback: ApiCallback<Void>?) {
         mCrypto.decryptingThreadHandler.post {
             // If we're currently backing up to this backup... stop.
             // (We start using it automatically in createKeysBackupVersion so this is symmetrical).
@@ -228,25 +228,25 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 override fun onSuccess(info: Void?) {
                     eventuallyRestartBackup()
 
-                    mCrypto.uiHandler.post { callback.onSuccess(null) }
+                    mCrypto.uiHandler.post { callback?.onSuccess(null) }
                 }
 
                 override fun onUnexpectedError(e: Exception) {
                     eventuallyRestartBackup()
 
-                    mCrypto.uiHandler.post { callback.onUnexpectedError(e) }
+                    mCrypto.uiHandler.post { callback?.onUnexpectedError(e) }
                 }
 
                 override fun onNetworkError(e: Exception) {
                     eventuallyRestartBackup()
 
-                    mCrypto.uiHandler.post { callback.onNetworkError(e) }
+                    mCrypto.uiHandler.post { callback?.onNetworkError(e) }
                 }
 
                 override fun onMatrixError(e: MatrixError) {
                     eventuallyRestartBackup()
 
-                    mCrypto.uiHandler.post { callback.onMatrixError(e) }
+                    mCrypto.uiHandler.post { callback?.onMatrixError(e) }
                 }
             })
         }
@@ -661,30 +661,45 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
     /**
      * This method fetches the last backup version on the server, then compare to the currently backup version use.
-     * If versions are not the same, the backup is started again, using the last version.
+     * If versions are not the same, the current backup is deleted (on server or locally), then the backup may be started again, using the last version.
      *
      * @param callback true if backup is already using the last version, and false if it is not the case
      */
-    fun forceRefresh(callback: ApiCallback<Boolean>) {
+    fun forceUsingLastVersion(callback: ApiCallback<Boolean>) {
         getCurrentVersion(object : SimpleApiCallback<KeysVersionResult?>(callback) {
             override fun onSuccess(info: KeysVersionResult?) {
-                if (info == null) {
-                    // No backup on the server, so consider we are up to date
-                    callback.onSuccess(true)
-                } else {
-                    if (mKeysBackupVersion?.version == info.version) {
-                        // We are up to date
+                val localBackupVersion = mKeysBackupVersion?.version
+                val serverBackupVersion = info?.version
+
+                if (serverBackupVersion == null) {
+                    if (localBackupVersion == null) {
+                        // No backup on the server, and backup is not active
                         callback.onSuccess(true)
                     } else {
-                        // We are not using the last version
+                        // No backup on the server, and we are currently backing up, so stop backing up
                         callback.onSuccess(false)
-
-                        // Start using the last version
-                        mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Unknown
                         resetKeysBackupData()
                         mKeysBackupVersion = null
-
+                        mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
+                    }
+                } else {
+                    if (localBackupVersion == null) {
+                        // backup on the server, and backup is not active
+                        callback.onSuccess(false)
+                        // Do a check
                         checkAndStartKeysBackup()
+                    } else {
+                        // Backup on the server, and we are currently backing up, compare version
+                        if (localBackupVersion == serverBackupVersion) {
+                            // We are already using the last version of the backup
+                            callback.onSuccess(true)
+                        } else {
+                            // We are not using the last version, so delete the current version we are using on the server
+                            callback.onSuccess(false)
+
+                            // This will automatically check for the last version then
+                            deleteBackup(localBackupVersion, null)
+                        }
                     }
                 }
             }
