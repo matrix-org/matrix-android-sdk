@@ -78,7 +78,7 @@
     <string name="room_displayname_room_invite">聊天室邀请</string>
     <string name="room_displayname_two_members">%1$s 和 %2$s</string>
     <plurals name="room_displayname_three_and_more_members">
-	<item quantity="other">%1$s 与其他 %2$d 位</item>
-</plurals>
+        <item quantity="other">%1$s 与其他 %2$d 位</item>
+    </plurals>
 
 </resources>
