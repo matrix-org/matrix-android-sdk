@@ -16,7 +16,6 @@
  */
 package org.matrix.androidsdk.rest.model.group;
 
-import java.io.Serializable;
 import java.util.Map;
 
 /**

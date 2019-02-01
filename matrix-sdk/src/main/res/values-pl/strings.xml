@@ -64,7 +64,7 @@
     <string name="notice_room_visibility_invited">wszyscy członkowie pokoju, od momentu w którym zostali zaproszeni.</string>
     <string name="notice_room_visibility_joined">wszyscy członkowie pokoju, od momentu w którym dołączyli.</string>
     <string name="notice_room_visibility_unknown">nieznane (%s).</string>
-    <string name="notice_requested_voip_conference">%1$s zażądał grupowego połączenia VoIP</string>
+    <string name="notice_requested_voip_conference">%1$s zażądał(a) grupowego połączenia VoIP</string>
     <string name="notice_voip_started">Rozpoczęto grupowe połączenie głosowe VoIP</string>
     <string name="notice_voip_finished">Zakończono grupowe połączenie głosowe VoIP</string>
 

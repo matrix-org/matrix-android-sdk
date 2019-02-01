@@ -129,7 +129,7 @@ public class LazyLoadingTestHelper {
         samSession.clear(context);
 
 
-        final SessionTestParams logSessionParams = new SessionTestParams(false ,false, withLazyLoading);
+        final SessionTestParams logSessionParams = new SessionTestParams(false, false, withLazyLoading);
         aliceSession = mTestHelper.logIntoAccount(aliceId, logSessionParams);
         bobSession = mTestHelper.logIntoAccount(bobId, logSessionParams);
         samSession = mTestHelper.logIntoAccount(samId, logSessionParams);

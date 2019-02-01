@@ -1,12 +1,12 @@
-/* 
+/*
  * Copyright 2017 Vector Creations Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,7 +21,7 @@ import org.matrix.androidsdk.util.Log;
 
 import java.io.File;
 
-public  class LocationMessage extends Message {
+public class LocationMessage extends Message {
     private static final String LOG_TAG = "LocationMessage";
     public ThumbnailInfo thumbnail_info;
     public String geo_uri;
@@ -33,6 +33,7 @@ public  class LocationMessage extends Message {
 
     /**
      * Make a deep copy
+     *
      * @return the copy
      */
     public LocationMessage deepCopy() {

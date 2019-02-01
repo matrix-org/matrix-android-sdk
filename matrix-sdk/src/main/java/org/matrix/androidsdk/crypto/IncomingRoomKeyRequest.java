@@ -20,7 +20,6 @@ package org.matrix.androidsdk.crypto;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
-
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.Serializable;

@@ -282,9 +282,9 @@ public class ImageUtils {
      * Apply exif rotation to the cached image (stored at imageURL).
      * The rotated image replaces the genuine one.
      *
-     * @param context     the application
-     * @param imageURL    the genuine image URL.
-     * @param mediaCache  the used media cache
+     * @param context    the application
+     * @param imageURL   the genuine image URL.
+     * @param mediaCache the used media cache
      * @return the rotated bitmap if the operation succeeds.
      */
     public static Bitmap applyExifRotation(Context context, String imageURL, MXMediaCache mediaCache) {

@@ -132,4 +132,14 @@ interface RoomKeysApi {
      */
     @DELETE("room_keys/keys")
     fun deleteSessionsData(@Query("version") version: String): Call<Void>
+
+    /* ==========================================================================================
+     * Deleting backup
+     * ========================================================================================== */
+
+    /**
+     * Deletes a backup.
+     */
+    @DELETE("room_keys/version/{version}")
+    fun deleteBackup(@Path("version") version: String): Call<Void>
 }

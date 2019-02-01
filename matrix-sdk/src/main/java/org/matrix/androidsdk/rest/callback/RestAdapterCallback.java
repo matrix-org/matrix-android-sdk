@@ -234,8 +234,6 @@ public class RestAdapterCallback<T> implements Callback<T> {
 
                     mxError.mStatus = response.code();
                     mxError.mReason = response.message();
-                    mxError.mErrorBodyMimeType = errorBody.contentType();
-                    mxError.mErrorBody = errorBody;
                     mxError.mErrorBodyAsString = bodyAsString;
                 } catch (Exception e) {
                     mxError = null;

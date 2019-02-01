@@ -17,7 +17,8 @@ public final class HttpError {
         return httpCode;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override
+    public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
@@ -25,20 +26,22 @@ public final class HttpError {
 
         if (httpCode != httpError.httpCode) return false;
         return errorBody != null ?
-            errorBody.equals(httpError.errorBody) :
-            httpError.errorBody == null;
+                errorBody.equals(httpError.errorBody) :
+                httpError.errorBody == null;
     }
 
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         int result = errorBody != null ? errorBody.hashCode() : 0;
         result = 31 * result + httpCode;
         return result;
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "HttpError{" +
-            "errorBody='" + errorBody + '\'' +
-            ", httpCode=" + httpCode +
-            '}';
+                "errorBody='" + errorBody + '\'' +
+                ", httpCode=" + httpCode +
+                '}';
     }
 }

@@ -59,6 +59,7 @@ public class HtmlTagHandler implements Html.TagHandler {
      * Running HTML table string based off of the root table tag. Root table tag being the tag which
      * isn't embedded within any other table tag. Example:
      * <!-- This is the root level opening table tag. This is where we keep track of tables. -->
+     * <pre>
      * <table>
      *     ...
      *     <table> <!-- Non-root table tags -->
@@ -66,6 +67,7 @@ public class HtmlTagHandler implements Html.TagHandler {
      *     </table>
      *     ...
      * </table>
+     * </pre>
      * <!-- This is the root level closing table tag and the end of the string we track. -->
      */
     StringBuilder tableHtmlBuilder = new StringBuilder();
@@ -111,6 +113,7 @@ public class HtmlTagHandler implements Html.TagHandler {
 
     /**
      * Defines the code block background color
+     *
      * @param color the new color
      */
     public void setCodeBlockBackgroundColor(@ColorInt int color) {
@@ -154,8 +157,7 @@ public class HtmlTagHandler implements Html.TagHandler {
                 }
 
                 tableTagLevel++;
-            }
-            else if (tag.equalsIgnoreCase("tr")) {
+            } else if (tag.equalsIgnoreCase("tr")) {
                 start(output, new Tr());
             } else if (tag.equalsIgnoreCase("th")) {
                 start(output, new Th());
@@ -213,8 +215,7 @@ public class HtmlTagHandler implements Html.TagHandler {
 
                 // When we're back at the root-level table
                 end(output, Table.class, false);
-            }
-            else if (tag.equalsIgnoreCase("tr")) {
+            } else if (tag.equalsIgnoreCase("tr")) {
                 end(output, Tr.class, false);
             } else if (tag.equalsIgnoreCase("th")) {
                 end(output, Th.class, false);

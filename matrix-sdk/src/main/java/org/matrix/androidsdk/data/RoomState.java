@@ -520,12 +520,11 @@ public class RoomState implements Externalizable {
         }
 
         if (member == null) {
-            // TODO LazyLoading
-            Log.e(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Null member '" + userId + "' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            Log.w(LOG_TAG, "## Null member '" + userId);
 
             if (TextUtils.equals(getDataHandler().getUserId(), userId)) {
                 // This should never happen
-                Log.e(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Null current user '" + userId + "' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                Log.e(LOG_TAG, "## Null current user '" + userId);
             }
         }
 

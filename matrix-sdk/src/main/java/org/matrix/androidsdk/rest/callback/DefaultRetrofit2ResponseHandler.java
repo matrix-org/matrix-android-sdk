@@ -8,7 +8,7 @@ import retrofit2.Response;
 
 public class DefaultRetrofit2ResponseHandler {
     public static <T> void handleResponse(Response<T> response, Listener<T> listener)
-        throws IOException {
+            throws IOException {
         if (response.isSuccessful()) {
             listener.onSuccess(response);
         } else {
@@ -19,6 +19,7 @@ public class DefaultRetrofit2ResponseHandler {
 
     public interface Listener<T> {
         void onSuccess(Response<T> response);
+
         void onHttpError(HttpError httpError);
     }
 }

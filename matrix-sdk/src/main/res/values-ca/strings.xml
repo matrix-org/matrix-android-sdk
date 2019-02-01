@@ -12,7 +12,7 @@
 
     <string name="notice_room_invite_no_invitee">la invitació de %s</string>
     <string name="notice_room_invite">%1$s ha convidat a %2$s</string>
-    <string name="notice_room_invite_you">%1$s vos ha convidat</string>
+    <string name="notice_room_invite_you">%1$s us ha convidat</string>
     <string name="notice_room_reject">%1$s ha rebutjat la invitació</string>
     <string name="notice_room_kick">%1$s ha fet fora a %2$s</string>
 
@@ -34,7 +34,7 @@
     <string name="notice_room_withdraw">%1$s ha retirat la invitació de %2$s</string>
     <string name="notice_avatar_url_changed">%1$s ha canviat el seu avatar</string>
     <string name="notice_made_future_room_visibility">%1$s ha permès a %2$s veure l\'historial que es generi a partir d\'ara</string>
-    <string name="notice_room_visibility_joined">tots els membres de la sala des del punt en què hi entrin.</string>
+    <string name="notice_room_visibility_joined">tots els membres de la sala, des del punt en què hi entrin.</string>
     <string name="notice_room_visibility_world_readable">qualsevol.</string>
     <string name="notice_voip_started">S\'ha iniciat la conferència VoIP</string>
     <string name="notice_voip_finished">S\'ha finalitzat la conferència VoIP</string>
@@ -47,10 +47,10 @@
     <string name="notice_event_redacted_reason">" [raó: %1$s]"</string>
     <string name="notice_profile_change_redacted">%1$s ha actualitzat el seu perfil %2$s</string>
     <string name="notice_room_third_party_invite">%1$s ha enviat una invitació a l\'usuari %2$s per a entrar a la sala</string>
-    <string name="notice_room_third_party_registered_invite">%1$s ha acceptat la invitació de l\'usuari %2$s</string>
+    <string name="notice_room_third_party_registered_invite">%1$s ha acceptat la invitació per a %2$s</string>
 
     <string name="notice_crypto_unable_to_decrypt">** No s\'ha pogut desencriptar: %s **</string>
-    <string name="notice_crypto_error_unkwown_inbound_session_id">El dispositiu del remitent no ha enviat les claus per aquest missatge.</string>
+    <string name="notice_crypto_error_unkwown_inbound_session_id">El dispositiu del remitent no ens ha enviat les claus per aquest missatge.</string>
 
     <string name="could_not_redact">No s\'ha pogut redactar</string>
     <string name="unable_to_send_message">No s\'ha pogut enviar el missatge</string>
@@ -67,7 +67,7 @@
     <string name="notice_placed_voice_call">%s ha iniciat una trucada de veu.</string>
 
     <!-- Room display name -->
-    <string name="room_displayname_invite_from">Convideu des de %s</string>
+    <string name="room_displayname_invite_from">Convidat per %s</string>
     <string name="room_displayname_room_invite">Convideu a la sala</string>
     <string name="room_displayname_two_members">%1$s i %2$s</string>
     <string name="room_displayname_empty_room">Sala buida</string>
@@ -77,7 +77,7 @@
     </plurals>
 
 
-    <string name="summary_user_sent_sticker">%1$s ha enviat una enganxina.</string>
+    <string name="summary_user_sent_sticker">%1$s ha enviat un adhesiu.</string>
 
     <string name="message_reply_to_prefix">En resposta a</string>
 

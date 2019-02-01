@@ -16,8 +16,6 @@
 
 package org.matrix.androidsdk.rest.model;
 
-import java.util.List;
-
 /**
  * Parameters to report an event content
  */

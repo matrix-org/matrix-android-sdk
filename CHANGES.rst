@@ -1,4 +1,23 @@
-Changes to Matrix Android SDK in 0.9.15 (2018-01-02)
+Changes to Matrix Android SDK in 0.9.16 (2018-02-01)
+=======================================================
+
+Improvements:
+ - MXCrypto: Add key backup passphrase support (vector-im/riot-android#2771).
+ - KeysBackup: Do not reset KeysBackup.keysBackupVersion in error states.
+ - KeysBackup: Implement the true deleteKeysBackupVersion Client-Server API.
+
+Bugfix:
+ - Fix RestClient exception in case of non-ASCII application label (#419)
+ - remove un-serializable fields in MatrixError
+ - MXCrypto: ensure listeners are called on the UiThread
+
+API Change:
+ - Some KeysBackup methods have been renamed for clarity
+
+Others:
+ - fix typo in CHANGES.rst (wrong year)
+
+Changes to Matrix Android SDK in 0.9.15 (2019-01-02)
 =======================================================
 
 Improvements:

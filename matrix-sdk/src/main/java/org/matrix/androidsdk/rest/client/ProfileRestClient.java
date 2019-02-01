@@ -195,9 +195,9 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     /**
      * Reset the password to a new one.
      *
-     * @param newPassword    the new password
+     * @param newPassword         the new password
      * @param threePidCredentials the three pids.
-     * @param callback       the callback
+     * @param callback            the callback
      */
     public void resetPassword(final String newPassword, final ThreePidCredentials threePidCredentials, final ApiCallback<Void> callback) {
         // privacy

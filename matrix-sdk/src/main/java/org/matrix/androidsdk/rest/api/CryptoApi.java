@@ -17,12 +17,12 @@
 package org.matrix.androidsdk.rest.api;
 
 
-import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
-import org.matrix.androidsdk.rest.model.sync.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeyChangesResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysClaimResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
+import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
+import org.matrix.androidsdk.rest.model.sync.DevicesListResponse;
 
 import java.util.Map;
 
@@ -39,6 +39,7 @@ public interface CryptoApi {
 
     /**
      * Upload device and/or one-time keys.
+     *
      * @param params the params.
      */
     @POST("keys/upload")
@@ -55,6 +56,7 @@ public interface CryptoApi {
 
     /**
      * Download device keys.
+     *
      * @param params the params.
      */
     @POST("keys/query")
@@ -62,6 +64,7 @@ public interface CryptoApi {
 
     /**
      * Claim one-time keys.
+     *
      * @param params the params.
      */
     @POST("keys/claim")

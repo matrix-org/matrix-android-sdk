@@ -28,9 +28,9 @@ public interface AccountDataApi {
     /**
      * Set some account_data for the client.
      *
-     * @param userId   the user id
-     * @param type     the type
-     * @param params   the put params
+     * @param userId the user id
+     * @param type   the type
+     * @param params the put params
      */
     @PUT("user/{userId}/account_data/{type}")
     Call<Void> setAccountData(@Path("userId") String userId, @Path("type") String type, @Body Object params);
@@ -40,8 +40,8 @@ public interface AccountDataApi {
      * present to a third party in order to prove their ownership
      * of the Matrix account they are logged into.
      *
-     * @param userId   the user id
-     * @param body     the body content
+     * @param userId the user id
+     * @param body   the body content
      */
     @POST("user/{userId}/openid/request_token")
     Call<Map<Object, Object>> openIdToken(@Path("userId") String userId, @Body Map<Object, Object> body);

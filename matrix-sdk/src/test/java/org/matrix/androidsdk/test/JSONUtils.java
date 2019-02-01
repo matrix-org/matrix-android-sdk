@@ -22,8 +22,7 @@ public class JSONUtils {
             json.put("end", end);
             json.put("chunk", array);
             return json;
-        }
-        catch (JSONException e) {
+        } catch (JSONException e) {
             Assert.assertTrue("JSONUtils.createChunk: " + e, false);
         }
         return null;
@@ -35,8 +34,7 @@ public class JSONUtils {
             json.put("errcode", code);
             json.put("error", "Uh-oh: " + code);
             return json;
-        }
-        catch (JSONException e) {
+        } catch (JSONException e) {
             Assert.assertTrue("JSONUtils.error: " + e, false);
         }
         return null;

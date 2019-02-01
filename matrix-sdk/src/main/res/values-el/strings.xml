@@ -57,4 +57,28 @@
     <string name="notice_voip_started">Η VoIP διάσκεψη ξεκίνησε</string>
     <string name="notice_voip_finished">Η VoIP διάσκεψη έληξε</string>
 
+    <string name="notice_room_join">Ο/Η %1$s εισήλθε στο δωμάτιο</string>
+    <string name="reply_to_an_image">έστειλε μία εικόνα.</string>
+    <string name="reply_to_a_video">έστειλε ένα βίντεο.</string>
+    <string name="reply_to_an_audio_file">έστειλε ένα αρχείο ήχου.</string>
+    <string name="reply_to_a_file">έστειλε ένα αρχείο.</string>
+
+    <string name="room_displayname_invite_from">Πρόσκληση από %s</string>
+    <string name="room_displayname_room_invite">Πρόσκληση στο δωμάτιο</string>
+
+    <string name="room_displayname_two_members">%1$s και %2$s</string>
+
+    <plurals name="room_displayname_three_and_more_members">
+        <item quantity="one">%1$s και 1 ακόμα</item>
+        <item quantity="other">%1$s και %2$d ακόμα</item>
+    </plurals>
+
+    <string name="room_displayname_empty_room">Άδειο δωμάτιο</string>
+
+    <string name="notice_room_visibility_joined">όλα τα μέλη του δωματίου από την στιγμή που εισήλθαν.</string>
+    <string name="notice_end_to_end">Ο/Η %1$s ενεργοποίησε την κρυπτογράφηση απ\'άκρη σ\'άκρη (%2$s)</string>
+
+    <string name="notice_room_third_party_invite">Ο/Η %1$s έστειλε μία πρόσκληση στον/στην %2$s για να εισέλθει στο δωμάτιο</string>
+    <string name="room_error_join_failed_empty_room">Δεν είναι δυνατή ακόμα η επανείσοδος σε ένα άδειο δωμάτιο.</string>
+
 </resources>

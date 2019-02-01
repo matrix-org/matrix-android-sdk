@@ -29,7 +29,7 @@ public class SecretKeyAndVersion {
     private final int androidVersionWhenTheKeyHasBeenGenerated;
 
     /**
-     * @param secretKey                       the key
+     * @param secretKey                                the key
      * @param androidVersionWhenTheKeyHasBeenGenerated the android version when the key has been generated
      */
     public SecretKeyAndVersion(SecretKey secretKey, int androidVersionWhenTheKeyHasBeenGenerated) {

@@ -16,10 +16,11 @@
 
 package org.matrix.androidsdk.crypto.keysbackup
 
+import org.matrix.androidsdk.crypto.MXCrypto
 import org.matrix.androidsdk.util.Log
 import java.util.*
 
-class KeysBackupStateManager {
+class KeysBackupStateManager(val crypto: MXCrypto) {
 
     private val mListeners = ArrayList<KeysBackupStateListener>()
 
@@ -30,18 +31,28 @@ class KeysBackupStateManager {
 
             field = newState
 
-            // Notify listeners about the state change
-            synchronized(mListeners) {
-                mListeners.forEach {
-                    it.onStateChange(state)
+            // Notify listeners about the state change, on the ui thread
+            crypto.uiHandler.post {
+                synchronized(mListeners) {
+                    mListeners.forEach {
+                        // Use newState because state may have already changed again
+                        it.onStateChange(newState)
+                    }
                 }
             }
         }
 
     val isEnabled: Boolean
-        get() = state == KeysBackupStateManager.KeysBackupState.ReadyToBackUp
-                || state == KeysBackupStateManager.KeysBackupState.BackingUp
-                || state == KeysBackupStateManager.KeysBackupState.WillBackUp
+        get() = state == KeysBackupState.ReadyToBackUp
+                || state == KeysBackupState.WillBackUp
+                || state == KeysBackupState.BackingUp
+
+    // True if unknown or bad state
+    val isStucked: Boolean
+        get() = state == KeysBackupState.Unknown
+                || state == KeysBackupState.Disabled
+                || state == KeysBackupState.WrongBackUpVersion
+                || state == KeysBackupState.NotTrusted
 
     /**
      * E2e keys backup states.
@@ -51,21 +62,21 @@ class KeysBackupStateManager {
      *                               V        deleteKeyBackupVersion (on current backup)
      *  +---------------------->  UNKNOWN  <-------------
      *  |                            |
-     *  |                            | checkAndStartKeyBackup (at startup or on new verified device or a new detected backup)
+     *  |                            | checkAndStartKeysBackup (at startup or on new verified device or a new detected backup)
      *  |                            V
      *  |                     CHECKING BACKUP
      *  |                            |
      *  |    Network error           |
      *  +<----------+----------------+-------> DISABLED <----------------------+
      *  |           |                |            |                            |
-     *  |           |                |            | createKeyBackupVersion     |
+     *  |           |                |            | createKeysBackupVersion    |
      *  |           V                |            V                            |
      *  +<---  WRONG VERSION         |         ENABLING                        |
-     *              ^                |            |                            |
-     *              |                V       ok   |     error                  |
-     *              |     +------> READY <--------+----------------------------+
-     *              |     |          |
-     *              |     |          | on new key
+     *      |       ^                |            |                            |
+     *      |       |                V       ok   |     error                  |
+     *      |       |     +------> READY <--------+----------------------------+
+     *      V       |     |          |
+     * NOT TRUSTED  |     |          | on new key
      *              |     |          V
      *              |     |     WILL BACK UP (waiting a random duration)
      *              |     |          |
@@ -86,13 +97,18 @@ class KeysBackupStateManager {
         WrongBackUpVersion,
         // Backup from this device is not enabled
         Disabled,
+        // There is a backup available on the homeserver but it is not trusted.
+        // It is not trusted because the signature is invalid or the device that created it is not verified
+        // Use [KeysBackup.getKeysBackupTrust()] to get trust details.
+        // Consequently, the backup from this device is not enabled.
+        NotTrusted,
         // Backup is being enabled: the backup version is being created on the homeserver
         Enabling,
         // Backup is enabled and ready to send backup to the homeserver
         ReadyToBackUp,
-        // Backup is going to be send to the homeserver
+        // e2e keys are going to be sent to the homeserver
         WillBackUp,
-        // Backup is being sent to the homeserver
+        // e2e keys are being sent to the homeserver
         BackingUp
     }
 

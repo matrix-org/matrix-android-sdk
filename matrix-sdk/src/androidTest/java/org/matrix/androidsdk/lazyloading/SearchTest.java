@@ -9,7 +9,6 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.matrix.androidsdk.MXSession;
-import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.common.CommonTestHelper;
 import org.matrix.androidsdk.common.TestApiCallback;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;

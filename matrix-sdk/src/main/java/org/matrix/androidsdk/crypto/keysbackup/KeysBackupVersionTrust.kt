@@ -1,6 +1,5 @@
 /*
- * Copyright 2016 OpenMarket Ltd
- * Copyright 2017 Vector Creations Ltd
+ * Copyright 2018 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,23 +14,20 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.rest.model.crypto;
-
-import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
-
-import java.util.Map;
+package org.matrix.androidsdk.crypto.keysbackup
 
 /**
- * This class represents the response to /keys/query request made by downloadKeysForUsers
+ * Data model for response to [KeysBackup.getKeysBackupTrust()].
  */
-public class KeysQueryResponse {
+class KeysBackupVersionTrust {
     /**
-     * The device keys per devices per users.
+     * Flag to indicate if the backup is trusted.
+     * true if there is a signature that is valid & from a trusted device.
      */
-    public Map<String, Map<String, MXDeviceInfo>> deviceKeys;
+    var usable = false
 
     /**
-     * The failures sorted by homeservers.
+     * Signatures found in the backup version.
      */
-    public Map<String, Map<String, Object>> failures;
+    var signatures: MutableList<KeysBackupVersionTrustSignature> = ArrayList()
 }

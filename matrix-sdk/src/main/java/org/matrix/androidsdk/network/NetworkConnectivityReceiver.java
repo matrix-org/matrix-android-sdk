@@ -26,9 +26,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
 
-import org.matrix.androidsdk.util.Log;
-
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
