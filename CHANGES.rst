@@ -1,8 +1,5 @@
-Changes to Matrix Android SDK in 0.9.16 (2018-XX-XX)
+Changes to Matrix Android SDK in 0.9.16 (2018-02-01)
 =======================================================
-
-Features:
- -
 
 Improvements:
  - MXCrypto: Add key backup passphrase support (vector-im/riot-android#2771).
@@ -17,17 +14,8 @@ Bugfix:
 API Change:
  - Some KeysBackup methods have been renamed for clarity
 
-Translations:
- -
-
 Others:
  - fix typo in CHANGES.rst (wrong year)
-
-Build:
- -
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.15 (2019-01-02)
 =======================================================
