@@ -16,12 +16,16 @@
 
 package org.matrix.androidsdk.rest.model.login
 
+import android.os.Parcelable
+import kotlinx.android.parcel.Parcelize
+
 /**
  * This class represent a localized privacy policy for registration Flow.
  */
+@Parcelize
 data class LocalizedFlowDataLoginTerms(
         var policyName: String? = null,
         var version: String? = null,
         var localizedUrl: String? = null,
         var localizedName: String? = null
-)
+) : Parcelable

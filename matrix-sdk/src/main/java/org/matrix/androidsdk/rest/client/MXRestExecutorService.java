@@ -53,19 +53,24 @@ public class MXRestExecutorService extends AbstractExecutorService {
         }
     }
 
-    @Override public void shutdown() {
+    @Override
+    public void shutdown() {
 
     }
 
-    @NonNull @Override public List<Runnable> shutdownNow() {
+    @NonNull
+    @Override
+    public List<Runnable> shutdownNow() {
         return Collections.emptyList();
     }
 
-    @Override public boolean isShutdown() {
+    @Override
+    public boolean isShutdown() {
         return false;
     }
 
-    @Override public boolean isTerminated() {
+    @Override
+    public boolean isTerminated() {
         return false;
     }
 

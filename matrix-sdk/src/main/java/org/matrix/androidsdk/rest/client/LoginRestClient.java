@@ -21,8 +21,6 @@ import android.os.Build;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
-import com.google.gson.JsonObject;
-
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.api.LoginApi;

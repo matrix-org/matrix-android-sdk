@@ -290,7 +290,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
         mOlmDevice.addInboundGroupSession(sessionId, sessionKey, roomId, senderKey, forwarding_curve25519_key_chain, keysClaimed, exportFormat);
 
-        mSession.getCrypto().getKeysBackup().maybeSendKeyBackup();
+        mSession.getCrypto().getKeysBackup().maybeBackupKeys();
 
         Map<String, String> content = new HashMap<>();
         content.put("algorithm", roomKeyContent.algorithm);

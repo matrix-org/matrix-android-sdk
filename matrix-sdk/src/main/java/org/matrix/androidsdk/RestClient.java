@@ -261,12 +261,18 @@ public class RestClient<T> {
 
         if (null != appContext) {
             try {
+                String appPackageName = appContext.getApplicationContext().getPackageName();
                 PackageManager pm = appContext.getPackageManager();
-                ApplicationInfo appInfo = pm.getApplicationInfo(appContext.getApplicationContext().getPackageName(), 0);
+                ApplicationInfo appInfo = pm.getApplicationInfo(appPackageName, 0);
                 appName = pm.getApplicationLabel(appInfo).toString();
 
                 PackageInfo pkgInfo = pm.getPackageInfo(appContext.getApplicationContext().getPackageName(), 0);
                 appVersion = pkgInfo.versionName;
+
+                // Use appPackageName instead of appName if appName contains any non-ASCII character
+                if (!appName.matches("\\A\\p{ASCII}*\\z")) {
+                    appName = appPackageName;
+                }
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## initUserAgent() : failed " + e.getMessage(), e);
             }

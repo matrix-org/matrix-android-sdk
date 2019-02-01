@@ -21,7 +21,7 @@ import java.util.List;
 /**
  * This class represents the community members in a group summary response.
  */
-public class GroupSummaryUsersSection  implements Serializable {
+public class GroupSummaryUsersSection implements Serializable {
 
     public Integer totalUserCountEstimate;
 

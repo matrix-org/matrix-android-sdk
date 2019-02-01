@@ -237,7 +237,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
         olmDevice.addInboundGroupSession(sessionId, olmDevice.getSessionKey(sessionId), mRoomId, olmDevice.getDeviceCurve25519Key(),
                 new ArrayList<String>(), keysClaimedMap, false);
 
-        mCrypto.getKeysBackup().maybeSendKeyBackup();
+        mCrypto.getKeysBackup().maybeBackupKeys();
 
         return new MXOutboundSessionInfo(sessionId);
     }

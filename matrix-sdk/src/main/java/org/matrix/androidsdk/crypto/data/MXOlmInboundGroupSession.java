@@ -17,11 +17,9 @@
 package org.matrix.androidsdk.crypto.data;
 
 import org.matrix.androidsdk.util.Log;
-
 import org.matrix.olm.OlmInboundGroupSession;
 
 import java.io.Serializable;
-
 import java.util.Map;
 
 

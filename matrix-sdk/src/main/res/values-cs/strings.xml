@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="summary_message">%1$s: %2$s</string>
+<resources>
+    <string name="summary_message">%1$s: %2$s</string>
     <string name="summary_user_sent_image">%1$s poslal obrázek.</string>
     <string name="summary_user_sent_sticker">%1$s poslal nálepku.</string>
 
@@ -76,11 +77,11 @@
     <string name="room_displayname_two_members">%1$s a %2$s</string>
 
     <plurals name="room_displayname_three_and_more_members">
-	<item quantity="one">%1$s a 1 další</item>
-	<item quantity="few">%1$s a %2$d další</item>
-	<item quantity="many">%1$s a %2$d dalších</item>
-	<item quantity="other"/>
-</plurals>
+        <item quantity="one">%1$s a 1 další</item>
+        <item quantity="few">%1$s a %2$d další</item>
+        <item quantity="many">%1$s a %2$d dalších</item>
+        <item quantity="other" />
+    </plurals>
 
     <string name="room_displayname_empty_room">Prázdná místnost</string>
 

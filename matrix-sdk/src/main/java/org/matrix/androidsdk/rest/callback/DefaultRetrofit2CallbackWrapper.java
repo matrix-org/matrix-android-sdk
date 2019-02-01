@@ -10,7 +10,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class DefaultRetrofit2CallbackWrapper<T>
-    implements Callback<T>, DefaultRetrofit2ResponseHandler.Listener<T> {
+        implements Callback<T>, DefaultRetrofit2ResponseHandler.Listener<T> {
 
     private final ApiCallback<T> apiCallback;
 
@@ -22,7 +22,8 @@ public class DefaultRetrofit2CallbackWrapper<T>
         return apiCallback;
     }
 
-    @Override public void onResponse(Call<T> call, Response<T> response) {
+    @Override
+    public void onResponse(Call<T> call, Response<T> response) {
         try {
             handleResponse(response);
         } catch (IOException e) {
@@ -34,15 +35,18 @@ public class DefaultRetrofit2CallbackWrapper<T>
         DefaultRetrofit2ResponseHandler.handleResponse(response, this);
     }
 
-    @Override public void onFailure(Call<T> call, Throwable t) {
+    @Override
+    public void onFailure(Call<T> call, Throwable t) {
         apiCallback.onNetworkError((Exception) t);
     }
 
-    @Override public void onSuccess(Response<T> response) {
+    @Override
+    public void onSuccess(Response<T> response) {
         apiCallback.onSuccess(response.body());
     }
 
-    @Override public void onHttpError(HttpError httpError) {
+    @Override
+    public void onHttpError(HttpError httpError) {
         apiCallback.onNetworkError(new HttpException(httpError));
     }
 }
