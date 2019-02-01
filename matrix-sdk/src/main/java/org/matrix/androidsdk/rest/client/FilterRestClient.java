@@ -24,7 +24,7 @@ import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.filter.FilterBody;
 import org.matrix.androidsdk.rest.model.filter.FilterResponse;
 
-public class FilterRestClient extends RestClient<FilterApi>{
+public class FilterRestClient extends RestClient<FilterApi> {
 
     /**
      * {@inheritDoc}
@@ -36,9 +36,9 @@ public class FilterRestClient extends RestClient<FilterApi>{
     /**
      * Uploads a FilterBody to homeserver
      *
-     * @param userId   the user id
+     * @param userId     the user id
      * @param filterBody FilterBody which should be send to server
-     * @param callback on success callback containing a String with populated filterId
+     * @param callback   on success callback containing a String with populated filterId
      */
     public void uploadFilter(final String userId, final FilterBody filterBody, final ApiCallback<FilterResponse> callback) {
         final String description = "uploadFilter userId : " + userId + " filter : " + filterBody;

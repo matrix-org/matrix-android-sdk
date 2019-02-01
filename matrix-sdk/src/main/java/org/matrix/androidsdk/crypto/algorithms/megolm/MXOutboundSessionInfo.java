@@ -18,8 +18,8 @@
 package org.matrix.androidsdk.crypto.algorithms.megolm;
 
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
-import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.List;
 

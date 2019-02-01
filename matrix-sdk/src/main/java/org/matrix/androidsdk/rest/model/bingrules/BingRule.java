@@ -1,12 +1,12 @@
-/* 
+/*
  * Copyright 2014 OpenMarket Ltd
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -132,7 +132,7 @@ public class BingRule {
         if (null != notify) {
             setNotify(notify);
         }
-        
+
         if (null != highlight) {
             setHighlight(highlight);
         }
@@ -310,7 +310,7 @@ public class BingRule {
                 if (valueAsVoid instanceof Boolean) {
                     shouldHighlight = (boolean) valueAsVoid;
                 } else if (valueAsVoid instanceof String) {
-                    shouldHighlight = TextUtils.equals((String)valueAsVoid, "true");
+                    shouldHighlight = TextUtils.equals((String) valueAsVoid, "true");
                 } else {
                     Log.e(LOG_TAG, "## shouldHighlight() : unexpected type " + valueAsVoid);
                 }

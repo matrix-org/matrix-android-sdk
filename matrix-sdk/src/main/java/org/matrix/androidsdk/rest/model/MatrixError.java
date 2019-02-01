@@ -25,9 +25,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import okhttp3.MediaType;
-import okhttp3.ResponseBody;
-
 /**
  * Represents a standard error response.
  */

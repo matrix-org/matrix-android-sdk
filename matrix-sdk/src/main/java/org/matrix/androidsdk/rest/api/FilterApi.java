@@ -30,7 +30,7 @@ public interface FilterApi {
     /**
      * Upload FilterBody to get a filter_id which can be used for /sync requests
      *
-     * @param userId   the user id
+     * @param userId the user id
      * @param body   the Json representation of a FilterBody object
      */
     @POST("user/{userId}/filter")

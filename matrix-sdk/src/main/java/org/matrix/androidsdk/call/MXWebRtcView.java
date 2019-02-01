@@ -194,7 +194,7 @@ public class MXWebRtcView extends ViewGroup {
      * {@link ViewCompat#isInLayout(View)}.
      *
      * @return If this <tt>View</tt> has <tt>View#isInLayout()</tt>, invokes it
-     * and returns its return value; otherwise, returns <tt>false</tt>.
+     *         and returns its return value; otherwise, returns <tt>false</tt>.
      */
     private boolean invokeIsInLayout() {
         Method m = IS_IN_LAYOUT;
@@ -381,7 +381,7 @@ public class MXWebRtcView extends ViewGroup {
         // rotation change. The following will suffice.
         if (!invokeIsInLayout()) {
             onLayout(
-                /* changed */ false,
+                    /* changed */ false,
                     getLeft(), getTop(), getRight(), getBottom());
         }
     }
