@@ -183,4 +183,15 @@ class RoomKeysRestClient(hsConfig: HomeServerConnectionConfig) :
         mApi.deleteSessionsData(version)
                 .enqueue(RestAdapterCallback(description, null, callback, null))
     }
+
+    /**
+     * @param version
+     * @param callback
+     */
+    fun deleteBackup(version: String, callback: ApiCallback<Void>) {
+        val description = "deleteBackup"
+
+        mApi.deleteBackup(version)
+                .enqueue(RestAdapterCallback(description, null, callback, null))
+    }
 }

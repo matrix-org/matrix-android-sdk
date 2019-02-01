@@ -6,6 +6,8 @@ Features:
 
 Improvements:
  - MXCrypto: Add key backup passphrase support (vector-im/riot-android#2771).
+ - KeysBackup: Do not reset KeysBackup.keysBackupVersion in error states.
+ - KeysBackup: Implement the true deleteKeysBackupVersion Client-Server API.
 
 Bugfix:
  - Fix RestClient exception in case of non-ASCII application label (#419)

@@ -56,8 +56,9 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
     private val mKeysBackupStateManager = KeysBackupStateManager(mCrypto)
 
-    // The backup version being used.
-    private var mKeysBackupVersion: KeysVersionResult? = null
+    // The backup version
+    var mKeysBackupVersion: KeysVersionResult? = null
+        private set
 
     // The backup key being used.
     private var mBackupKey: OlmPkEncryption? = null
@@ -70,6 +71,9 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
     val isEnabled: Boolean
         get() = mKeysBackupStateManager.isEnabled
+
+    val isStucked: Boolean
+        get() = mKeysBackupStateManager.isStucked
 
     val state: KeysBackupStateManager.KeysBackupState
         get() = mKeysBackupStateManager.state
@@ -197,29 +201,61 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     }
 
     /**
-     * Delete a keys backup version. It will delete all backed up keys on the server.
+     * Delete a keys backup version. It will delete all backed up keys on the server, and the backup itself.
      * If we are backing up to this version. Backup will be stopped.
      *
      * @param version  the backup version to delete.
      * @param callback Asynchronous callback
      */
-    fun deleteKeysFromBackup(version: String, callback: ApiCallback<Void>) {
+    fun deleteBackup(version: String, callback: ApiCallback<Void>?) {
         mCrypto.decryptingThreadHandler.post {
             // If we're currently backing up to this backup... stop.
             // (We start using it automatically in createKeysBackupVersion so this is symmetrical).
             if (mKeysBackupVersion != null && version == mKeysBackupVersion!!.version) {
-                disableKeysBackup()
+                resetKeysBackupData()
+                mKeysBackupVersion = null
                 mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Unknown
             }
 
-            mCrypto.uiHandler.post { mRoomKeysRestClient.deleteKeys(version, callback) }
+            mRoomKeysRestClient.deleteBackup(version, object : ApiCallback<Void> {
+                private fun eventuallyRestartBackup() {
+                    // Do not stay in KeysBackupState.Unknown but check what is available on the homeserver
+                    if (state == KeysBackupStateManager.KeysBackupState.Unknown) {
+                        checkAndStartKeysBackup()
+                    }
+                }
+
+                override fun onSuccess(info: Void?) {
+                    eventuallyRestartBackup()
+
+                    mCrypto.uiHandler.post { callback?.onSuccess(null) }
+                }
+
+                override fun onUnexpectedError(e: Exception) {
+                    eventuallyRestartBackup()
+
+                    mCrypto.uiHandler.post { callback?.onUnexpectedError(e) }
+                }
+
+                override fun onNetworkError(e: Exception) {
+                    eventuallyRestartBackup()
+
+                    mCrypto.uiHandler.post { callback?.onNetworkError(e) }
+                }
+
+                override fun onMatrixError(e: MatrixError) {
+                    eventuallyRestartBackup()
+
+                    mCrypto.uiHandler.post { callback?.onMatrixError(e) }
+                }
+            })
         }
     }
 
     /**
      * Start to back up keys immediately.
      *
-     * @param progress the callback to follow the progress
+     * @param progressListener the callback to follow the progress
      * @param callback the main callback
      */
     fun backupAllGroupSessions(progressListener: ProgressListener?,
@@ -355,7 +391,10 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         mKeysBackupStateListener = null
     }
 
-    private fun getBackupProgress(progressListener: ProgressListener) {
+    /**
+     * Return the current progress of the backup
+     */
+    fun getBackupProgress(progressListener: ProgressListener) {
         mCrypto.decryptingThreadHandler.post {
             val backedUpKeys = mCrypto.cryptoStore.inboundGroupSessionsCount(true)
             val total = mCrypto.cryptoStore.inboundGroupSessionsCount(false)
@@ -548,13 +587,13 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      * Do a backup if there are new keys, with a delay
      */
     fun maybeBackupKeys() {
-        when (state) {
-            KeysBackupStateManager.KeysBackupState.Unknown -> {
-                // If not already done, check for a valid backup version on the homeserver.
-                // If one, maybeBackupKeys will be called again.
+        when {
+            isStucked -> {
+                // If not already done, or in error case, check for a valid backup version on the homeserver.
+                // If there is one, maybeBackupKeys will be called again.
                 checkAndStartKeysBackup()
             }
-            KeysBackupStateManager.KeysBackupState.ReadyToBackUp -> {
+            state == KeysBackupStateManager.KeysBackupState.ReadyToBackUp -> {
                 mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WillBackUp
 
                 // Wait between 0 and 10 seconds, to avoid backup requests from
@@ -621,60 +660,96 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     }
 
     /**
+     * This method fetches the last backup version on the server, then compare to the currently backup version use.
+     * If versions are not the same, the current backup is deleted (on server or locally), then the backup may be started again, using the last version.
+     *
+     * @param callback true if backup is already using the last version, and false if it is not the case
+     */
+    fun forceUsingLastVersion(callback: ApiCallback<Boolean>) {
+        getCurrentVersion(object : SimpleApiCallback<KeysVersionResult?>(callback) {
+            override fun onSuccess(info: KeysVersionResult?) {
+                val localBackupVersion = mKeysBackupVersion?.version
+                val serverBackupVersion = info?.version
+
+                if (serverBackupVersion == null) {
+                    if (localBackupVersion == null) {
+                        // No backup on the server, and backup is not active
+                        callback.onSuccess(true)
+                    } else {
+                        // No backup on the server, and we are currently backing up, so stop backing up
+                        callback.onSuccess(false)
+                        resetKeysBackupData()
+                        mKeysBackupVersion = null
+                        mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
+                    }
+                } else {
+                    if (localBackupVersion == null) {
+                        // backup on the server, and backup is not active
+                        callback.onSuccess(false)
+                        // Do a check
+                        checkAndStartKeysBackup()
+                    } else {
+                        // Backup on the server, and we are currently backing up, compare version
+                        if (localBackupVersion == serverBackupVersion) {
+                            // We are already using the last version of the backup
+                            callback.onSuccess(true)
+                        } else {
+                            // We are not using the last version, so delete the current version we are using on the server
+                            callback.onSuccess(false)
+
+                            // This will automatically check for the last version then
+                            deleteBackup(localBackupVersion, null)
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    /**
      * Check the server for an active key backup.
      *
      * If one is present and has a valid signature from one of the user's verified
      * devices, start backing up to it.
      */
     fun checkAndStartKeysBackup() {
-        if (isEnabled) {
+        if (!isStucked) {
+            // Try to start or restart the backup only if it is in unknown or bad state
             Log.w(LOG_TAG, "checkAndStartKeysBackup: invalid state: $state")
 
             return
         }
 
+        mKeysBackupVersion = null
         mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.CheckingBackUpOnHomeserver
 
         getCurrentVersion(object : ApiCallback<KeysVersionResult?> {
             override fun onSuccess(keyBackupVersion: KeysVersionResult?) {
+                mKeysBackupVersion = keyBackupVersion
+
                 if (keyBackupVersion == null) {
                     Log.d(LOG_TAG, "checkAndStartKeysBackup: Found no key backup version on the homeserver")
-                    disableKeysBackup()
+                    resetKeysBackupData()
                     mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
                 } else {
                     getKeysBackupTrust(keyBackupVersion, SuccessCallback { trustInfo ->
+                        val versionInStore = mCrypto.cryptoStore.keyBackupVersion
+
                         if (trustInfo.usable) {
                             Log.d(LOG_TAG, "checkAndStartKeysBackup: Found usable key backup. version: " + keyBackupVersion.version)
-                            when {
-                                mKeysBackupVersion == null -> {
-                                    // Check the version we used at the previous app run
-                                    val versionInStore = mCrypto.cryptoStore.keyBackupVersion
-                                    if (versionInStore != null && versionInStore != keyBackupVersion.version) {
-                                        Log.d(LOG_TAG, " -> clean the previously used version $versionInStore")
-                                        disableKeysBackup()
-                                    }
-
-                                    Log.d(LOG_TAG, "   -> enabling key backups")
-                                    enableKeysBackup(keyBackupVersion)
-                                }
-                                mKeysBackupVersion!!.version.equals(keyBackupVersion.version) -> {
-                                    Log.d(LOG_TAG, "   -> same backup version (" + keyBackupVersion.version + "). Keep using it")
-                                    mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
-                                }
-                                else -> {
-                                    Log.d(LOG_TAG, "   -> disable the current version (" + mKeysBackupVersion!!.version
-                                            + ") and enabling the new one: " + keyBackupVersion.version)
-                                    disableKeysBackup()
-                                    enableKeysBackup(keyBackupVersion)
-                                }
+                            // Check the version we used at the previous app run
+                            if (versionInStore != null && versionInStore != keyBackupVersion.version) {
+                                Log.d(LOG_TAG, " -> clean the previously used version $versionInStore")
+                                resetKeysBackupData()
                             }
+
+                            Log.d(LOG_TAG, "   -> enabling key backups")
+                            enableKeysBackup(keyBackupVersion)
                         } else {
                             Log.d(LOG_TAG, "checkAndStartKeysBackup: No usable key backup. version: " + keyBackupVersion.version)
-                            if (mKeysBackupVersion == null) {
-                                Log.d(LOG_TAG, "   -> not enabling key backup")
-                            } else {
+                            if (versionInStore != null) {
                                 Log.d(LOG_TAG, "   -> disabling key backup")
-                                disableKeysBackup()
+                                resetKeysBackupData()
                             }
 
                             mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.NotTrusted
@@ -742,13 +817,13 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     }
 
     /**
-     * Disable backing up of keys.
+     * Reset all local key backup data.
+     *
      * Note: This method does not update the state
      */
-    private fun disableKeysBackup() {
+    private fun resetKeysBackupData() {
         resetBackupAllGroupSessionsListeners()
 
-        mKeysBackupVersion = null
         mCrypto.cryptoStore.keyBackupVersion = null
         mBackupKey = null
 
@@ -763,7 +838,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     private fun backupKeys() {
         Log.d(LOG_TAG, "backupKeys")
 
-        // Sanity check
+        // Sanity check, as this method can be called after a delay, the state may have change during the delay
         if (!isEnabled || mBackupKey == null || mKeysBackupVersion == null) {
             Log.d(LOG_TAG, "backupKeys: Invalid configuration")
             backupAllGroupSessionsCallback?.onUnexpectedError(IllegalStateException("Invalid configuration"))
@@ -842,17 +917,21 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     mCrypto.uiHandler.post {
                         Log.e(LOG_TAG, "backupKeys: backupKeys failed. Error: " + e.localizedMessage)
 
-                        if (e.errcode == MatrixError.WRONG_ROOM_KEYS_VERSION) {
-                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WrongBackUpVersion
-                            backupAllGroupSessionsCallback?.onMatrixError(e)
-                            resetBackupAllGroupSessionsListeners()
-                            disableKeysBackup()
+                        when (e.errcode) {
+                            MatrixError.NOT_FOUND,
+                            MatrixError.WRONG_ROOM_KEYS_VERSION -> {
+                                // Backup has been deleted on the server, or we are not using the last backup version
+                                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WrongBackUpVersion
+                                backupAllGroupSessionsCallback?.onMatrixError(e)
+                                resetBackupAllGroupSessionsListeners()
+                                resetKeysBackupData()
+                                mKeysBackupVersion = null
 
-                            // disableKeysBackup() set state to Disable, so ensure it is WrongBackUpVersion
-                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.WrongBackUpVersion
-                        } else {
-                            // Come back to the ready state so that we will retry on the next received key
-                            mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
+                                // Do not stay in KeysBackupState.WrongBackUpVersion but check what is available on the homeserver
+                                checkAndStartKeysBackup()
+                            }
+                            else -> // Come back to the ready state so that we will retry on the next received key
+                                mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
                         }
                     }
                 }

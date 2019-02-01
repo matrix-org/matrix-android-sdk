@@ -32,8 +32,8 @@ class KeysBackupStateManager(val crypto: MXCrypto) {
             field = newState
 
             // Notify listeners about the state change, on the ui thread
-            synchronized(mListeners) {
-                crypto.uiHandler.post {
+            crypto.uiHandler.post {
+                synchronized(mListeners) {
                     mListeners.forEach {
                         // Use newState because state may have already changed again
                         it.onStateChange(newState)
@@ -43,9 +43,16 @@ class KeysBackupStateManager(val crypto: MXCrypto) {
         }
 
     val isEnabled: Boolean
-        get() = state == KeysBackupStateManager.KeysBackupState.ReadyToBackUp
-                || state == KeysBackupStateManager.KeysBackupState.WillBackUp
-                || state == KeysBackupStateManager.KeysBackupState.BackingUp
+        get() = state == KeysBackupState.ReadyToBackUp
+                || state == KeysBackupState.WillBackUp
+                || state == KeysBackupState.BackingUp
+
+    // True if unknown or bad state
+    val isStucked: Boolean
+        get() = state == KeysBackupState.Unknown
+                || state == KeysBackupState.Disabled
+                || state == KeysBackupState.WrongBackUpVersion
+                || state == KeysBackupState.NotTrusted
 
     /**
      * E2e keys backup states.
