@@ -558,6 +558,7 @@ public class MXDataHandler {
     /**
      * @return the used push rules set.
      */
+    @Nullable
     public PushRuleSet pushRules() {
         if (isAlive() && (null != mBingRulesManager)) {
             return mBingRulesManager.pushRules();
