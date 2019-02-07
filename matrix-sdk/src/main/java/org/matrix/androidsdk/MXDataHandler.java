@@ -1853,8 +1853,7 @@ public class MXDataHandler {
         String type = event.getType();
 
         if (!TextUtils.equals(Event.EVENT_TYPE_TYPING, type)
-                && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, type)
-                && !TextUtils.equals(Event.EVENT_TYPE_TYPING, type)) {
+                && !TextUtils.equals(Event.EVENT_TYPE_RECEIPT, type)) {
             synchronized (mUpdatedRoomIdList) {
                 mUpdatedRoomIdList.add(roomState.roomId);
             }
