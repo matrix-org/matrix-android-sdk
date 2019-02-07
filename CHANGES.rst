@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Fix DataSaveMode issue in filter
 
 API Change:
  -
