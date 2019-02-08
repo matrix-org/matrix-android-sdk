@@ -30,6 +30,7 @@ import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSession;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
+import org.matrix.androidsdk.data.cryptostore.db.model.KeysBackupDataEntity;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.CompatUtil;
@@ -1040,6 +1041,18 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     @Nullable
     @Override
     public String getKeyBackupVersion() {
+        // No op
+        return null;
+    }
+
+    @Override
+    public void setKeysBackupData(@Nullable KeysBackupDataEntity keysBackupData) {
+        // No op
+    }
+
+    @Nullable
+    @Override
+    public KeysBackupDataEntity getKeysBackupData() {
         // No op
         return null;
     }

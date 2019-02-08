@@ -460,6 +460,26 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
         }
     }
 
+    override fun getKeysBackupData(): KeysBackupDataEntity? {
+        return doRealmQueryAndCopy(realmConfiguration) {
+            it.where<KeysBackupDataEntity>().findFirst()
+        }
+    }
+
+    override fun setKeysBackupData(keysBackupData: KeysBackupDataEntity?) {
+        doRealmTransaction(realmConfiguration) {
+            if (keysBackupData == null) {
+                // Clear the table
+                it.where<KeysBackupDataEntity>()
+                        .findAll()
+                        .deleteAllFromRealm()
+            } else {
+                // Only one object
+                it.copyToRealmOrUpdate(keysBackupData)
+            }
+        }
+    }
+
     override fun resetBackupMarkers() {
         doRealmTransaction(realmConfiguration) {
             it.where<OlmInboundGroupSessionEntity>()

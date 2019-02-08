@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 New Vector Ltd
+ * Copyright 2019 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,12 @@
 
 package org.matrix.androidsdk.rest.model.keys
 
-class KeysVersionResult : KeysAlgorithmAndData() {
-
-    // the backup version
-    var version: String? = null
+class BackupKeysResult {
 
     // The hash value which is an opaque string representing stored keys in the backup
     var hash: String? = null
 
     // The number of keys stored in the backup.
     var count: Int? = null
+
 }

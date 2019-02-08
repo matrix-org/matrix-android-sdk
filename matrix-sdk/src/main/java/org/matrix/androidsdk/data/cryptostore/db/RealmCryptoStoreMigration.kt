@@ -19,6 +19,7 @@ package org.matrix.androidsdk.data.cryptostore.db
 import io.realm.DynamicRealm
 import io.realm.RealmMigration
 import org.matrix.androidsdk.data.cryptostore.db.model.IncomingRoomKeyRequestEntityFields
+import org.matrix.androidsdk.data.cryptostore.db.model.KeysBackupDataEntityFields
 import org.matrix.androidsdk.data.cryptostore.db.model.OlmSessionEntityFields
 import org.matrix.androidsdk.data.cryptostore.db.model.OutgoingRoomKeyRequestEntityFields
 import org.matrix.androidsdk.util.Log
@@ -94,6 +95,15 @@ internal object RealmCryptoStoreMigration : RealmMigration {
                         }
                     }
                     ?.removeField("requestBodyString")
+
+            Log.d(LOG_TAG, "Create KeysBackupDataEntity")
+
+            realm.schema.create("KeysBackupDataEntity")
+                    .addField(KeysBackupDataEntityFields.PRIMARY_KEY, Integer::class.java)
+                    .addPrimaryKey(KeysBackupDataEntityFields.PRIMARY_KEY)
+                    .setRequired(KeysBackupDataEntityFields.PRIMARY_KEY, true)
+                    .addField(KeysBackupDataEntityFields.BACKUP_LAST_SERVER_HASH, String::class.java)
+                    .addField(KeysBackupDataEntityFields.BACKUP_LAST_SERVER_NUMBER_OF_KEYS, Integer::class.java)
         }
     }
 }
