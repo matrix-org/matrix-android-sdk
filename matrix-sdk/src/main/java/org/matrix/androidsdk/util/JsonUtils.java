@@ -47,8 +47,8 @@ import org.matrix.androidsdk.rest.model.crypto.ForwardedRoomKeyContent;
 import org.matrix.androidsdk.rest.model.crypto.OlmEventContent;
 import org.matrix.androidsdk.rest.model.crypto.OlmPayloadContent;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyContent;
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyParent;
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyShare;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyShareRequest;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.rest.model.message.AudioMessage;
 import org.matrix.androidsdk.rest.model.message.FileMessage;
@@ -320,25 +320,25 @@ public class JsonUtils {
     }
 
     /**
-     * Convert a JSON object to an RoomKeyParent.
+     * Convert a JSON object to an RoomKeyShare.
      * The result is never null.
      *
      * @param jsonObject the json to convert
-     * @return a RoomKeyParent
+     * @return a RoomKeyShare
      */
-    public static RoomKeyParent toRoomKeyParent(JsonElement jsonObject) {
-        return toClass(jsonObject, RoomKeyParent.class);
+    public static RoomKeyShare toRoomKeyShare(JsonElement jsonObject) {
+        return toClass(jsonObject, RoomKeyShare.class);
     }
 
     /**
-     * Convert a JSON object to an RoomKeyRequest.
+     * Convert a JSON object to an RoomKeyShareRequest.
      * The result is never null.
      *
      * @param jsonObject the json to convert
-     * @return a RoomKeyRequest
+     * @return a RoomKeyShareRequest
      */
-    public static RoomKeyRequest toRoomKeyRequest(JsonElement jsonObject) {
-        return toClass(jsonObject, RoomKeyRequest.class);
+    public static RoomKeyShareRequest toRoomKeyRequest(JsonElement jsonObject) {
+        return toClass(jsonObject, RoomKeyShareRequest.class);
     }
 
     /**

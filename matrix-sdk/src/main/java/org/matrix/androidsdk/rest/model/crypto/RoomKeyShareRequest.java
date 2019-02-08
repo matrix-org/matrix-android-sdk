@@ -1,4 +1,5 @@
 /*
+ * Copyright 2016 OpenMarket Ltd
  * Copyright 2019 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,11 +17,13 @@
 package org.matrix.androidsdk.rest.model.crypto;
 
 /**
- * Class representing an room key request cancellation content
+ * Class representing an room key request content
  */
-public class RoomKeyRequestCancellation extends RoomKeyParent {
+public class RoomKeyShareRequest extends RoomKeyShare {
 
-    public RoomKeyRequestCancellation() {
-        action = ACTION_REQUEST_CANCELLATION;
+    public RoomKeyRequestBody body;
+
+    public RoomKeyShareRequest() {
+        action = ACTION_SHARE_REQUEST;
     }
 }

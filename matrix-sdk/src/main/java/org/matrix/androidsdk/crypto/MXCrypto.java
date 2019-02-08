@@ -55,8 +55,8 @@ import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedMessage;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyContent;
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyParent;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyShare;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
@@ -1605,22 +1605,22 @@ public class MXCrypto {
      * @param event the announcement event.
      */
     private void onRoomKeyRequestEvent(final Event event) {
-        RoomKeyParent roomKeyRequest = JsonUtils.toRoomKeyParent(event.getContentAsJsonObject());
+        RoomKeyShare roomKeyShare = JsonUtils.toRoomKeyShare(event.getContentAsJsonObject());
 
-        if (null != roomKeyRequest.action) {
-            switch (roomKeyRequest.action) {
-                case RoomKeyParent.ACTION_REQUEST:
+        if (null != roomKeyShare.action) {
+            switch (roomKeyShare.action) {
+                case RoomKeyShare.ACTION_SHARE_REQUEST:
                     synchronized (mReceivedRoomKeyRequests) {
                         mReceivedRoomKeyRequests.add(new IncomingRoomKeyRequest(event));
                     }
                     break;
-                case RoomKeyParent.ACTION_REQUEST_CANCELLATION:
+                case RoomKeyShare.ACTION_SHARE_CANCELLATION:
                     synchronized (mReceivedRoomKeyRequestCancellations) {
                         mReceivedRoomKeyRequestCancellations.add(new IncomingRoomKeyRequestCancellation(event));
                     }
                     break;
                 default:
-                    Log.e(LOG_TAG, "## onRoomKeyRequestEvent() : unsupported action " + roomKeyRequest.action);
+                    Log.e(LOG_TAG, "## onRoomKeyRequestEvent() : unsupported action " + roomKeyShare.action);
                     break;
             }
         }

@@ -1,5 +1,4 @@
 /*
- * Copyright 2016 OpenMarket Ltd
  * Copyright 2019 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,14 +15,20 @@
  */
 package org.matrix.androidsdk.rest.model.crypto;
 
+import com.google.gson.annotations.SerializedName;
+
 /**
- * Class representing an room key request content
+ * Parent class representing an room key action request
  */
-public class RoomKeyRequest extends RoomKeyParent {
+public abstract class RoomKeyShare implements SendToDeviceObject {
+    public static final String ACTION_SHARE_REQUEST = "request";
+    public static final String ACTION_SHARE_CANCELLATION = "request_cancellation";
 
-    public RoomKeyRequestBody body;
+    public String action;
 
-    public RoomKeyRequest() {
-        action = ACTION_REQUEST;
-    }
+    @SerializedName("requesting_device_id")
+    public String requestingDeviceId;
+
+    @SerializedName("request_id")
+    public String requestId;
 }

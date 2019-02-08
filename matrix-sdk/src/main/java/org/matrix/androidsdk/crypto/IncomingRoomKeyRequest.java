@@ -18,8 +18,8 @@
 package org.matrix.androidsdk.crypto;
 
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyShareRequest;
 import org.matrix.androidsdk.util.JsonUtils;
 
 import java.io.Serializable;
@@ -68,10 +68,10 @@ public class IncomingRoomKeyRequest implements Serializable {
     public IncomingRoomKeyRequest(Event event) {
         mUserId = event.getSender();
 
-        RoomKeyRequest roomKeyRequest = JsonUtils.toRoomKeyRequest(event.getContentAsJsonObject());
-        mDeviceId = roomKeyRequest.requestingDeviceId;
-        mRequestId = roomKeyRequest.requestId;
-        mRequestBody = (null != roomKeyRequest.body) ? roomKeyRequest.body : new RoomKeyRequestBody();
+        RoomKeyShareRequest roomKeyShareRequest = JsonUtils.toRoomKeyRequest(event.getContentAsJsonObject());
+        mDeviceId = roomKeyShareRequest.requestingDeviceId;
+        mRequestId = roomKeyShareRequest.requestId;
+        mRequestBody = (null != roomKeyShareRequest.body) ? roomKeyShareRequest.body : new RoomKeyRequestBody();
     }
 
     /**

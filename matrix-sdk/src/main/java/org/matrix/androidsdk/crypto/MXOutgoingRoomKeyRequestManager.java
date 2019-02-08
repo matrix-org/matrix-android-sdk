@@ -25,9 +25,9 @@ import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestCancellation;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyShareCancellation;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyShareRequest;
 import org.matrix.androidsdk.rest.model.crypto.SendToDeviceObject;
 import org.matrix.androidsdk.util.Log;
 
@@ -238,7 +238,7 @@ public class MXOutgoingRoomKeyRequestManager {
         Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequest() : Requesting keys " + request.mRequestBody
                 + " from " + request.mRecipients + " id " + request.mRequestId);
 
-        RoomKeyRequest requestMessage = new RoomKeyRequest();
+        RoomKeyShareRequest requestMessage = new RoomKeyShareRequest();
         requestMessage.requestingDeviceId = mCryptoStore.getDeviceId();
         requestMessage.requestId = request.mRequestId;
         requestMessage.body = request.mRequestBody;
@@ -289,7 +289,7 @@ public class MXOutgoingRoomKeyRequestManager {
     }
 
     /**
-     * Given a RoomKeyRequest, cancel it and delete the request record
+     * Given a OutgoingRoomKeyRequest, cancel it and delete the request record
      *
      * @param request the request
      */
@@ -298,11 +298,11 @@ public class MXOutgoingRoomKeyRequestManager {
                 + " to " + request.mRecipients
                 + " cancellation id  " + request.mCancellationTxnId);
 
-        RoomKeyRequestCancellation roomKeyRequestCancellation = new RoomKeyRequestCancellation();
-        roomKeyRequestCancellation.requestingDeviceId = mCryptoStore.getDeviceId();
-        roomKeyRequestCancellation.requestId = request.mCancellationTxnId;
+        RoomKeyShareCancellation roomKeyShareCancellation = new RoomKeyShareCancellation();
+        roomKeyShareCancellation.requestingDeviceId = mCryptoStore.getDeviceId();
+        roomKeyShareCancellation.requestId = request.mCancellationTxnId;
 
-        sendMessageToDevices(roomKeyRequestCancellation, request.mRecipients, request.mCancellationTxnId, new ApiCallback<Void>() {
+        sendMessageToDevices(roomKeyShareCancellation, request.mRecipients, request.mCancellationTxnId, new ApiCallback<Void>() {
             private void onDone() {
                 mWorkingHandler.post(new Runnable() {
                     @Override

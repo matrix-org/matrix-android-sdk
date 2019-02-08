@@ -15,20 +15,12 @@
  */
 package org.matrix.androidsdk.rest.model.crypto;
 
-import com.google.gson.annotations.SerializedName;
-
 /**
- * Parent class representing an room key action request
+ * Class representing an room key request cancellation content
  */
-public abstract class RoomKeyParent implements SendToDeviceObject {
-    public static final String ACTION_REQUEST = "request";
-    public static final String ACTION_REQUEST_CANCELLATION = "request_cancellation";
+public class RoomKeyShareCancellation extends RoomKeyShare {
 
-    public String action;
-
-    @SerializedName("requesting_device_id")
-    public String requestingDeviceId;
-
-    @SerializedName("request_id")
-    public String requestId;
+    public RoomKeyShareCancellation() {
+        action = ACTION_SHARE_CANCELLATION;
+    }
 }
