@@ -2394,9 +2394,7 @@ public class MXCrypto {
                 int totalNumbersOfImportedKeys = 0;
 
 
-                for (int index = 0; index < megolmSessionsData.size(); index++) {
-                    MegolmSessionData megolmSessionData = megolmSessionsData.get(index);
-
+                for (MegolmSessionData megolmSessionData : megolmSessionsData) {
                     MXOlmInboundGroupSession2 session = mOlmDevice.importInboundGroupSession(megolmSessionData);
 
                     if ((null != session) && mRoomDecryptors.containsKey(session.mRoomId)) {
@@ -2415,6 +2413,16 @@ public class MXCrypto {
                                 } else {
                                     mCryptoStore.markBackupDoneForInboundGroupSessionWithId(sessionId, session.mSenderKey);
                                 }
+
+                                // cancel any outstanding room key requests for this session
+                                RoomKeyRequestBody roomKeyRequestBody = new RoomKeyRequestBody();
+
+                                roomKeyRequestBody.algorithm = megolmSessionData.algorithm;
+                                roomKeyRequestBody.roomId = megolmSessionData.roomId;
+                                roomKeyRequestBody.senderKey = megolmSessionData.senderKey;
+                                roomKeyRequestBody.sessionId = megolmSessionData.sessionId;
+
+                                cancelRoomKeyRequest(roomKeyRequestBody);
 
                                 // Have another go at decrypting events sent with this session
                                 decrypting.onNewSession(session.mSenderKey, sessionId);
