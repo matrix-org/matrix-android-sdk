@@ -26,6 +26,8 @@ import java.io.Serializable;
 
 /**
  * IncomingRoomKeyRequest class defines the incoming room keys request.
+ *
+ * Keep Serializable for legacy FileStore (which will be removed in the future)
  */
 public class IncomingRoomKeyRequest implements Serializable {
     /**
@@ -67,8 +69,8 @@ public class IncomingRoomKeyRequest implements Serializable {
         mUserId = event.getSender();
 
         RoomKeyRequest roomKeyRequest = JsonUtils.toRoomKeyRequest(event.getContentAsJsonObject());
-        mDeviceId = roomKeyRequest.requesting_device_id;
-        mRequestId = roomKeyRequest.request_id;
+        mDeviceId = roomKeyRequest.requestingDeviceId;
+        mRequestId = roomKeyRequest.requestId;
         mRequestBody = (null != roomKeyRequest.body) ? roomKeyRequest.body : new RoomKeyRequestBody();
     }
 

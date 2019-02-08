@@ -47,6 +47,7 @@ import org.matrix.androidsdk.rest.model.crypto.ForwardedRoomKeyContent;
 import org.matrix.androidsdk.rest.model.crypto.OlmEventContent;
 import org.matrix.androidsdk.rest.model.crypto.OlmPayloadContent;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyContent;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyParent;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.rest.model.message.AudioMessage;
@@ -312,10 +313,21 @@ public class JsonUtils {
      * The result is never null.
      *
      * @param jsonObject the json to convert
-     * @return an RoomKeyContent
+     * @return a RoomKeyContent
      */
     public static RoomKeyContent toRoomKeyContent(JsonElement jsonObject) {
         return toClass(jsonObject, RoomKeyContent.class);
+    }
+
+    /**
+     * Convert a JSON object to an RoomKeyParent.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return a RoomKeyParent
+     */
+    public static RoomKeyParent toRoomKeyParent(JsonElement jsonObject) {
+        return toClass(jsonObject, RoomKeyParent.class);
     }
 
     /**
@@ -323,7 +335,7 @@ public class JsonUtils {
      * The result is never null.
      *
      * @param jsonObject the json to convert
-     * @return an RoomKeyRequest
+     * @return a RoomKeyRequest
      */
     public static RoomKeyRequest toRoomKeyRequest(JsonElement jsonObject) {
         return toClass(jsonObject, RoomKeyRequest.class);
@@ -334,7 +346,7 @@ public class JsonUtils {
      * The result is never null.
      *
      * @param jsonObject the json to convert
-     * @return an ForwardedRoomKeyContent
+     * @return a ForwardedRoomKeyContent
      */
     public static ForwardedRoomKeyContent toForwardedRoomKeyContent(JsonElement jsonObject) {
         return toClass(jsonObject, ForwardedRoomKeyContent.class);
@@ -368,7 +380,7 @@ public class JsonUtils {
      * The result is never null.
      *
      * @param jsonObject the json to convert
-     * @return an FileMessage
+     * @return a FileMessage
      */
     public static FileMessage toFileMessage(JsonElement jsonObject) {
         return toClass(jsonObject, FileMessage.class);

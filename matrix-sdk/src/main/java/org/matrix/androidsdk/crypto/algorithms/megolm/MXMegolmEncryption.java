@@ -36,6 +36,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedMessage;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 
@@ -355,7 +356,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
             return;
         }
 
-        // reduce the map size to avoid request timeout when there are too devices (Users size  * devices per user)
+        // reduce the map size to avoid request timeout when there are too many devices (Users size  * devices per user)
         Map<String, List<MXDeviceInfo>> subMap = new HashMap<>();
 
         final List<String> userIds = new ArrayList<>();
@@ -449,7 +450,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                     @Override
                     public void run() {
                         Log.d(LOG_TAG, "## shareUserDevicesKey() : ensureOlmSessionsForDevices succeeds after " + (System.currentTimeMillis() - t0) + " ms");
-                        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
+                        MXUsersDevicesMap<EncryptedMessage> contentMap = new MXUsersDevicesMap<>();
 
                         boolean haveTargets = false;
                         List<String> userIds = results.getUserIds();

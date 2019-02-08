@@ -25,6 +25,7 @@ import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSession;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.olm.OlmAccount;
 
@@ -326,7 +327,7 @@ public interface IMXCryptoStore {
      * @return an OutgoingRoomKeyRequest instance or null
      */
     @Nullable
-    OutgoingRoomKeyRequest getOutgoingRoomKeyRequest(Map<String, String> requestBody);
+    OutgoingRoomKeyRequest getOutgoingRoomKeyRequest(RoomKeyRequestBody requestBody);
 
     /**
      * Look for an existing outgoing room key request, and if none is found, add a new one.

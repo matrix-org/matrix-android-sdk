@@ -30,6 +30,7 @@ import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSession;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.CompatUtil;
 import org.matrix.androidsdk.util.ContentUtils;
@@ -1067,11 +1068,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public OutgoingRoomKeyRequest getOutgoingRoomKeyRequest(Map<String, String> requestBody) {
-        if (null != requestBody) {
-            return mOutgoingRoomKeyRequests.get(requestBody);
-        }
-
+    public OutgoingRoomKeyRequest getOutgoingRoomKeyRequest(RoomKeyRequestBody requestBody) {
+        // No op
         return null;
     }
 
@@ -1088,7 +1086,15 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     + request.getSessionId() + " not sending another");
             return mOutgoingRoomKeyRequests.get(request.mRequestBody);
         } else {
-            mOutgoingRoomKeyRequests.put(request.mRequestBody, request);
+            // Note: Keep implementation for the migration test
+
+            Map legacyMap = new HashMap<String, String>();
+            legacyMap.put("algorithm", request.mRequestBody.algorithm);
+            legacyMap.put("roomId", request.mRequestBody.roomId);
+            legacyMap.put("senderKey", request.mRequestBody.senderKey);
+            legacyMap.put("sessionId", request.mRequestBody.sessionId);
+
+            mOutgoingRoomKeyRequests.put(legacyMap, request);
             saveOutgoingRoomKeyRequests();
             return request;
         }
