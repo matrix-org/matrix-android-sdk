@@ -91,6 +91,24 @@ class RoomKeysRestClient(hsConfig: HomeServerConnectionConfig) :
     }
 
     /**
+     * Send room session data for the given room, and version
+     *
+     * @param roomId             the room id
+     * @param version            the version of the backup
+     * @param roomKeysBackupData the data to send
+     * @param callback           the callback
+     */
+    fun backupRoomKeys(roomId: String,
+                       version: String,
+                       roomKeysBackupData: RoomKeysBackupData,
+                       callback: ApiCallback<Void>) {
+        val description = "backupRoomKeys"
+
+        mApi.storeRoomSessionsData(roomId, version, roomKeysBackupData)
+                .enqueue(RestAdapterCallback(description, null, callback, null))
+    }
+
+    /**
      * Send room session data
      *
      * @param version        the version of the backup
