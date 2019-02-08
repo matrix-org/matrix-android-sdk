@@ -15,12 +15,14 @@
  */
 package org.matrix.androidsdk.rest.model.crypto;
 
+import com.google.gson.JsonElement;
 import com.google.gson.annotations.SerializedName;
 
 /**
  * Parent class representing an room key action request
+ * Note: this class cannot be abstract because of {@link org.matrix.androidsdk.util.JsonUtils#toRoomKeyShare(JsonElement)}
  */
-public abstract class RoomKeyShare implements SendToDeviceObject {
+public class RoomKeyShare implements SendToDeviceObject {
     public static final String ACTION_SHARE_REQUEST = "request";
     public static final String ACTION_SHARE_CANCELLATION = "request_cancellation";
 

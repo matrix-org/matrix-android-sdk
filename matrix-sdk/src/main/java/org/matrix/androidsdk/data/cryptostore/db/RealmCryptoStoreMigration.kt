@@ -21,7 +21,6 @@ import io.realm.RealmMigration
 import org.matrix.androidsdk.data.cryptostore.db.model.IncomingRoomKeyRequestEntityFields
 import org.matrix.androidsdk.data.cryptostore.db.model.OlmSessionEntityFields
 import org.matrix.androidsdk.data.cryptostore.db.model.OutgoingRoomKeyRequestEntityFields
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody
 import org.matrix.androidsdk.util.Log
 
 internal object RealmCryptoStoreMigration : RealmMigration {
@@ -56,13 +55,14 @@ internal object RealmCryptoStoreMigration : RealmMigration {
                     ?.transform { dynamicObject ->
                         val requestBodyString = dynamicObject.getString("requestBodyString")
                         try {
-                            val body: RoomKeyRequestBody? = deserializeFromRealm(requestBodyString)
+                            // It was a map before
+                            val map: Map<String, String>? = deserializeFromRealm(requestBodyString)
 
-                            body?.let {
-                                dynamicObject.setString(IncomingRoomKeyRequestEntityFields.REQUEST_BODY_ALGORITHM, it.algorithm)
-                                dynamicObject.setString(IncomingRoomKeyRequestEntityFields.REQUEST_BODY_ROOM_ID, it.roomId)
-                                dynamicObject.setString(IncomingRoomKeyRequestEntityFields.REQUEST_BODY_SENDER_KEY, it.senderKey)
-                                dynamicObject.setString(IncomingRoomKeyRequestEntityFields.REQUEST_BODY_SESSION_ID, it.sessionId)
+                            map?.let {
+                                dynamicObject.setString(IncomingRoomKeyRequestEntityFields.REQUEST_BODY_ALGORITHM, it["algorithm"])
+                                dynamicObject.setString(IncomingRoomKeyRequestEntityFields.REQUEST_BODY_ROOM_ID, it["room_id"])
+                                dynamicObject.setString(IncomingRoomKeyRequestEntityFields.REQUEST_BODY_SENDER_KEY, it["sender_key"])
+                                dynamicObject.setString(IncomingRoomKeyRequestEntityFields.REQUEST_BODY_SESSION_ID, it["session_id"])
                             }
                         } catch (e: Exception) {
                             Log.d(LOG_TAG, "Error", e)
@@ -80,13 +80,14 @@ internal object RealmCryptoStoreMigration : RealmMigration {
                     ?.transform { dynamicObject ->
                         val requestBodyString = dynamicObject.getString("requestBodyString")
                         try {
-                            val body: RoomKeyRequestBody? = deserializeFromRealm(requestBodyString)
+                            // It was a map before
+                            val map: Map<String, String>? = deserializeFromRealm(requestBodyString)
 
-                            body?.let {
-                                dynamicObject.setString(OutgoingRoomKeyRequestEntityFields.REQUEST_BODY_ALGORITHM, it.algorithm)
-                                dynamicObject.setString(OutgoingRoomKeyRequestEntityFields.REQUEST_BODY_ROOM_ID, it.roomId)
-                                dynamicObject.setString(OutgoingRoomKeyRequestEntityFields.REQUEST_BODY_SENDER_KEY, it.senderKey)
-                                dynamicObject.setString(OutgoingRoomKeyRequestEntityFields.REQUEST_BODY_SESSION_ID, it.sessionId)
+                            map?.let {
+                                dynamicObject.setString(IncomingRoomKeyRequestEntityFields.REQUEST_BODY_ALGORITHM, it["algorithm"])
+                                dynamicObject.setString(IncomingRoomKeyRequestEntityFields.REQUEST_BODY_ROOM_ID, it["room_id"])
+                                dynamicObject.setString(IncomingRoomKeyRequestEntityFields.REQUEST_BODY_SENDER_KEY, it["sender_key"])
+                                dynamicObject.setString(IncomingRoomKeyRequestEntityFields.REQUEST_BODY_SESSION_ID, it["session_id"])
                             }
                         } catch (e: Exception) {
                             Log.d(LOG_TAG, "Error", e)
