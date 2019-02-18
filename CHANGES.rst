@@ -17,7 +17,7 @@ Translations:
  -
 
 Others:
- -
+ - Create a RealmCryptoStoreModule to allow clients of the Matrix SDK to use Realm
 
 Build:
  -
@@ -25,7 +25,7 @@ Build:
 Test:
  -
 
-Changes to Matrix Android SDK in 0.9.16 (2018-02-01)
+Changes to Matrix Android SDK in 0.9.16 (2019-02-01)
 =======================================================
 
 Improvements:

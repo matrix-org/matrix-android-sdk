@@ -71,6 +71,7 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
         realmConfiguration = RealmConfiguration.Builder()
                 .directory(File(context.filesDir, credentials.userId.hash()))
                 .name("crypto_store.realm")
+                .modules(RealmCryptoStoreModule())
                 .schemaVersion(RealmCryptoStoreMigration.CRYPTO_STORE_SCHEMA_VERSION)
                 .migration(RealmCryptoStoreMigration)
                 .initialData(CryptoFileStoreImporter(enableFileEncryption, context, credentials))
