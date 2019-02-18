@@ -1103,9 +1103,9 @@ public class MXFileCryptoStore implements IMXCryptoStore {
 
             Map legacyMap = new HashMap<String, String>();
             legacyMap.put("algorithm", request.mRequestBody.algorithm);
-            legacyMap.put("roomId", request.mRequestBody.roomId);
-            legacyMap.put("senderKey", request.mRequestBody.senderKey);
-            legacyMap.put("sessionId", request.mRequestBody.sessionId);
+            legacyMap.put("room_id", request.mRequestBody.roomId);
+            legacyMap.put("sender_key", request.mRequestBody.senderKey);
+            legacyMap.put("session_id", request.mRequestBody.sessionId);
 
             mOutgoingRoomKeyRequests.put(legacyMap, request);
             saveOutgoingRoomKeyRequests();
