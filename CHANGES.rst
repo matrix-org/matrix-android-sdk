@@ -2,7 +2,7 @@ Changes to Matrix Android SDK in 0.9.17 (2019-XX-XX)
 =======================================================
 
 Features:
- -
+ - Ensure Room V3 eventId format is supported.
 
 Improvements:
  -
