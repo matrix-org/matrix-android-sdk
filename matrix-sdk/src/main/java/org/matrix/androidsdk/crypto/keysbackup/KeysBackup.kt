@@ -509,14 +509,16 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     return
                 }
 
-                // Compute the recovery key
-                val privateKey = retrievePrivateKeyWithPassword(password,
-                        megolmBackupAuthData.privateKeySalt!!,
-                        megolmBackupAuthData.privateKeyIterations!!)
+                mCrypto.decryptingThreadHandler.post {
+                    // Compute the recovery key
+                    val privateKey = retrievePrivateKeyWithPassword(password,
+                            megolmBackupAuthData.privateKeySalt!!,
+                            megolmBackupAuthData.privateKeyIterations!!)
 
-                val recoveryKey = computeRecoveryKey(privateKey)
+                    val recoveryKey = computeRecoveryKey(privateKey)
+                    restoreKeysWithRecoveryKey(version, recoveryKey, roomId, sessionId, callback)
+                }
 
-                restoreKeysWithRecoveryKey(version, recoveryKey, roomId, sessionId, callback)
             }
         })
     }
