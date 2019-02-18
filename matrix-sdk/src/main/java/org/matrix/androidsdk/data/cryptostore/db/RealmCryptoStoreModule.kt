@@ -28,6 +28,7 @@ import org.matrix.androidsdk.data.cryptostore.db.model.*
             CryptoRoomEntity::class,
             DeviceInfoEntity::class,
             IncomingRoomKeyRequestEntity::class,
+            KeysBackupDataEntity::class,
             OlmInboundGroupSessionEntity::class,
             OlmSessionEntity::class,
             OutgoingRoomKeyRequestEntity::class,
