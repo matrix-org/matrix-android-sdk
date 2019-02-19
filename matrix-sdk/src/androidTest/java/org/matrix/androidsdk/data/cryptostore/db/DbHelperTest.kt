@@ -33,9 +33,9 @@ class DbHelperTest {
         val obj = IncomingRoomKeyRequest().apply {
             mRequestBody = RoomKeyRequestBody().apply {
                 algorithm = "algo"
-                room_id = "roomId"
-                sender_key = "senderKey"
-                session_id = "sessionId"
+                roomId = "roomId"
+                senderKey = "senderKey"
+                sessionId = "sessionId"
             }
             mDeviceId = "deviceId"
             mUserId = "userId"
@@ -53,9 +53,9 @@ class DbHelperTest {
         assertEquals(obj.mDeviceId, obj2!!.mDeviceId)
         assertEquals(obj.mUserId, obj2.mUserId)
         assertEquals(obj.mRequestId, obj2.mRequestId)
-        assertEquals(obj.mRequestBody.session_id, obj2.mRequestBody.session_id)
+        assertEquals(obj.mRequestBody.sessionId, obj2.mRequestBody.sessionId)
         assertEquals(obj.mRequestBody.algorithm, obj2.mRequestBody.algorithm)
-        assertEquals(obj.mRequestBody.room_id, obj2.mRequestBody.room_id)
-        assertEquals(obj.mRequestBody.sender_key, obj2.mRequestBody.sender_key)
+        assertEquals(obj.mRequestBody.roomId, obj2.mRequestBody.roomId)
+        assertEquals(obj.mRequestBody.senderKey, obj2.mRequestBody.senderKey)
     }
 }

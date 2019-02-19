@@ -16,6 +16,8 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import java.util.ArrayList;
@@ -46,6 +48,7 @@ public class PushRuleSet {
      * @param ruleID the rule ID.
      * @return the bing rule if it exists, else null.
      */
+    @Nullable
     private BingRule findRule(List<BingRule> rules, String ruleID) {
         for (BingRule rule : rules) {
             if (TextUtils.equals(ruleID, rule.ruleId)) {
@@ -55,6 +58,7 @@ public class PushRuleSet {
         return null;
     }
 
+    @Nullable
     private List<BingRule> getBingRulesList(String kind) {
         List<BingRule> res = null;
 
@@ -123,6 +127,7 @@ public class PushRuleSet {
      * @param ruleID the rule ID.
      * @return the bing rule if it exists, else null.
      */
+    @Nullable
     private BingRule findContentRule(List<ContentRule> rules, String ruleID) {
         for (BingRule rule : rules) {
             if (TextUtils.equals(ruleID, rule.ruleId)) {
@@ -138,6 +143,7 @@ public class PushRuleSet {
      * @param ruleId a RULE_ID_XX value
      * @return the matched bing rule or null it doesn't exist.
      */
+    @Nullable
     public BingRule findDefaultRule(String ruleId) {
         BingRule rule = null;
 
@@ -163,6 +169,7 @@ public class PushRuleSet {
      *
      * @return the content rules list.
      */
+    @NonNull
     public List<BingRule> getContentRules() {
         List<BingRule> res = new ArrayList<>();
 
@@ -182,6 +189,7 @@ public class PushRuleSet {
      *
      * @return the room rules list.
      */
+    @NonNull
     public List<BingRule> getRoomRules() {
         if (null == room) {
             return new ArrayList<>();
@@ -195,6 +203,7 @@ public class PushRuleSet {
      *
      * @return the sender rules list.
      */
+    @NonNull
     public List<BingRule> getSenderRules() {
         if (null == sender) {
             return new ArrayList<>();

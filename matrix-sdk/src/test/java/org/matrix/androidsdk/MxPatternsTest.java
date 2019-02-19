@@ -47,7 +47,8 @@ public class MxPatternsTest {
 
     private static final List<String> validEventIds = Arrays.asList(
             "$1536732077213115wbNdt:matrix.org",
-            "$1536732077213115wbNdt:matrix.org:1234"
+            "$1536732077213115wbNdt:matrix.org:1234",
+            "$pmOSN/DognfuSfhdW/qivXT19lfCWpdSfaPFKDBTJUk+"
     );
 
     private static final List<String> validGroupIds = Arrays.asList(

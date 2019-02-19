@@ -27,6 +27,7 @@ import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.common.*
 import org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
 import org.matrix.androidsdk.crypto.MegolmSessionData
+import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest
 import org.matrix.androidsdk.crypto.data.ImportRoomKeysResult
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2
@@ -354,6 +355,64 @@ class KeysBackupTest {
         mTestHelper.await(latch2)
 
         checkRestoreSuccess(testData, importRoomKeysResult!!.totalNumberOfKeys, importRoomKeysResult!!.successfullyNumberOfImportedKeys)
+
+        testData.cryptoTestData.clear(context)
+    }
+
+    /**
+     *
+     * This is the same as `testRestoreKeyBackup` but this test checks that pending key
+     * share requests are cancelled.
+     *
+     * - Do an e2e backup to the homeserver with a recovery key
+     * - Log Alice on a new device
+     * - *** Check the SDK sent key share requests
+     * - Restore the e2e backup from the homeserver with the recovery key
+     * - Restore must be successful
+     * - *** There must be no more pending key share requests
+     */
+    @Test
+    fun restoreKeysBackupAndKeyShareRequestTest() {
+        val context = InstrumentationRegistry.getContext()
+
+        val testData = createKeysBackupScenarioWithPassword(null)
+
+
+        // - Check the SDK sent key share requests
+        val unsentRequest = testData.aliceSession2.crypto?.cryptoStore
+                ?.getOutgoingRoomKeyRequestByState(setOf(OutgoingRoomKeyRequest.RequestState.UNSENT))
+        val sentRequest = testData.aliceSession2.crypto?.cryptoStore
+                ?.getOutgoingRoomKeyRequestByState(setOf(OutgoingRoomKeyRequest.RequestState.SENT))
+
+        // Request is either sent or unsent
+        assertTrue(unsentRequest != null || sentRequest != null)
+
+        // - Restore the e2e backup from the homeserver
+        val latch2 = CountDownLatch(1)
+        var importRoomKeysResult: ImportRoomKeysResult? = null
+        testData.aliceSession2.crypto!!.keysBackup.restoreKeysWithRecoveryKey(testData.prepareKeysBackupDataResult.version,
+                testData.prepareKeysBackupDataResult.megolmBackupCreationInfo.recoveryKey,
+                null,
+                null,
+                object : TestApiCallback<ImportRoomKeysResult>(latch2) {
+                    override fun onSuccess(info: ImportRoomKeysResult) {
+                        importRoomKeysResult = info
+                        super.onSuccess(info)
+                    }
+                }
+        )
+        mTestHelper.await(latch2)
+
+        checkRestoreSuccess(testData, importRoomKeysResult!!.totalNumberOfKeys, importRoomKeysResult!!.successfullyNumberOfImportedKeys)
+
+        // - There must be no more pending key share requests
+        val unsentRequestAfterRestoration = testData.aliceSession2.crypto?.cryptoStore
+                ?.getOutgoingRoomKeyRequestByState(setOf(OutgoingRoomKeyRequest.RequestState.UNSENT))
+        val sentRequestAfterRestoration = testData.aliceSession2.crypto?.cryptoStore
+                ?.getOutgoingRoomKeyRequestByState(setOf(OutgoingRoomKeyRequest.RequestState.SENT))
+
+        // Request is either sent or unsent
+        assertTrue(unsentRequestAfterRestoration == null && sentRequestAfterRestoration == null)
 
         testData.cryptoTestData.clear(context)
     }

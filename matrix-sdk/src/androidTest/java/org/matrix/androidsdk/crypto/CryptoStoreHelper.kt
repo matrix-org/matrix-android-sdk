@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("DEPRECATION")
+
 package org.matrix.androidsdk.crypto
 
 import android.support.test.InstrumentationRegistry

@@ -36,6 +36,7 @@ import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.crypto.EncryptedEventContent;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedMessage;
 import org.matrix.androidsdk.rest.model.crypto.ForwardedRoomKeyContent;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyContent;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
@@ -182,11 +183,12 @@ public class MXMegolmDecryption implements IMXDecrypting {
             recipients.add(senderMap);
         }
 
-        Map<String, String> requestBody = new HashMap<>();
-        requestBody.put("room_id", event.roomId);
-        requestBody.put("algorithm", wireContent.algorithm);
-        requestBody.put("sender_key", wireContent.sender_key);
-        requestBody.put("session_id", wireContent.session_id);
+        RoomKeyRequestBody requestBody = new RoomKeyRequestBody();
+
+        requestBody.roomId = event.roomId;
+        requestBody.algorithm = wireContent.algorithm;
+        requestBody.senderKey = wireContent.sender_key;
+        requestBody.sessionId = wireContent.session_id;
 
         mSession.getCrypto().requestRoomKey(requestBody, recipients);
     }
@@ -292,11 +294,13 @@ public class MXMegolmDecryption implements IMXDecrypting {
 
         mSession.getCrypto().getKeysBackup().maybeBackupKeys();
 
-        Map<String, String> content = new HashMap<>();
-        content.put("algorithm", roomKeyContent.algorithm);
-        content.put("room_id", roomKeyContent.room_id);
-        content.put("session_id", roomKeyContent.session_id);
-        content.put("sender_key", senderKey);
+        RoomKeyRequestBody content = new RoomKeyRequestBody();
+
+        content.algorithm = roomKeyContent.algorithm;
+        content.roomId = roomKeyContent.room_id;
+        content.sessionId = roomKeyContent.session_id;
+        content.senderKey = senderKey;
+
         mSession.getCrypto().cancelRoomKeyRequest(content);
 
         onNewSession(senderKey, sessionId);
@@ -353,7 +357,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
     public boolean hasKeysForKeyRequest(IncomingRoomKeyRequest request) {
         return (null != request)
                 && (null != request.mRequestBody)
-                && mOlmDevice.hasInboundSessionKeys(request.mRequestBody.room_id, request.mRequestBody.sender_key, request.mRequestBody.session_id);
+                && mOlmDevice.hasInboundSessionKeys(request.mRequestBody.roomId, request.mRequestBody.senderKey, request.mRequestBody.sessionId);
     }
 
     @Override
@@ -391,18 +395,18 @@ public class MXMegolmDecryption implements IMXDecrypting {
                                 return;
                             }
 
-                            Log.d(LOG_TAG, "## shareKeysWithDevice() : sharing keys for session " + body.sender_key + "|" + body.session_id
+                            Log.d(LOG_TAG, "## shareKeysWithDevice() : sharing keys for session " + body.senderKey + "|" + body.sessionId
                                     + " with device " + userId + ":" + deviceId);
 
                             MXOlmInboundGroupSession2 inboundGroupSession = mSession.getCrypto()
-                                    .getOlmDevice().getInboundGroupSession(body.session_id, body.sender_key, body.room_id);
+                                    .getOlmDevice().getInboundGroupSession(body.sessionId, body.senderKey, body.roomId);
 
                             Map<String, Object> payloadJson = new HashMap<>();
                             payloadJson.put("type", Event.EVENT_TYPE_FORWARDED_ROOM_KEY);
                             payloadJson.put("content", inboundGroupSession.exportKeys());
 
-                            Map<String, Object> encodedPayload = mSession.getCrypto().encryptMessage(payloadJson, Arrays.asList(deviceInfo));
-                            MXUsersDevicesMap<Map<String, Object>> sendToDeviceMap = new MXUsersDevicesMap<>();
+                            EncryptedMessage encodedPayload = mSession.getCrypto().encryptMessage(payloadJson, Arrays.asList(deviceInfo));
+                            MXUsersDevicesMap<EncryptedMessage> sendToDeviceMap = new MXUsersDevicesMap<>();
                             sendToDeviceMap.setObject(encodedPayload, userId, deviceId);
 
                             Log.d(LOG_TAG, "## shareKeysWithDevice() : sending to " + userId + ":" + deviceId);

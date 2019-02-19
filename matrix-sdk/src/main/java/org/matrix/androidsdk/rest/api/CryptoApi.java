@@ -21,6 +21,7 @@ import org.matrix.androidsdk.rest.model.crypto.KeyChangesResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysClaimResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
+import org.matrix.androidsdk.rest.model.crypto.SendToDeviceBody;
 import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.sync.DevicesListResponse;
 
@@ -74,11 +75,11 @@ public interface CryptoApi {
      * Send an event to a specific list of devices
      *
      * @param eventType     the type of event to send
-     * @param transactionId the random path item
-     * @param params        the params
+     * @param transactionId the transaction ID for this event
+     * @param body          the body
      */
-    @PUT("sendToDevice/{eventType}/{random}")
-    Call<Void> sendToDevice(@Path("eventType") String eventType, @Path("random") String transactionId, @Body Map<String, Object> params);
+    @PUT("sendToDevice/{eventType}/{txnId}")
+    Call<Void> sendToDevice(@Path("eventType") String eventType, @Path("txnId") String transactionId, @Body SendToDeviceBody body);
 
     /**
      * Get the devices list

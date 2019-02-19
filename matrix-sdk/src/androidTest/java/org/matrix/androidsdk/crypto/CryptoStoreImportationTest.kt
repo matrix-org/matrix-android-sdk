@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("DEPRECATION")
+
 package org.matrix.androidsdk.crypto
 
 import android.support.test.InstrumentationRegistry
@@ -129,8 +131,11 @@ class CryptoStoreImportationTest {
     fun test_importationOutgoingRoomKeyRequest() {
         val request = OutgoingRoomKeyRequest(
                 // Request body
-                HashMap<String, String>().apply {
-                    put("key", "value")
+                RoomKeyRequestBody().apply {
+                    algorithm = "algorithm"
+                    roomId = "roomId"
+                    senderKey = "senderKey"
+                    sessionId = "sessionId"
                 },
                 // Recipients
                 ArrayList<Map<String, String>>().apply {
@@ -153,7 +158,10 @@ class CryptoStoreImportationTest {
 
                     assertNotNull(requestFromRealm)
 
-                    assertEquals("value", requestFromRealm!!.mRequestBody["key"])
+                    assertEquals("algorithm", requestFromRealm!!.mRequestBody.algorithm)
+                    assertEquals("roomId", requestFromRealm.mRequestBody.roomId)
+                    assertEquals("senderKey", requestFromRealm.mRequestBody.senderKey)
+                    assertEquals("sessionId", requestFromRealm.mRequestBody.sessionId)
                     assertEquals("recipientsValue", requestFromRealm.mRecipients[0]["recipient"])
                     assertEquals("RequestId", requestFromRealm.mRequestId)
                     assertEquals(OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING_AND_WILL_RESEND, requestFromRealm.mState)
@@ -169,9 +177,9 @@ class CryptoStoreImportationTest {
             mRequestId = "RequestId"
             mRequestBody = RoomKeyRequestBody().apply {
                 algorithm = "Algo"
-                room_id = "RoomId"
-                sender_key = "SenderKey"
-                session_id = "SessionId"
+                roomId = "RoomId"
+                senderKey = "SenderKey"
+                sessionId = "SessionId"
             }
         }
 
@@ -188,9 +196,9 @@ class CryptoStoreImportationTest {
                     assertEquals("DeviceId", requestFromRealm.mDeviceId)
                     assertEquals("RequestId", requestFromRealm.mRequestId)
                     assertEquals("Algo", requestFromRealm.mRequestBody.algorithm)
-                    assertEquals("RoomId", requestFromRealm.mRequestBody.room_id)
-                    assertEquals("SenderKey", requestFromRealm.mRequestBody.sender_key)
-                    assertEquals("SessionId", requestFromRealm.mRequestBody.session_id)
+                    assertEquals("RoomId", requestFromRealm.mRequestBody.roomId)
+                    assertEquals("SenderKey", requestFromRealm.mRequestBody.senderKey)
+                    assertEquals("SessionId", requestFromRealm.mRequestBody.sessionId)
                 })
     }
 
