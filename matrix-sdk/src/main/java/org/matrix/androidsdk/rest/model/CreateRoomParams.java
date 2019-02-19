@@ -118,7 +118,7 @@ public class CreateRoomParams {
      * The power level content to override in the default power level event
      */
     @SerializedName("power_level_content_override")
-    public Map<String, Integer> powerLevelContentOverride;
+    public Map<String, Object> powerLevelContentOverride;
 
     /**
      * Add the crypto algorithm to the room creation parameters.
