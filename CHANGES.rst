@@ -5,6 +5,7 @@ Features:
  - Ensure Room V3 eventId format is supported.
 
 Improvements:
+ - Crypto: Cancel share request on restore/import (vector-im/riot-android#2928).
  - CreateRoomParams: add `powerLevelContentOverride` param to override the default power level event.
 
 Bugfix:

@@ -83,10 +83,28 @@ class RoomKeysRestClient(hsConfig: HomeServerConnectionConfig) :
                   sessionId: String,
                   version: String,
                   keyBackupData: KeyBackupData,
-                  callback: ApiCallback<Void>) {
+                  callback: ApiCallback<BackupKeysResult>) {
         val description = "backupKey"
 
         mApi.storeRoomSessionData(roomId, sessionId, version, keyBackupData)
+                .enqueue(RestAdapterCallback(description, null, callback, null))
+    }
+
+    /**
+     * Send room session data for the given room, and version
+     *
+     * @param roomId             the room id
+     * @param version            the version of the backup
+     * @param roomKeysBackupData the data to send
+     * @param callback           the callback
+     */
+    fun backupRoomKeys(roomId: String,
+                       version: String,
+                       roomKeysBackupData: RoomKeysBackupData,
+                       callback: ApiCallback<BackupKeysResult>) {
+        val description = "backupRoomKeys"
+
+        mApi.storeRoomSessionsData(roomId, version, roomKeysBackupData)
                 .enqueue(RestAdapterCallback(description, null, callback, null))
     }
 
@@ -99,7 +117,7 @@ class RoomKeysRestClient(hsConfig: HomeServerConnectionConfig) :
      */
     fun backupKeys(version: String,
                    keysBackupData: KeysBackupData,
-                   callback: ApiCallback<Void>) {
+                   callback: ApiCallback<BackupKeysResult>) {
         val description = "backupKeys"
 
         mApi.storeSessionsData(version, keysBackupData)
@@ -154,7 +172,7 @@ class RoomKeysRestClient(hsConfig: HomeServerConnectionConfig) :
      * @param version
      * @param callback
      */
-    fun deleteRoomKey(roomId: String, sessionId: String, version: String, callback: ApiCallback<Void>) {
+    fun deleteRoomKey(roomId: String, sessionId: String, version: String, callback: ApiCallback<BackupKeysResult>) {
         val description = "deleteRoomKey"
 
         mApi.deleteRoomSessionData(roomId, sessionId, version)
@@ -166,7 +184,7 @@ class RoomKeysRestClient(hsConfig: HomeServerConnectionConfig) :
      * @param version
      * @param callback
      */
-    fun deleteRoomKeys(roomId: String, version: String, callback: ApiCallback<Void>) {
+    fun deleteRoomKeys(roomId: String, version: String, callback: ApiCallback<BackupKeysResult>) {
         val description = "deleteRoomKeys"
 
         mApi.deleteRoomSessionsData(roomId, version)
@@ -177,7 +195,7 @@ class RoomKeysRestClient(hsConfig: HomeServerConnectionConfig) :
      * @param version
      * @param callback
      */
-    fun deleteKeys(version: String, callback: ApiCallback<Void>) {
+    fun deleteKeys(version: String, callback: ApiCallback<BackupKeysResult>) {
         val description = "deleteKeys"
 
         mApi.deleteSessionsData(version)

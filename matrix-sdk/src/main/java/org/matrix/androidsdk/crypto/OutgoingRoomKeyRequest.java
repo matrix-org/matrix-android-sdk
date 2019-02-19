@@ -18,6 +18,7 @@
 package org.matrix.androidsdk.crypto;
 
 import org.jetbrains.annotations.Nullable;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
 
 import java.io.Serializable;
 import java.util.List;
@@ -25,6 +26,8 @@ import java.util.Map;
 
 /**
  * Represents an outgoing room key request
+ * <p>
+ * Keep Serializable for legacy FileStore (which will be removed in the future)
  */
 public class OutgoingRoomKeyRequest implements Serializable {
 
@@ -108,12 +111,12 @@ public class OutgoingRoomKeyRequest implements Serializable {
     public List<Map<String, String>> mRecipients;
 
     // RequestBody
-    public Map<String, String> mRequestBody;
+    public RoomKeyRequestBody mRequestBody;
 
     // current state of this request
     public RequestState mState;
 
-    public OutgoingRoomKeyRequest(Map<String, String> requestBody, List<Map<String, String>> recipients, String requestId, RequestState state) {
+    public OutgoingRoomKeyRequest(RoomKeyRequestBody requestBody, List<Map<String, String>> recipients, String requestId, RequestState state) {
         mRequestBody = requestBody;
         mRecipients = recipients;
         mRequestId = requestId;
@@ -121,22 +124,26 @@ public class OutgoingRoomKeyRequest implements Serializable {
     }
 
     /**
-     * @return the room id
+     * Used only for log.
+     *
+     * @return the room id.
      */
     public String getRoomId() {
         if (null != mRequestBody) {
-            return mRequestBody.get("room_id");
+            return mRequestBody.roomId;
         }
 
         return null;
     }
 
     /**
+     * Used only for log.
+     *
      * @return the session id
      */
     public String getSessionId() {
         if (null != mRequestBody) {
-            return mRequestBody.get("session_id");
+            return mRequestBody.sessionId;
         }
 
         return null;

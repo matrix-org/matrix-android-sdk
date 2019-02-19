@@ -30,6 +30,8 @@ import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSession;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
+import org.matrix.androidsdk.data.cryptostore.db.model.KeysBackupDataEntity;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.util.CompatUtil;
 import org.matrix.androidsdk.util.ContentUtils;
@@ -1043,6 +1045,18 @@ public class MXFileCryptoStore implements IMXCryptoStore {
         return null;
     }
 
+    @Override
+    public void setKeysBackupData(@Nullable KeysBackupDataEntity keysBackupData) {
+        // No op
+    }
+
+    @Nullable
+    @Override
+    public KeysBackupDataEntity getKeysBackupData() {
+        // No op
+        return null;
+    }
+
     /**
      * save the outgoing room key requests.
      */
@@ -1067,11 +1081,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public OutgoingRoomKeyRequest getOutgoingRoomKeyRequest(Map<String, String> requestBody) {
-        if (null != requestBody) {
-            return mOutgoingRoomKeyRequests.get(requestBody);
-        }
-
+    public OutgoingRoomKeyRequest getOutgoingRoomKeyRequest(RoomKeyRequestBody requestBody) {
+        // No op
         return null;
     }
 
@@ -1088,7 +1099,15 @@ public class MXFileCryptoStore implements IMXCryptoStore {
                     + request.getSessionId() + " not sending another");
             return mOutgoingRoomKeyRequests.get(request.mRequestBody);
         } else {
-            mOutgoingRoomKeyRequests.put(request.mRequestBody, request);
+            // Note: Keep implementation for the migration test
+
+            Map legacyMap = new HashMap<String, String>();
+            legacyMap.put("algorithm", request.mRequestBody.algorithm);
+            legacyMap.put("room_id", request.mRequestBody.roomId);
+            legacyMap.put("sender_key", request.mRequestBody.senderKey);
+            legacyMap.put("session_id", request.mRequestBody.sessionId);
+
+            mOutgoingRoomKeyRequests.put(legacyMap, request);
             saveOutgoingRoomKeyRequests();
             return request;
         }

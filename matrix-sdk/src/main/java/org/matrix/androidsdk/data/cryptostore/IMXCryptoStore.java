@@ -25,6 +25,8 @@ import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSession;
+import org.matrix.androidsdk.data.cryptostore.db.model.KeysBackupDataEntity;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.olm.OlmAccount;
 
@@ -299,6 +301,19 @@ public interface IMXCryptoStore {
     String getKeyBackupVersion();
 
     /**
+     * Set the keys backup local data
+     *
+     * @param keysBackupData the keys backup local data, or null to erase data
+     */
+    void setKeysBackupData(@Nullable KeysBackupDataEntity keysBackupData);
+
+    /**
+     * Get the current keys backup local data
+     */
+    @Nullable
+    KeysBackupDataEntity getKeysBackupData();
+
+    /**
      * @return the devices statuses map (userId -> tracking status)
      */
     Map<String, Integer> getDeviceTrackingStatuses();
@@ -326,7 +341,7 @@ public interface IMXCryptoStore {
      * @return an OutgoingRoomKeyRequest instance or null
      */
     @Nullable
-    OutgoingRoomKeyRequest getOutgoingRoomKeyRequest(Map<String, String> requestBody);
+    OutgoingRoomKeyRequest getOutgoingRoomKeyRequest(RoomKeyRequestBody requestBody);
 
     /**
      * Look for an existing outgoing room key request, and if none is found, add a new one.

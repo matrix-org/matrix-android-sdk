@@ -32,6 +32,7 @@ import org.matrix.androidsdk.data.cryptostore.db.model.*
 import org.matrix.androidsdk.data.cryptostore.db.query.delete
 import org.matrix.androidsdk.data.cryptostore.db.query.getById
 import org.matrix.androidsdk.data.cryptostore.db.query.getOrCreate
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody
 import org.matrix.androidsdk.rest.model.login.Credentials
 import org.matrix.androidsdk.util.Log
 import org.matrix.olm.OlmAccount
@@ -459,6 +460,26 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
         }
     }
 
+    override fun getKeysBackupData(): KeysBackupDataEntity? {
+        return doRealmQueryAndCopy(realmConfiguration) {
+            it.where<KeysBackupDataEntity>().findFirst()
+        }
+    }
+
+    override fun setKeysBackupData(keysBackupData: KeysBackupDataEntity?) {
+        doRealmTransaction(realmConfiguration) {
+            if (keysBackupData == null) {
+                // Clear the table
+                it.where<KeysBackupDataEntity>()
+                        .findAll()
+                        .deleteAllFromRealm()
+            } else {
+                // Only one object
+                it.copyToRealmOrUpdate(keysBackupData)
+            }
+        }
+    }
+
     override fun resetBackupMarkers() {
         doRealmTransaction(realmConfiguration) {
             it.where<OlmInboundGroupSessionEntity>()
@@ -586,14 +607,17 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
                 ?: defaultValue
     }
 
-    override fun getOutgoingRoomKeyRequest(requestBody: MutableMap<String, String>?): OutgoingRoomKeyRequest? {
+    override fun getOutgoingRoomKeyRequest(requestBody: RoomKeyRequestBody?): OutgoingRoomKeyRequest? {
         if (requestBody == null) {
             return null
         }
 
         return doRealmQueryAndCopy(realmConfiguration) {
             it.where<OutgoingRoomKeyRequestEntity>()
-                    .equalTo(OutgoingRoomKeyRequestEntityFields.REQUEST_BODY_STRING, serializeForRealm(requestBody))
+                    .equalTo(OutgoingRoomKeyRequestEntityFields.REQUEST_BODY_ALGORITHM, requestBody.algorithm)
+                    .equalTo(OutgoingRoomKeyRequestEntityFields.REQUEST_BODY_ROOM_ID, requestBody.roomId)
+                    .equalTo(OutgoingRoomKeyRequestEntityFields.REQUEST_BODY_SENDER_KEY, requestBody.senderKey)
+                    .equalTo(OutgoingRoomKeyRequestEntityFields.REQUEST_BODY_SESSION_ID, requestBody.sessionId)
                     .findFirst()
         }
                 ?.toOutgoingRoomKeyRequest()

@@ -29,6 +29,7 @@ import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2
 import org.matrix.androidsdk.crypto.util.computeRecoveryKey
 import org.matrix.androidsdk.crypto.util.extractCurveKeyFromRecoveryKey
+import org.matrix.androidsdk.data.cryptostore.db.model.KeysBackupDataEntity
 import org.matrix.androidsdk.listeners.ProgressListener
 import org.matrix.androidsdk.rest.callback.ApiCallback
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback
@@ -178,6 +179,10 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 keyBackupVersion.authData = createKeysBackupVersionBody.authData
                 keyBackupVersion.version = info.version
 
+                // We can consider that the server does not have keys yet
+                keyBackupVersion.count = 0
+                keyBackupVersion.hash = null
+
                 enableKeysBackup(keyBackupVersion)
 
                 callback.onSuccess(info)
@@ -250,6 +255,48 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 }
             })
         }
+    }
+
+    /**
+     * Ask if the backup on the server contains keys that we may do not have locally.
+     * This should be called when entering in the state READY_TO_BACKUP
+     */
+    fun canRestoreKeys(): Boolean {
+        // Server contains more keys than locally
+        val totalNumberOfKeysLocally = getTotalNumbersOfKeys()
+
+        val keysBackupData = mCrypto.cryptoStore.keysBackupData
+
+        val totalNumberOfKeysServer = keysBackupData?.backupLastServerNumberOfKeys ?: -1
+        val hashServer = keysBackupData?.backupLastServerHash
+
+        return when {
+            totalNumberOfKeysLocally < totalNumberOfKeysServer -> {
+                // Server contains more keys than this device
+                true
+            }
+            totalNumberOfKeysLocally == totalNumberOfKeysServer -> {
+                // Same number, compare hash?
+                // TODO We have not found any algorithm to determine if a restore is recommended here. Return false for the moment
+                false
+            }
+            else -> false
+        }
+    }
+
+    /**
+     * Facility method to get the total number of locally stored keys
+     */
+    fun getTotalNumbersOfKeys(): Int {
+        return mCrypto.cryptoStore.inboundGroupSessionsCount(false)
+
+    }
+
+    /**
+     * Facility method to get the number of backed up keys
+     */
+    fun getTotalNumbersOfBackedUpKeys(): Int {
+        return mCrypto.cryptoStore.inboundGroupSessionsCount(true)
     }
 
     /**
@@ -795,6 +842,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 mKeysBackupVersion = keysVersionResult
                 mCrypto.cryptoStore.keyBackupVersion = keysVersionResult.version
 
+                onServerDataRetrieved(keysVersionResult.count, keysVersionResult.hash)
+
                 try {
                     mBackupKey = OlmPkEncryption().apply {
                         setRecipientKey(retrievedMegolmBackupAuthData.publicKey)
@@ -819,6 +868,17 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     }
 
     /**
+     * Update the DB with data fetch from the server
+     */
+    private fun onServerDataRetrieved(count: Int?, hash: String?) {
+        mCrypto.cryptoStore.keysBackupData = KeysBackupDataEntity()
+                .apply {
+                    backupLastServerNumberOfKeys = count
+                    backupLastServerHash = hash
+                }
+    }
+
+    /**
      * Reset all local key backup data.
      *
      * Note: This method does not update the state
@@ -827,6 +887,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         resetBackupAllGroupSessionsListeners()
 
         mCrypto.cryptoStore.keyBackupVersion = null
+        mCrypto.cryptoStore.keysBackupData = null
         mBackupKey = null
 
         // Reset backup markers
@@ -897,7 +958,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
             Log.d(LOG_TAG, "backupKeys: 4 - Sending request")
 
             // Make the request
-            mRoomKeysRestClient.backupKeys(mKeysBackupVersion!!.version!!, keysBackupData, object : ApiCallback<Void> {
+            mRoomKeysRestClient.backupKeys(mKeysBackupVersion!!.version!!, keysBackupData, object : ApiCallback<BackupKeysResult> {
                 override fun onNetworkError(e: Exception) {
                     mCrypto.uiHandler.post {
                         backupAllGroupSessionsCallback?.onNetworkError(e)
@@ -947,7 +1008,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     }
                 }
 
-                override fun onSuccess(info: Void?) {
+                override fun onSuccess(info: BackupKeysResult) {
                     mCrypto.uiHandler.post {
                         Log.d(LOG_TAG, "backupKeys: 5a - Request complete")
 
@@ -962,6 +1023,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
                         if (sessions.size < KEY_BACKUP_SEND_KEYS_MAX_COUNT) {
                             Log.d(LOG_TAG, "backupKeys: All keys have been backed up")
+                            onServerDataRetrieved(info.count, info.hash)
+
                             // Note: Changing state will trigger the call to backupAllGroupSessionsCallback.onSuccess()
                             mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.ReadyToBackUp
                         } else {

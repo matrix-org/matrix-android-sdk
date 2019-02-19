@@ -1,5 +1,4 @@
 /*
- * Copyright 2016 OpenMarket Ltd
  * Copyright 2019 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,24 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model.crypto;
 
-import com.google.gson.annotations.SerializedName;
+package org.matrix.androidsdk.data.cryptostore.db.model
 
-/**
- * Class representing an room key request body content
- * <p>
- * Note: Keep Serializable interface for the Realm migration
- */
-public class RoomKeyRequestBody implements java.io.Serializable {
-    public String algorithm;
+import io.realm.RealmObject
+import io.realm.annotations.PrimaryKey
 
-    @SerializedName("room_id")
-    public String roomId;
-
-    @SerializedName("sender_key")
-    public String senderKey;
-
-    @SerializedName("session_id")
-    public String sessionId;
-}
+open class KeysBackupDataEntity(
+        // Primary key to update this object. There is only one object, so it's a constant, please do not set it
+        @PrimaryKey
+        var primaryKey: Int = 0,
+        // The last known hash of the backed up keys on the server
+        var backupLastServerHash: String? = null,
+        // The last known number of backed up keys on the server
+        var backupLastServerNumberOfKeys: Int? = null
+) : RealmObject()

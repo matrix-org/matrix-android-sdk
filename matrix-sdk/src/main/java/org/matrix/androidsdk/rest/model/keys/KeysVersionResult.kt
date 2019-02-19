@@ -20,4 +20,10 @@ class KeysVersionResult : KeysAlgorithmAndData() {
 
     // the backup version
     var version: String? = null
+
+    // The hash value which is an opaque string representing stored keys in the backup
+    var hash: String? = null
+
+    // The number of keys stored in the backup.
+    var count: Int? = null
 }

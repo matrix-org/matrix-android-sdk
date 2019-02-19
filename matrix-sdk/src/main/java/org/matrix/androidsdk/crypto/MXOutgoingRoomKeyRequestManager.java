@@ -25,11 +25,13 @@ import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyShareCancellation;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyShareRequest;
+import org.matrix.androidsdk.rest.model.crypto.SendToDeviceObject;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +107,7 @@ public class MXOutgoingRoomKeyRequestManager {
      * @param requestBody requestBody
      * @param recipients  recipients
      */
-    public void sendRoomKeyRequest(final Map<String, String> requestBody, final List<Map<String, String>> recipients) {
+    public void sendRoomKeyRequest(final RoomKeyRequestBody requestBody, final List<Map<String, String>> recipients) {
         mWorkingHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -125,7 +127,7 @@ public class MXOutgoingRoomKeyRequestManager {
      *
      * @param requestBody requestBody
      */
-    public void cancelRoomKeyRequest(final Map<String, String> requestBody) {
+    public void cancelRoomKeyRequest(final RoomKeyRequestBody requestBody) {
         cancelRoomKeyRequest(requestBody, false);
     }
 
@@ -134,7 +136,7 @@ public class MXOutgoingRoomKeyRequestManager {
      *
      * @param requestBody requestBody
      */
-    public void resendRoomKeyRequest(final Map<String, String> requestBody) {
+    public void resendRoomKeyRequest(final RoomKeyRequestBody requestBody) {
         cancelRoomKeyRequest(requestBody, true);
     }
 
@@ -144,7 +146,7 @@ public class MXOutgoingRoomKeyRequestManager {
      * @param requestBody requestBody
      * @param andResend   true to resend the key request
      */
-    private void cancelRoomKeyRequest(final Map<String, String> requestBody, boolean andResend) {
+    private void cancelRoomKeyRequest(final RoomKeyRequestBody requestBody, boolean andResend) {
         OutgoingRoomKeyRequest req = mCryptoStore.getOutgoingRoomKeyRequest(requestBody);
 
         if (null == req) {
@@ -236,11 +238,10 @@ public class MXOutgoingRoomKeyRequestManager {
         Log.d(LOG_TAG, "## sendOutgoingRoomKeyRequest() : Requesting keys " + request.mRequestBody
                 + " from " + request.mRecipients + " id " + request.mRequestId);
 
-        Map<String, Object> requestMessage = new HashMap<>();
-        requestMessage.put("action", "request");
-        requestMessage.put("requesting_device_id", mCryptoStore.getDeviceId());
-        requestMessage.put("request_id", request.mRequestId);
-        requestMessage.put("body", request.mRequestBody);
+        RoomKeyShareRequest requestMessage = new RoomKeyShareRequest();
+        requestMessage.requestingDeviceId = mCryptoStore.getDeviceId();
+        requestMessage.requestId = request.mRequestId;
+        requestMessage.body = request.mRequestBody;
 
         sendMessageToDevices(requestMessage, request.mRecipients, request.mRequestId, new ApiCallback<Void>() {
             private void onDone(final OutgoingRoomKeyRequest.RequestState state) {
@@ -288,7 +289,7 @@ public class MXOutgoingRoomKeyRequestManager {
     }
 
     /**
-     * Given a RoomKeyRequest, cancel it and delete the request record
+     * Given a OutgoingRoomKeyRequest, cancel it and delete the request record
      *
      * @param request the request
      */
@@ -297,12 +298,11 @@ public class MXOutgoingRoomKeyRequestManager {
                 + " to " + request.mRecipients
                 + " cancellation id  " + request.mCancellationTxnId);
 
-        Map<String, Object> requestMessageMap = new HashMap<>();
-        requestMessageMap.put("action", RoomKeyRequest.ACTION_REQUEST_CANCELLATION);
-        requestMessageMap.put("requesting_device_id", mCryptoStore.getDeviceId());
-        requestMessageMap.put("request_id", request.mCancellationTxnId);
+        RoomKeyShareCancellation roomKeyShareCancellation = new RoomKeyShareCancellation();
+        roomKeyShareCancellation.requestingDeviceId = mCryptoStore.getDeviceId();
+        roomKeyShareCancellation.requestId = request.mCancellationTxnId;
 
-        sendMessageToDevices(requestMessageMap, request.mRecipients, request.mCancellationTxnId, new ApiCallback<Void>() {
+        sendMessageToDevices(roomKeyShareCancellation, request.mRecipients, request.mCancellationTxnId, new ApiCallback<Void>() {
             private void onDone() {
                 mWorkingHandler.post(new Runnable() {
                     @Override
@@ -349,18 +349,18 @@ public class MXOutgoingRoomKeyRequestManager {
     }
 
     /**
-     * Send a RoomKeyRequest to a list of recipients
+     * Send a SendToDeviceObject to a list of recipients
      *
      * @param message       the message
      * @param recipients    the recipients.
      * @param transactionId the transaction id
      * @param callback      the asynchronous callback.
      */
-    private void sendMessageToDevices(final Map<String, Object> message,
+    private void sendMessageToDevices(final SendToDeviceObject message,
                                       List<Map<String, String>> recipients,
                                       String transactionId,
                                       final ApiCallback<Void> callback) {
-        MXUsersDevicesMap<Map<String, Object>> contentMap = new MXUsersDevicesMap<>();
+        MXUsersDevicesMap<SendToDeviceObject> contentMap = new MXUsersDevicesMap<>();
 
         for (Map<String, String> recipient : recipients) {
             contentMap.setObject(message, recipient.get("userId"), recipient.get("deviceId"));

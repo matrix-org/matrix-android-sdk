@@ -16,22 +16,14 @@
  */
 package org.matrix.androidsdk.rest.model.crypto;
 
-import com.google.gson.annotations.SerializedName;
-
 /**
- * Class representing an room key request body content
- * <p>
- * Note: Keep Serializable interface for the Realm migration
+ * Class representing an room key request content
  */
-public class RoomKeyRequestBody implements java.io.Serializable {
-    public String algorithm;
+public class RoomKeyShareRequest extends RoomKeyShare {
 
-    @SerializedName("room_id")
-    public String roomId;
+    public RoomKeyRequestBody body;
 
-    @SerializedName("sender_key")
-    public String senderKey;
-
-    @SerializedName("session_id")
-    public String sessionId;
+    public RoomKeyShareRequest() {
+        action = ACTION_SHARE_REQUEST;
+    }
 }

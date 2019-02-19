@@ -1,5 +1,4 @@
 /*
- * Copyright 2016 OpenMarket Ltd
  * Copyright 2019 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,24 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model.crypto;
 
-import com.google.gson.annotations.SerializedName;
+package org.matrix.androidsdk.rest.model.keys
 
-/**
- * Class representing an room key request body content
- * <p>
- * Note: Keep Serializable interface for the Realm migration
- */
-public class RoomKeyRequestBody implements java.io.Serializable {
-    public String algorithm;
+class BackupKeysResult {
 
-    @SerializedName("room_id")
-    public String roomId;
+    // The hash value which is an opaque string representing stored keys in the backup
+    var hash: String? = null
 
-    @SerializedName("sender_key")
-    public String senderKey;
+    // The number of keys stored in the backup.
+    var count: Int? = null
 
-    @SerializedName("session_id")
-    public String sessionId;
 }

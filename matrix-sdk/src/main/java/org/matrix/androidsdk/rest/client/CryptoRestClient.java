@@ -30,6 +30,8 @@ import org.matrix.androidsdk.rest.model.crypto.KeyChangesResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysClaimResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
+import org.matrix.androidsdk.rest.model.crypto.SendToDeviceBody;
+import org.matrix.androidsdk.rest.model.crypto.SendToDeviceObject;
 import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.sync.DevicesListResponse;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -195,7 +197,8 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * @param callback   the asynchronous callback.
      */
     public void sendToDevice(final String eventType,
-                             final MXUsersDevicesMap<Map<String, Object>> contentMap, final ApiCallback<Void> callback) {
+                             final MXUsersDevicesMap<? extends SendToDeviceObject> contentMap,
+                             final ApiCallback<Void> callback) {
         sendToDevice(eventType, contentMap, (new Random()).nextInt(Integer.MAX_VALUE) + "", callback);
     }
 
@@ -208,14 +211,15 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * @param callback      the asynchronous callback.
      */
     public void sendToDevice(final String eventType,
-                             final MXUsersDevicesMap<Map<String, Object>> contentMap, final String transactionId,
+                             final MXUsersDevicesMap<? extends SendToDeviceObject> contentMap,
+                             final String transactionId,
                              final ApiCallback<Void> callback) {
         final String description = "sendToDevice " + eventType;
 
-        Map<String, Object> content = new HashMap<>();
-        content.put("messages", contentMap.getMap());
+        SendToDeviceBody sendToDeviceBody = new SendToDeviceBody();
+        sendToDeviceBody.messages = contentMap.getMap();
 
-        mApi.sendToDevice(eventType, transactionId, content)
+        mApi.sendToDevice(eventType, transactionId, sendToDeviceBody)
                 .enqueue(new RestAdapterCallback<Void>(description, null, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
