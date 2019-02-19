@@ -115,6 +115,12 @@ public class CreateRoomParams {
     public Boolean isDirect;
 
     /**
+     * The power level content to override in the default power level event
+     */
+    @SerializedName("power_level_content_override")
+    public Map<String, Object> powerLevelContentOverride;
+
+    /**
      * Add the crypto algorithm to the room creation parameters.
      *
      * @param algorithm the algorithm
@@ -146,6 +152,17 @@ public class CreateRoomParams {
      *                          {@link RoomState#HISTORY_VISIBILITY_WORLD_READABLE}
      */
     public void setHistoryVisibility(@Nullable String historyVisibility) {
+        // Remove the existing value if any.
+        if (initialStates != null && !initialStates.isEmpty()) {
+            final List<Event> newInitialStates = new ArrayList<>();
+            for (Event event : initialStates) {
+                if (!event.type.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY)) {
+                    newInitialStates.add(event);
+                }
+            }
+            initialStates = newInitialStates;
+        }
+
         if (!TextUtils.isEmpty(historyVisibility)) {
             Event historyVisibilityEvent = new Event();
             historyVisibilityEvent.type = Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY;
@@ -159,14 +176,6 @@ public class CreateRoomParams {
             } else {
                 initialStates.add(historyVisibilityEvent);
             }
-        } else if (!initialStates.isEmpty()) {
-            final List<Event> newInitialStates = new ArrayList<>();
-            for (Event event : initialStates) {
-                if (!event.type.equals(Event.EVENT_TYPE_STATE_HISTORY_VISIBILITY)) {
-                    newInitialStates.add(event);
-                }
-            }
-            initialStates = newInitialStates;
         }
     }
 

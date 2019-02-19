@@ -6,9 +6,11 @@ Features:
 
 Improvements:
  - Crypto: Cancel share request on restore/import (vector-im/riot-android#2928).
+ - CreateRoomParams: add `powerLevelContentOverride` param to override the default power level event.
 
 Bugfix:
  - Fix DataSaveMode issue in filter
+ - CreateRoomParams - setHistoryVisibility: remove existing value if any.
 
 API Change:
  -
