@@ -5,10 +5,11 @@ Features:
  - Ensure Room V3 eventId format is supported.
 
 Improvements:
- -
+ - CreateRoomParams: add `powerLevelContentOverride` param to override the default power level event.
 
 Bugfix:
  - Fix DataSaveMode issue in filter
+ - CreateRoomParams - setHistoryVisibility: remove existing value if any.
 
 API Change:
  -
