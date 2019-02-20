@@ -12,6 +12,7 @@ Improvements:
 Bugfix:
  - Fix DataSaveMode issue in filter
  - CreateRoomParams - setHistoryVisibility: remove existing value if any.
+ - Fix issue in Japanese translation (#423)
 
 API Change:
  -
