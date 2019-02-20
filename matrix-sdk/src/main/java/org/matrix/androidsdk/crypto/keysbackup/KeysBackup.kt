@@ -455,7 +455,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         mCrypto.decryptingThreadHandler.post {
             val myUserId = mCrypto.myDevice.userId
 
-            if (keysBackupVersion.algorithm == null
+            if (keysBackupVersion.version == null
+                    || keysBackupVersion.algorithm == null
                     || keysBackupVersion.authData == null) {
                 Log.w(LOG_TAG, "trustKeyBackupVersion:trust: Key backup is missing required data")
 
@@ -496,7 +497,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
             }
 
             // Create an updated version of KeysVersionResult
-            val updateKeysBackupVersionBody = UpdateKeysBackupVersionBody()
+            val updateKeysBackupVersionBody = UpdateKeysBackupVersionBody(keysBackupVersion.version!!)
 
             updateKeysBackupVersionBody.algorithm = keysBackupVersion.algorithm
 
@@ -516,7 +517,10 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     // Relaunch the state machine on this updated backup version
                     val newKeysBackupVersion = KeysVersionResult()
 
-                    newKeysBackupVersion.version = keysBackupVersion.version!!
+                    newKeysBackupVersion.version = keysBackupVersion.version
+                    newKeysBackupVersion.algorithm = keysBackupVersion.algorithm
+                    newKeysBackupVersion.count = keysBackupVersion.count
+                    newKeysBackupVersion.hash = keysBackupVersion.hash
                     newKeysBackupVersion.authData = updateKeysBackupVersionBody.authData
 
                     checkAndStartWithKeysBackupVersion(newKeysBackupVersion)

@@ -16,4 +16,6 @@
 
 package org.matrix.androidsdk.rest.model.keys
 
-class UpdateKeysBackupVersionBody : KeysAlgorithmAndData()
+class UpdateKeysBackupVersionBody(
+        // the backup version, mandatory
+        val version: String) : KeysAlgorithmAndData()

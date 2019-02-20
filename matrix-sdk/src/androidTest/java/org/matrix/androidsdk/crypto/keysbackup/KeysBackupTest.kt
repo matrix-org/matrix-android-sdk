@@ -434,9 +434,12 @@ class KeysBackupTest {
         // - And log Alice on a new device
         val context = InstrumentationRegistry.getContext()
 
-        val testData = createKeysBackupScenarioWithPassword(null)
+        val testData = createKeysBackupScenarioWithPassword(null, true)
 
-        Thread.sleep(2000)
+        val stateObserver = StateObserver(testData.aliceSession2.crypto!!.keysBackup)
+
+        // Wait for backup state to be NotTrusted
+        waitForKeysBackupToBeInState(testData.aliceSession2, KeysBackupStateManager.KeysBackupState.NotTrusted)
 
         // - The new device must see the previous backup as not trusted
         assertNotNull(testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
@@ -452,10 +455,12 @@ class KeysBackupTest {
         )
         mTestHelper.await(latch)
 
-        // - Backup must be enabled on the new device
-        assertEquals(testData.prepareKeysBackupDataResult.version, testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
+        // Wait for backup state to be ReadyToBackUp
+        waitForKeysBackupToBeInState(testData.aliceSession2, KeysBackupStateManager.KeysBackupState.ReadyToBackUp)
+
+        // - Backup must be enabled on the new device, on the same version
+        assertEquals(testData.prepareKeysBackupDataResult.version, testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion?.version)
         assertTrue(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
-        assertNotEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
 
         // - Retrieve the last version from the server
         val latch2 = CountDownLatch(1)
@@ -488,6 +493,7 @@ class KeysBackupTest {
         assertTrue(keysBackupVersionTrust!!.usable)
         assertEquals(2, keysBackupVersionTrust!!.signatures.size)
 
+        stateObserver.stopAndCheckStates(null)
         testData.cryptoTestData.clear(context)
     }
 
@@ -507,7 +513,12 @@ class KeysBackupTest {
         // - And log Alice on a new device
         val context = InstrumentationRegistry.getContext()
 
-        val testData = createKeysBackupScenarioWithPassword(null)
+        val testData = createKeysBackupScenarioWithPassword(null, true)
+
+        val stateObserver = StateObserver(testData.aliceSession2.crypto!!.keysBackup)
+
+        // Wait for backup state to be NotTrusted
+        waitForKeysBackupToBeInState(testData.aliceSession2, KeysBackupStateManager.KeysBackupState.NotTrusted)
 
         // - The new device must see the previous backup as not trusted
         assertNotNull(testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
@@ -523,10 +534,12 @@ class KeysBackupTest {
         )
         mTestHelper.await(latch)
 
-        // - Backup must be enabled on the new device
-        assertEquals(testData.prepareKeysBackupDataResult.version, testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
+        // Wait for backup state to be ReadyToBackUp
+        waitForKeysBackupToBeInState(testData.aliceSession2, KeysBackupStateManager.KeysBackupState.ReadyToBackUp)
+
+        // - Backup must be enabled on the new device, on the same version
+        assertEquals(testData.prepareKeysBackupDataResult.version, testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion?.version)
         assertTrue(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
-        assertNotEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
 
         // - Retrieve the last version from the server
         val latch2 = CountDownLatch(1)
@@ -559,6 +572,7 @@ class KeysBackupTest {
         assertTrue(keysBackupVersionTrust!!.usable)
         assertEquals(2, keysBackupVersionTrust!!.signatures.size)
 
+        stateObserver.stopAndCheckStates(null)
         testData.cryptoTestData.clear(context)
     }
 
@@ -576,7 +590,12 @@ class KeysBackupTest {
         // - And log Alice on a new device
         val context = InstrumentationRegistry.getContext()
 
-        val testData = createKeysBackupScenarioWithPassword(null)
+        val testData = createKeysBackupScenarioWithPassword(null, true)
+
+        val stateObserver = StateObserver(testData.aliceSession2.crypto!!.keysBackup)
+
+        // Wait for backup state to be NotTrusted
+        waitForKeysBackupToBeInState(testData.aliceSession2, KeysBackupStateManager.KeysBackupState.NotTrusted)
 
         // - The new device must see the previous backup as not trusted
         assertNotNull(testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
@@ -597,6 +616,7 @@ class KeysBackupTest {
         assertFalse(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
         assertEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
 
+        stateObserver.stopAndCheckStates(null)
         testData.cryptoTestData.clear(context)
     }
 
@@ -618,7 +638,12 @@ class KeysBackupTest {
         // - And log Alice on a new device
         val context = InstrumentationRegistry.getContext()
 
-        val testData = createKeysBackupScenarioWithPassword(password)
+        val testData = createKeysBackupScenarioWithPassword(password, true)
+
+        val stateObserver = StateObserver(testData.aliceSession2.crypto!!.keysBackup)
+
+        // Wait for backup state to be NotTrusted
+        waitForKeysBackupToBeInState(testData.aliceSession2, KeysBackupStateManager.KeysBackupState.NotTrusted)
 
         // - The new device must see the previous backup as not trusted
         assertNotNull(testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
@@ -634,10 +659,12 @@ class KeysBackupTest {
         )
         mTestHelper.await(latch)
 
-        // - Backup must be enabled on the new device
-        assertEquals(testData.prepareKeysBackupDataResult.version, testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
+        // Wait for backup state to be ReadyToBackUp
+        waitForKeysBackupToBeInState(testData.aliceSession2, KeysBackupStateManager.KeysBackupState.ReadyToBackUp)
+
+        // - Backup must be enabled on the new device, on the same version
+        assertEquals(testData.prepareKeysBackupDataResult.version, testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion?.version)
         assertTrue(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
-        assertNotEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
 
         // - Retrieve the last version from the server
         val latch2 = CountDownLatch(1)
@@ -670,6 +697,7 @@ class KeysBackupTest {
         assertTrue(keysBackupVersionTrust!!.usable)
         assertEquals(2, keysBackupVersionTrust!!.signatures.size)
 
+        stateObserver.stopAndCheckStates(null)
         testData.cryptoTestData.clear(context)
     }
 
@@ -690,7 +718,12 @@ class KeysBackupTest {
         // - And log Alice on a new device
         val context = InstrumentationRegistry.getContext()
 
-        val testData = createKeysBackupScenarioWithPassword(password)
+        val testData = createKeysBackupScenarioWithPassword(password, true)
+
+        val stateObserver = StateObserver(testData.aliceSession2.crypto!!.keysBackup)
+
+        // Wait for backup state to be NotTrusted
+        waitForKeysBackupToBeInState(testData.aliceSession2, KeysBackupStateManager.KeysBackupState.NotTrusted)
 
         // - The new device must see the previous backup as not trusted
         assertNotNull(testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
@@ -711,6 +744,7 @@ class KeysBackupTest {
         assertFalse(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
         assertEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
 
+        stateObserver.stopAndCheckStates(null)
         testData.cryptoTestData.clear(context)
     }
 
@@ -1229,6 +1263,31 @@ class KeysBackupTest {
      * Private
      * ========================================================================================== */
 
+    /**
+     * As KaysBackup is doing asynchronous call to update its internal state, this method help to wait for the
+     * KeysBackup object to be in the specified state
+     */
+    private fun waitForKeysBackupToBeInState(mxSession: MXSession, state: KeysBackupStateManager.KeysBackupState) {
+        // If already in the wanted state, return
+        if (mxSession.crypto?.keysBackup?.state == state) {
+            return
+        }
+
+        // Else observe state changes
+        val latch = CountDownLatch(1)
+
+        mxSession.crypto?.keysBackup?.addListener(object : KeysBackupStateManager.KeysBackupStateListener {
+            override fun onStateChange(newState: KeysBackupStateManager.KeysBackupState) {
+                if (newState == state) {
+                    mxSession.crypto?.keysBackup?.removeListener(this)
+                    latch.countDown()
+                }
+            }
+        })
+
+        mTestHelper.await(latch)
+    }
+
     private data class PrepareKeysBackupDataResult(val megolmBackupCreationInfo: MegolmBackupCreationInfo,
                                                    val version: String)
 
@@ -1311,8 +1370,10 @@ class KeysBackupTest {
      * - Log Alice on a new device
      *
      * @param password optional password
+     * @param logoutFirstAliceSession set to true to logout first Alice session before opening the second one (default is false)
      */
-    private fun createKeysBackupScenarioWithPassword(password: String?): KeysBackupScenarioData {
+    private fun createKeysBackupScenarioWithPassword(password: String?,
+                                                     logoutFirstAliceSession: Boolean = false): KeysBackupScenarioData {
         val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoomWithEncryptedMessages(true)
 
         val cryptoStore = cryptoTestData.firstSession.crypto!!.cryptoStore
@@ -1339,8 +1400,17 @@ class KeysBackupTest {
         assertEquals(2, lastProgress)
         assertEquals(2, lastTotal)
 
+        val aliceUserId = cryptoTestData.firstSession.myUserId
+
+        if (logoutFirstAliceSession) {
+            // Logout first Alice session, else they will share the same Crypto store and some tests may fail.
+            val latch2 = CountDownLatch(1)
+            cryptoTestData.firstSession.logout(InstrumentationRegistry.getContext(), TestApiCallback(latch2))
+            mTestHelper.await(latch2)
+        }
+
         // - Log Alice on a new device
-        val aliceSession2 = mTestHelper.logIntoAccount(cryptoTestData.firstSession.myUserId, defaultSessionParamsWithInitialSync)
+        val aliceSession2 = mTestHelper.logIntoAccount(aliceUserId, defaultSessionParamsWithInitialSync)
 
         // Test check: aliceSession2 has no keys at login
         assertEquals(0, aliceSession2.crypto!!.cryptoStore.inboundGroupSessionsCount(false))
