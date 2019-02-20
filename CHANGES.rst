@@ -24,7 +24,7 @@ Others:
  - Create a RealmCryptoStoreModule to allow clients of the Matrix SDK to use Realm
 
 Build:
- -
+ - Enforce lint rules check
 
 Test:
  -

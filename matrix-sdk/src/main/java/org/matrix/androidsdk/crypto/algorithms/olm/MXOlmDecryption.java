@@ -211,11 +211,11 @@ public class MXOlmDecryption implements IMXDecrypting {
 
         if (null != typeAsVoid) {
             if (typeAsVoid instanceof Double) {
-                messageType = new Integer(((Double) typeAsVoid).intValue());
+                messageType = ((Double) typeAsVoid).intValue();
             } else if (typeAsVoid instanceof Integer) {
                 messageType = (Integer) typeAsVoid;
             } else if (typeAsVoid instanceof Long) {
-                messageType = new Integer(((Long) typeAsVoid).intValue());
+                messageType = ((Long) typeAsVoid).intValue();
             }
         }
 
