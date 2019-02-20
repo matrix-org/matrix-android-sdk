@@ -71,6 +71,22 @@ class RoomKeysRestClient(hsConfig: HomeServerConnectionConfig) :
     }
 
     /**
+     * Update a keys backup version
+     *
+     * @param version                     version
+     * @param updateKeysBackupVersionBody the body
+     * @param callback                    the callback
+     */
+    fun updateKeysBackupVersion(version: String,
+                                updateKeysBackupVersionBody: UpdateKeysBackupVersionBody,
+                                callback: ApiCallback<Void>) {
+        val description = "updateKeysBackupVersion"
+
+        mApi.updateKeysBackupVersion(version, updateKeysBackupVersionBody)
+                .enqueue(RestAdapterCallback(description, null, callback, null))
+    }
+
+    /**
      * Send room session data for the given room, session, and version
      *
      * @param roomId        the room id
