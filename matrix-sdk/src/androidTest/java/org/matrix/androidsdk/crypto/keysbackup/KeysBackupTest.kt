@@ -417,6 +417,303 @@ class KeysBackupTest {
         testData.cryptoTestData.clear(context)
     }
 
+
+    /**
+     * - Do an e2e backup to the homeserver with a recovery key
+     * - And log Alice on a new device
+     * - The new device must see the previous backup as not trusted
+     * - Trust the backup from the new device
+     * - Backup must be enabled on the new device
+     * - Retrieve the last version from the server
+     * - It must be the same
+     * - It must be trusted and must have with 2 signatures now
+     */
+    @Test
+    fun trustKeyBackupVersionTest() {
+        // - Do an e2e backup to the homeserver with a recovery key
+        // - And log Alice on a new device
+        val context = InstrumentationRegistry.getContext()
+
+        val testData = createKeysBackupScenarioWithPassword(null)
+
+        Thread.sleep(2000)
+
+        // - The new device must see the previous backup as not trusted
+        assertNotNull(testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
+        assertFalse(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
+        assertEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
+
+        // - Trust the backup from the new device
+        val latch = CountDownLatch(1)
+        testData.aliceSession2.crypto!!.keysBackup.trustKeysBackupVersion(
+                testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion!!,
+                true,
+                TestApiCallback(latch)
+        )
+        mTestHelper.await(latch)
+
+        // - Backup must be enabled on the new device
+        assertEquals(testData.prepareKeysBackupDataResult.version, testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
+        assertTrue(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
+        assertNotEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
+
+        // - Retrieve the last version from the server
+        val latch2 = CountDownLatch(1)
+        var keysVersionResult: KeysVersionResult? = null
+        testData.aliceSession2.crypto!!.keysBackup.getCurrentVersion(
+                object : TestApiCallback<KeysVersionResult?>(latch2) {
+                    override fun onSuccess(info: KeysVersionResult?) {
+                        keysVersionResult = info
+                        super.onSuccess(info)
+                    }
+                }
+        )
+        mTestHelper.await(latch2)
+
+        // - It must be the same
+        assertEquals(testData.prepareKeysBackupDataResult.version, keysVersionResult!!.version)
+
+        val latch3 = CountDownLatch(1)
+        var keysBackupVersionTrust: KeysBackupVersionTrust? = null
+        testData.aliceSession2.crypto!!.keysBackup.getKeysBackupTrust(keysVersionResult!!,
+                object : TestApiCallback<KeysBackupVersionTrust>(latch3) {
+                    override fun onSuccess(info: KeysBackupVersionTrust) {
+                        keysBackupVersionTrust = info
+                        super.onSuccess(info)
+                    }
+                })
+        mTestHelper.await(latch3)
+
+        // - It must be trusted and must have 2 signatures now
+        assertTrue(keysBackupVersionTrust!!.usable)
+        assertEquals(2, keysBackupVersionTrust!!.signatures.size)
+
+        testData.cryptoTestData.clear(context)
+    }
+
+    /**
+     * - Do an e2e backup to the homeserver with a recovery key
+     * - And log Alice on a new device
+     * - The new device must see the previous backup as not trusted
+     * - Trust the backup from the new device with the recovery key
+     * - Backup must be enabled on the new device
+     * - Retrieve the last version from the server
+     * - It must be the same
+     * - It must be trusted and must have with 2 signatures now
+     */
+    @Test
+    fun trustKeyBackupVersionWithRecoveryKeyTest() {
+        // - Do an e2e backup to the homeserver with a recovery key
+        // - And log Alice on a new device
+        val context = InstrumentationRegistry.getContext()
+
+        val testData = createKeysBackupScenarioWithPassword(null)
+
+        // - The new device must see the previous backup as not trusted
+        assertNotNull(testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
+        assertFalse(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
+        assertEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
+
+        // - Trust the backup from the new device with the recovery key
+        val latch = CountDownLatch(1)
+        testData.aliceSession2.crypto!!.keysBackup.trustKeysBackupVersionWithRecoveryKey(
+                testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion!!,
+                testData.prepareKeysBackupDataResult.megolmBackupCreationInfo.recoveryKey,
+                TestApiCallback(latch)
+        )
+        mTestHelper.await(latch)
+
+        // - Backup must be enabled on the new device
+        assertEquals(testData.prepareKeysBackupDataResult.version, testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
+        assertTrue(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
+        assertNotEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
+
+        // - Retrieve the last version from the server
+        val latch2 = CountDownLatch(1)
+        var keysVersionResult: KeysVersionResult? = null
+        testData.aliceSession2.crypto!!.keysBackup.getCurrentVersion(
+                object : TestApiCallback<KeysVersionResult?>(latch2) {
+                    override fun onSuccess(info: KeysVersionResult?) {
+                        keysVersionResult = info
+                        super.onSuccess(info)
+                    }
+                }
+        )
+        mTestHelper.await(latch2)
+
+        // - It must be the same
+        assertEquals(testData.prepareKeysBackupDataResult.version, keysVersionResult!!.version)
+
+        val latch3 = CountDownLatch(1)
+        var keysBackupVersionTrust: KeysBackupVersionTrust? = null
+        testData.aliceSession2.crypto!!.keysBackup.getKeysBackupTrust(keysVersionResult!!,
+                object : TestApiCallback<KeysBackupVersionTrust>(latch3) {
+                    override fun onSuccess(info: KeysBackupVersionTrust) {
+                        keysBackupVersionTrust = info
+                        super.onSuccess(info)
+                    }
+                })
+        mTestHelper.await(latch3)
+
+        // - It must be trusted and must have 2 signatures now
+        assertTrue(keysBackupVersionTrust!!.usable)
+        assertEquals(2, keysBackupVersionTrust!!.signatures.size)
+
+        testData.cryptoTestData.clear(context)
+    }
+
+    /**
+     * - Do an e2e backup to the homeserver with a recovery key
+     * - And log Alice on a new device
+     * - The new device must see the previous backup as not trusted
+     * - Try to trust the backup from the new device with a wrong recovery key
+     * - It must fail
+     * - The backup must still be untrusted and disabled
+     */
+    @Test
+    fun trustKeyBackupVersionWithWrongRecoveryKeyTest() {
+        // - Do an e2e backup to the homeserver with a recovery key
+        // - And log Alice on a new device
+        val context = InstrumentationRegistry.getContext()
+
+        val testData = createKeysBackupScenarioWithPassword(null)
+
+        // - The new device must see the previous backup as not trusted
+        assertNotNull(testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
+        assertFalse(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
+        assertEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
+
+        // - Try to trust the backup from the new device with a wrong recovery key
+        val latch = CountDownLatch(1)
+        testData.aliceSession2.crypto!!.keysBackup.trustKeysBackupVersionWithRecoveryKey(
+                testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion!!,
+                "Bad recovery key",
+                TestApiCallback(latch, false)
+        )
+        mTestHelper.await(latch)
+
+        // - The new device must still see the previous backup as not trusted
+        assertNotNull(testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
+        assertFalse(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
+        assertEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
+
+        testData.cryptoTestData.clear(context)
+    }
+
+    /**
+     * - Do an e2e backup to the homeserver with a password
+     * - And log Alice on a new device
+     * - The new device must see the previous backup as not trusted
+     * - Trust the backup from the new device with the password
+     * - Backup must be enabled on the new device
+     * - Retrieve the last version from the server
+     * - It must be the same
+     * - It must be trusted and must have with 2 signatures now
+     */
+    @Test
+    fun trustKeyBackupVersionWithPasswordTest() {
+        val password = "Password"
+
+        // - Do an e2e backup to the homeserver with a password
+        // - And log Alice on a new device
+        val context = InstrumentationRegistry.getContext()
+
+        val testData = createKeysBackupScenarioWithPassword(password)
+
+        // - The new device must see the previous backup as not trusted
+        assertNotNull(testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
+        assertFalse(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
+        assertEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
+
+        // - Trust the backup from the new device with the password
+        val latch = CountDownLatch(1)
+        testData.aliceSession2.crypto!!.keysBackup.trustKeysBackupVersionWithPassphrase(
+                testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion!!,
+                password,
+                TestApiCallback(latch)
+        )
+        mTestHelper.await(latch)
+
+        // - Backup must be enabled on the new device
+        assertEquals(testData.prepareKeysBackupDataResult.version, testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
+        assertTrue(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
+        assertNotEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
+
+        // - Retrieve the last version from the server
+        val latch2 = CountDownLatch(1)
+        var keysVersionResult: KeysVersionResult? = null
+        testData.aliceSession2.crypto!!.keysBackup.getCurrentVersion(
+                object : TestApiCallback<KeysVersionResult?>(latch2) {
+                    override fun onSuccess(info: KeysVersionResult?) {
+                        keysVersionResult = info
+                        super.onSuccess(info)
+                    }
+                }
+        )
+        mTestHelper.await(latch2)
+
+        // - It must be the same
+        assertEquals(testData.prepareKeysBackupDataResult.version, keysVersionResult!!.version)
+
+        val latch3 = CountDownLatch(1)
+        var keysBackupVersionTrust: KeysBackupVersionTrust? = null
+        testData.aliceSession2.crypto!!.keysBackup.getKeysBackupTrust(keysVersionResult!!,
+                object : TestApiCallback<KeysBackupVersionTrust>(latch3) {
+                    override fun onSuccess(info: KeysBackupVersionTrust) {
+                        keysBackupVersionTrust = info
+                        super.onSuccess(info)
+                    }
+                })
+        mTestHelper.await(latch3)
+
+        // - It must be trusted and must have 2 signatures now
+        assertTrue(keysBackupVersionTrust!!.usable)
+        assertEquals(2, keysBackupVersionTrust!!.signatures.size)
+
+        testData.cryptoTestData.clear(context)
+    }
+
+    /**
+     * - Do an e2e backup to the homeserver with a password
+     * - And log Alice on a new device
+     * - The new device must see the previous backup as not trusted
+     * - Try to trust the backup from the new device with a wrong password
+     * - It must fail
+     * - The backup must still be untrusted and disabled
+     */
+    @Test
+    fun trustKeyBackupVersionWithWrongPasswordTest() {
+        val password = "Password"
+        val badPassword = "Bad Password"
+
+        // - Do an e2e backup to the homeserver with a password
+        // - And log Alice on a new device
+        val context = InstrumentationRegistry.getContext()
+
+        val testData = createKeysBackupScenarioWithPassword(password)
+
+        // - The new device must see the previous backup as not trusted
+        assertNotNull(testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
+        assertFalse(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
+        assertEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
+
+        // - Try to trust the backup from the new device with a wrong password
+        val latch = CountDownLatch(1)
+        testData.aliceSession2.crypto!!.keysBackup.trustKeysBackupVersionWithPassphrase(
+                testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion!!,
+                badPassword,
+                TestApiCallback(latch, false)
+        )
+        mTestHelper.await(latch)
+
+        // - The new device must still see the previous backup as not trusted
+        assertNotNull(testData.aliceSession2.crypto!!.keysBackup.mKeysBackupVersion)
+        assertFalse(testData.aliceSession2.crypto!!.keysBackup.isEnabled)
+        assertEquals(KeysBackupStateManager.KeysBackupState.NotTrusted, testData.aliceSession2.crypto!!.keysBackup.state)
+
+        testData.cryptoTestData.clear(context)
+    }
+
     /**
      * - Do an e2e backup to the homeserver with a recovery key
      * - Log Alice on a new device

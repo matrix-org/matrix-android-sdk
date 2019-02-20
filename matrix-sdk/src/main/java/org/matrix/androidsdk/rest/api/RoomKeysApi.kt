@@ -47,6 +47,13 @@ interface RoomKeysApi {
     @GET("room_keys/version/{version}")
     fun getKeysBackupVersion(@Path("version") version: String): Call<KeysVersionResult>
 
+    /**
+     * Update information about the given version.
+     */
+    @PUT("room_keys/version/{version}")
+    fun updateKeysBackupVersion(@Path("version") version: String,
+                                @Body keysBackupVersionBody: UpdateKeysBackupVersionBody): Call<Void>
+
     /* ==========================================================================================
      * Storing keys
      * ========================================================================================== */

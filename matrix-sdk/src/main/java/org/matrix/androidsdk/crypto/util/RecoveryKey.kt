@@ -39,7 +39,7 @@ fun isValidRecoveryKey(recoveryKey: String?): Boolean {
 }
 
 /**
- * Copute recovery key from curve25519 key
+ * Compute recovery key from curve25519 key
  *
  * @param curve25519Key
  * @return the recovery key
