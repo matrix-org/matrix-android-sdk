@@ -44,6 +44,8 @@ class StateObserver(private val keysBackup: KeysBackup,
             KeysBackupStateManager.KeysBackupState.Enabling to KeysBackupStateManager.KeysBackupState.ReadyToBackUp,
 
             KeysBackupStateManager.KeysBackupState.NotTrusted to KeysBackupStateManager.KeysBackupState.CheckingBackUpOnHomeserver,
+            // This transition happens when we trust the device
+            KeysBackupStateManager.KeysBackupState.NotTrusted to KeysBackupStateManager.KeysBackupState.ReadyToBackUp,
 
             KeysBackupStateManager.KeysBackupState.ReadyToBackUp to KeysBackupStateManager.KeysBackupState.WillBackUp,
 

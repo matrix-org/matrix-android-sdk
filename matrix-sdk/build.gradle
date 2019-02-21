@@ -27,8 +27,8 @@ android {
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 26
-        versionCode 916
-        versionName "0.9.16"
+        versionCode 917
+        versionName "0.9.17"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
@@ -98,18 +98,34 @@ android {
 
 
     lintOptions {
-        disable 'InvalidPackage'
-        disable 'MissingTranslation'
-        disable 'RestrictedApi'
+        warning 'MissingTranslation'
 
         // Treat some warnings as errors
+        // Resources
+        error 'TypographyEllipsis'
+        warning 'ImpliedQuantity'
+
+        // UX
+        error 'ButtonOrder'
+
+        // Layout
         error 'StringFormatCount'
         error 'HardcodedText'
         error 'SpUsage'
+        error 'ObsoleteLayoutParam'
+        error 'InefficientWeight'
+        error 'DisableBaselineAlignment'
+        error 'ScrollViewSize'
 
         // RTL
         error 'RtlEnabled'
         error 'RtlHardcoded'
+        error 'RtlSymmetry'
+
+        // Code
+        error 'SetTextI18n'
+        error 'ViewConstructor'
+        error 'UseValueOf'
     }
 
     repositories {

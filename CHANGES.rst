@@ -1,4 +1,26 @@
-Changes to Matrix Android SDK in 0.9.16 (2018-02-01)
+Changes to Matrix Android SDK in 0.9.17 (2019-02-21)
+=======================================================
+
+Features:
+ - Ensure Room V3 eventId format is supported.
+
+Improvements:
+ - Crypto: Cancel share request on restore/import (vector-im/riot-android#2928).
+ - CreateRoomParams: add `powerLevelContentOverride` param to override the default power level event.
+ - KeysBackup: Declare backup trust using new `PUT /room_keys/version/{version}` API (vector-im/riot-android#2921).
+
+Bugfix:
+ - Fix DataSaveMode issue in filter
+ - CreateRoomParams - setHistoryVisibility: remove existing value if any.
+ - Fix issue in Japanese translation (#423)
+
+Others:
+ - Create a RealmCryptoStoreModule to allow clients of the Matrix SDK to use Realm
+
+Build:
+ - Enforce lint rules check
+
+Changes to Matrix Android SDK in 0.9.16 beta (2019-02-01)
 =======================================================
 
 Improvements:
@@ -1413,7 +1435,7 @@ Features:
 =======================================================
 
 
-Changes to Matrix Android SDK in 0.9.X (2018-XX-XX)
+Changes to Matrix Android SDK in 0.9.X (2019-XX-XX)
 =======================================================
 
 Features:

@@ -47,7 +47,8 @@ import org.matrix.androidsdk.rest.model.crypto.ForwardedRoomKeyContent;
 import org.matrix.androidsdk.rest.model.crypto.OlmEventContent;
 import org.matrix.androidsdk.rest.model.crypto.OlmPayloadContent;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyContent;
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyShare;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyShareRequest;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.rest.model.message.AudioMessage;
 import org.matrix.androidsdk.rest.model.message.FileMessage;
@@ -312,21 +313,32 @@ public class JsonUtils {
      * The result is never null.
      *
      * @param jsonObject the json to convert
-     * @return an RoomKeyContent
+     * @return a RoomKeyContent
      */
     public static RoomKeyContent toRoomKeyContent(JsonElement jsonObject) {
         return toClass(jsonObject, RoomKeyContent.class);
     }
 
     /**
-     * Convert a JSON object to an RoomKeyRequest.
+     * Convert a JSON object to an RoomKeyShare.
      * The result is never null.
      *
      * @param jsonObject the json to convert
-     * @return an RoomKeyRequest
+     * @return a RoomKeyShare
      */
-    public static RoomKeyRequest toRoomKeyRequest(JsonElement jsonObject) {
-        return toClass(jsonObject, RoomKeyRequest.class);
+    public static RoomKeyShare toRoomKeyShare(JsonElement jsonObject) {
+        return toClass(jsonObject, RoomKeyShare.class);
+    }
+
+    /**
+     * Convert a JSON object to an RoomKeyShareRequest.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return a RoomKeyShareRequest
+     */
+    public static RoomKeyShareRequest toRoomKeyRequest(JsonElement jsonObject) {
+        return toClass(jsonObject, RoomKeyShareRequest.class);
     }
 
     /**
@@ -334,7 +346,7 @@ public class JsonUtils {
      * The result is never null.
      *
      * @param jsonObject the json to convert
-     * @return an ForwardedRoomKeyContent
+     * @return a ForwardedRoomKeyContent
      */
     public static ForwardedRoomKeyContent toForwardedRoomKeyContent(JsonElement jsonObject) {
         return toClass(jsonObject, ForwardedRoomKeyContent.class);
@@ -368,7 +380,7 @@ public class JsonUtils {
      * The result is never null.
      *
      * @param jsonObject the json to convert
-     * @return an FileMessage
+     * @return a FileMessage
      */
     public static FileMessage toFileMessage(JsonElement jsonObject) {
         return toClass(jsonObject, FileMessage.class);

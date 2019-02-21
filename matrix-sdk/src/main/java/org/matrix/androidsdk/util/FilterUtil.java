@@ -19,6 +19,7 @@ package org.matrix.androidsdk.util;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.filter.Filter;
 import org.matrix.androidsdk.rest.model.filter.FilterBody;
 import org.matrix.androidsdk.rest.model.filter.RoomEventFilter;
@@ -32,7 +33,7 @@ public class FilterUtil {
      * Patch the filterBody to enable or disable the data save mode
      * <p>
      * If data save mode is on, FilterBody will contains
-     * "{\"room\": {\"ephemeral\": {\"types\": [\"m.receipt\"]}}, \"presence\":{\"notTypes\": [\"*\"]}}"
+     * "{\"room\": {\"ephemeral\": {\"notTypes\": [\"m.typing\"]}}, \"presence\":{\"notTypes\": [\"*\"]}}"
      *
      * @param filterBody      filterBody to patch
      * @param useDataSaveMode true to enable data save mode
@@ -46,11 +47,11 @@ public class FilterUtil {
             if (filterBody.room.ephemeral == null) {
                 filterBody.room.ephemeral = new RoomEventFilter();
             }
-            if (filterBody.room.ephemeral.types == null) {
-                filterBody.room.ephemeral.types = new ArrayList<>();
+            if (filterBody.room.ephemeral.notTypes == null) {
+                filterBody.room.ephemeral.notTypes = new ArrayList<>();
             }
-            if (!filterBody.room.ephemeral.types.contains("m.receipt")) {
-                filterBody.room.ephemeral.types.add("m.receipt");
+            if (!filterBody.room.ephemeral.notTypes.contains(Event.EVENT_TYPE_TYPING)) {
+                filterBody.room.ephemeral.notTypes.add(Event.EVENT_TYPE_TYPING);
             }
 
             if (filterBody.presence == null) {
@@ -65,11 +66,11 @@ public class FilterUtil {
         } else {
             if (filterBody.room != null
                     && filterBody.room.ephemeral != null
-                    && filterBody.room.ephemeral.types != null) {
-                filterBody.room.ephemeral.types.remove("m.receipt");
+                    && filterBody.room.ephemeral.notTypes != null) {
+                filterBody.room.ephemeral.notTypes.remove(Event.EVENT_TYPE_TYPING);
 
-                if (filterBody.room.ephemeral.types.isEmpty()) {
-                    filterBody.room.ephemeral.types = null;
+                if (filterBody.room.ephemeral.notTypes.isEmpty()) {
+                    filterBody.room.ephemeral.notTypes = null;
                 }
 
                 if (!filterBody.room.ephemeral.hasData()) {

@@ -18,16 +18,17 @@ package org.matrix.androidsdk.data.cryptostore.db.model
 
 import io.realm.RealmObject
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest
-import org.matrix.androidsdk.data.cryptostore.db.deserializeFromRealm
-import org.matrix.androidsdk.data.cryptostore.db.serializeForRealm
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody
 
 internal open class IncomingRoomKeyRequestEntity(
         var requestId: String? = null,
         var userId: String? = null,
         var deviceId: String? = null,
-        // Serialized
-        var requestBodyString: String? = null
+        // RoomKeyRequestBody fields
+        var requestBodyAlgorithm: String? = null,
+        var requestBodyRoomId: String? = null,
+        var requestBodySenderKey: String? = null,
+        var requestBodySessionId: String? = null
 ) : RealmObject() {
 
     fun toIncomingRoomKeyRequest(): IncomingRoomKeyRequest {
@@ -35,15 +36,21 @@ internal open class IncomingRoomKeyRequestEntity(
             mRequestId = requestId
             mUserId = userId
             mDeviceId = deviceId
-            mRequestBody = getRequestBody()
+            mRequestBody = RoomKeyRequestBody().apply {
+                algorithm = requestBodyAlgorithm
+                roomId = requestBodyRoomId
+                senderKey = requestBodySenderKey
+                sessionId = requestBodySessionId
+            }
         }
     }
 
-    fun getRequestBody(): RoomKeyRequestBody? {
-        return deserializeFromRealm(requestBodyString)
-    }
-
     fun putRequestBody(requestBody: RoomKeyRequestBody?) {
-        requestBodyString = serializeForRealm(requestBody)
+        requestBody?.let {
+            requestBodyAlgorithm = it.algorithm
+            requestBodyRoomId = it.roomId
+            requestBodySenderKey = it.senderKey
+            requestBodySessionId = it.sessionId
+        }
     }
 }

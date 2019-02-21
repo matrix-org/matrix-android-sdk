@@ -47,6 +47,13 @@ interface RoomKeysApi {
     @GET("room_keys/version/{version}")
     fun getKeysBackupVersion(@Path("version") version: String): Call<KeysVersionResult>
 
+    /**
+     * Update information about the given version.
+     */
+    @PUT("room_keys/version/{version}")
+    fun updateKeysBackupVersion(@Path("version") version: String,
+                                @Body keysBackupVersionBody: UpdateKeysBackupVersionBody): Call<Void>
+
     /* ==========================================================================================
      * Storing keys
      * ========================================================================================== */
@@ -64,7 +71,7 @@ interface RoomKeysApi {
     fun storeRoomSessionData(@Path("roomId") roomId: String,
                              @Path("sessionId") sessionId: String,
                              @Query("version") version: String,
-                             @Body keyBackupData: KeyBackupData): Call<Void>
+                             @Body keyBackupData: KeyBackupData): Call<BackupKeysResult>
 
 
     /**
@@ -73,14 +80,14 @@ interface RoomKeysApi {
     @PUT("room_keys/keys/{roomId}")
     fun storeRoomSessionsData(@Path("roomId") roomId: String,
                               @Query("version") version: String,
-                              @Body roomKeysBackupData: RoomKeysBackupData): Call<Void>
+                              @Body roomKeysBackupData: RoomKeysBackupData): Call<BackupKeysResult>
 
     /**
      * Store several keys, using the given backup version.
      */
     @PUT("room_keys/keys")
     fun storeSessionsData(@Query("version") version: String,
-                          @Body keysBackupData: KeysBackupData): Call<Void>
+                          @Body keysBackupData: KeysBackupData): Call<BackupKeysResult>
 
     /* ==========================================================================================
      * Retrieving keys

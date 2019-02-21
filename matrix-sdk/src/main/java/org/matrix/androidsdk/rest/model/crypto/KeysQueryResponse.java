@@ -27,11 +27,13 @@ import java.util.Map;
 public class KeysQueryResponse {
     /**
      * The device keys per devices per users.
+     * TODO Use MXUsersDevicesMap?
      */
     public Map<String, Map<String, MXDeviceInfo>> deviceKeys;
 
     /**
-     * The failures sorted by homeservers.
+     * The failures sorted by homeservers. TODO Bad comment ?
+     * TODO Use MXUsersDevicesMap?
      */
     public Map<String, Map<String, Object>> failures;
 }

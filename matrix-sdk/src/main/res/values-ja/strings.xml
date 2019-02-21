@@ -13,8 +13,8 @@
     <string name="notice_room_reject">%1$sが招待を断りました</string>
     <string name="notice_room_kick">%1$sが%2$sを追放しました</string>
     <string name="notice_room_unban">%1$sが%2$sをブロック解除しました</string>
-    <string name="notice_room_ban">%14sが%2$sをブロックしました</string>
-    <string name="notice_room_withdraw">%14sが%2$sの招待を撤回しました</string>
+    <string name="notice_room_ban">%1$sが%2$sをブロックしました</string>
+    <string name="notice_room_withdraw">%1$sが%2$sの招待を撤回しました</string>
     <string name="notice_avatar_url_changed">%1$sがアバターを変更しました</string>
     <string name="notice_display_name_set">%1$sが表示名を%2$sに設定しました</string>
     <string name="notice_display_name_changed_from">%1$sが表示名を%2$sから%3$sに変更しました</string>

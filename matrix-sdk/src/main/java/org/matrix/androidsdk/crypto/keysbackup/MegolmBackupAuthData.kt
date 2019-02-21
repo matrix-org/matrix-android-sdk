@@ -44,6 +44,7 @@ data class MegolmBackupAuthData(
 
         /**
          * Signatures of the public key.
+         * userId -> (deviceSignKeyId -> signature)
          */
         var signatures: Map<String, Map<String, String>>? = null
 ) {

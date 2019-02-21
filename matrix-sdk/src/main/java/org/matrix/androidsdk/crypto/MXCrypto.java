@@ -52,10 +52,11 @@ import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.crypto.EncryptedMessage;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyContent;
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequest;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyShare;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
@@ -1452,9 +1453,10 @@ public class MXCrypto {
      * @param deviceInfos   list of device infos to encrypt for.
      * @return the content for an m.room.encrypted event.
      */
-    public Map<String, Object> encryptMessage(Map<String, Object> payloadFields, List<MXDeviceInfo> deviceInfos) {
+    public EncryptedMessage encryptMessage(Map<String, Object> payloadFields, List<MXDeviceInfo> deviceInfos) {
         if (hasBeenReleased()) {
-            return new HashMap<>();
+            // Empty object
+            return new EncryptedMessage();
         }
 
         Map<String, MXDeviceInfo> deviceInfoParticipantKey = new HashMap<>();
@@ -1503,11 +1505,11 @@ public class MXCrypto {
             }
         }
 
-        Map<String, Object> res = new HashMap<>();
+        EncryptedMessage res = new EncryptedMessage();
 
-        res.put("algorithm", CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM);
-        res.put("sender_key", mOlmDevice.getDeviceCurve25519Key());
-        res.put("ciphertext", ciphertext);
+        res.algorithm = CryptoConstantsKt.MXCRYPTO_ALGORITHM_OLM;
+        res.senderKey = mOlmDevice.getDeviceCurve25519Key();
+        res.cipherText = ciphertext;
 
         return res;
     }
@@ -1603,26 +1605,23 @@ public class MXCrypto {
      * @param event the announcement event.
      */
     private void onRoomKeyRequestEvent(final Event event) {
-        RoomKeyRequest roomKeyRequest = JsonUtils.toRoomKeyRequest(event.getContentAsJsonObject());
+        RoomKeyShare roomKeyShare = JsonUtils.toRoomKeyShare(event.getContentAsJsonObject());
 
-        if (null != roomKeyRequest.action) {
-            switch (roomKeyRequest.action) {
-                case RoomKeyRequest.ACTION_REQUEST: {
+        if (null != roomKeyShare.action) {
+            switch (roomKeyShare.action) {
+                case RoomKeyShare.ACTION_SHARE_REQUEST:
                     synchronized (mReceivedRoomKeyRequests) {
                         mReceivedRoomKeyRequests.add(new IncomingRoomKeyRequest(event));
                     }
                     break;
-                }
-
-                case RoomKeyRequest.ACTION_REQUEST_CANCELLATION: {
+                case RoomKeyShare.ACTION_SHARE_CANCELLATION:
                     synchronized (mReceivedRoomKeyRequestCancellations) {
                         mReceivedRoomKeyRequestCancellations.add(new IncomingRoomKeyRequestCancellation(event));
                     }
                     break;
-                }
-
                 default:
-                    Log.e(LOG_TAG, "## onRoomKeyRequestEvent() : unsupported action " + roomKeyRequest.action);
+                    Log.e(LOG_TAG, "## onRoomKeyRequestEvent() : unsupported action " + roomKeyShare.action);
+                    break;
             }
         }
     }
@@ -1646,10 +1645,10 @@ public class MXCrypto {
                 String userId = request.mUserId;
                 String deviceId = request.mDeviceId;
                 RoomKeyRequestBody body = request.mRequestBody;
-                String roomId = body.room_id;
+                String roomId = body.roomId;
                 String alg = body.algorithm;
 
-                Log.d(LOG_TAG, "m.room_key_request from " + userId + ":" + deviceId + " for " + roomId + " / " + body.session_id + " id " + request.mRequestId);
+                Log.d(LOG_TAG, "m.room_key_request from " + userId + ":" + deviceId + " for " + roomId + " / " + body.sessionId + " id " + request.mRequestId);
 
                 if (!TextUtils.equals(mSession.getMyUserId(), userId)) {
                     // TODO: determine if we sent this device the keys already: in
@@ -1671,7 +1670,7 @@ public class MXCrypto {
                 }
 
                 if (!decryptor.hasKeysForKeyRequest(request)) {
-                    Log.e(LOG_TAG, "## processReceivedRoomKeyRequests() : room key request for unknown session " + body.session_id);
+                    Log.e(LOG_TAG, "## processReceivedRoomKeyRequests() : room key request for unknown session " + body.sessionId);
                     mCryptoStore.deleteIncomingRoomKeyRequest(request);
                     continue;
                 }
@@ -2395,9 +2394,7 @@ public class MXCrypto {
                 int totalNumbersOfImportedKeys = 0;
 
 
-                for (int index = 0; index < megolmSessionsData.size(); index++) {
-                    MegolmSessionData megolmSessionData = megolmSessionsData.get(index);
-
+                for (MegolmSessionData megolmSessionData : megolmSessionsData) {
                     MXOlmInboundGroupSession2 session = mOlmDevice.importInboundGroupSession(megolmSessionData);
 
                     if ((null != session) && mRoomDecryptors.containsKey(session.mRoomId)) {
@@ -2416,6 +2413,16 @@ public class MXCrypto {
                                 } else {
                                     mCryptoStore.markBackupDoneForInboundGroupSessionWithId(sessionId, session.mSenderKey);
                                 }
+
+                                // cancel any outstanding room key requests for this session
+                                RoomKeyRequestBody roomKeyRequestBody = new RoomKeyRequestBody();
+
+                                roomKeyRequestBody.algorithm = megolmSessionData.algorithm;
+                                roomKeyRequestBody.roomId = megolmSessionData.roomId;
+                                roomKeyRequestBody.senderKey = megolmSessionData.senderKey;
+                                roomKeyRequestBody.sessionId = megolmSessionData.sessionId;
+
+                                cancelRoomKeyRequest(roomKeyRequestBody);
 
                                 // Have another go at decrypting events sent with this session
                                 decrypting.onNewSession(session.mSenderKey, sessionId);
@@ -2692,7 +2699,7 @@ public class MXCrypto {
      * @param requestBody requestBody
      * @param recipients  recipients
      */
-    public void requestRoomKey(final Map<String, String> requestBody, final List<Map<String, String>> recipients) {
+    public void requestRoomKey(final RoomKeyRequestBody requestBody, final List<Map<String, String>> recipients) {
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
@@ -2706,7 +2713,7 @@ public class MXCrypto {
      *
      * @param requestBody requestBody
      */
-    public void cancelRoomKeyRequest(final Map<String, String> requestBody) {
+    public void cancelRoomKeyRequest(final RoomKeyRequestBody requestBody) {
         getEncryptingThreadHandler().post(new Runnable() {
             @Override
             public void run() {
@@ -2725,17 +2732,18 @@ public class MXCrypto {
             JsonObject wireContent = event.getWireContent().getAsJsonObject();
 
             final String algorithm = wireContent.get("algorithm").getAsString();
-            final String sender_key = wireContent.get("sender_key").getAsString();
-            final String session_id = wireContent.get("session_id").getAsString();
+            final String senderKey = wireContent.get("sender_key").getAsString();
+            final String sessionId = wireContent.get("session_id").getAsString();
 
             getEncryptingThreadHandler().post(new Runnable() {
                 @Override
                 public void run() {
-                    Map<String, String> requestBody = new HashMap<>();
-                    requestBody.put("room_id", event.roomId);
-                    requestBody.put("algorithm", algorithm);
-                    requestBody.put("sender_key", sender_key);
-                    requestBody.put("session_id", session_id);
+                    RoomKeyRequestBody requestBody = new RoomKeyRequestBody();
+
+                    requestBody.roomId = event.roomId;
+                    requestBody.algorithm = algorithm;
+                    requestBody.senderKey = senderKey;
+                    requestBody.sessionId = sessionId;
 
                     mOutgoingRoomKeyRequestManager.resendRoomKeyRequest(requestBody);
                 }

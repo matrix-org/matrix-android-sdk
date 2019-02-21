@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 OpenMarket Ltd
+ * Copyright 2019 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model.crypto;
 
-/**
- * Class representing an room key request content
- */
-public class RoomKeyRequest implements java.io.Serializable {
-    public static final String ACTION_REQUEST = "request";
-    public static final String ACTION_REQUEST_CANCELLATION = "request_cancellation";
+package org.matrix.androidsdk.rest.model.crypto
 
-    public String action;
-
-    public String requesting_device_id;
-
-    public String request_id;
-
-    public RoomKeyRequestBody body;
-}
+interface SendToDeviceObject

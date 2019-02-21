@@ -21,14 +21,19 @@ import io.realm.annotations.PrimaryKey
 import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest
 import org.matrix.androidsdk.data.cryptostore.db.deserializeFromRealm
 import org.matrix.androidsdk.data.cryptostore.db.serializeForRealm
+import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody
 
 internal open class OutgoingRoomKeyRequestEntity(
         @PrimaryKey var requestId: String? = null,
         var cancellationTxnId: String? = null,
         // Serialized Json
         var recipientsData: String? = null,
-        // Serialized Json
-        var requestBodyString: String? = null,
+        // RoomKeyRequestBody fields
+        var requestBodyAlgorithm: String? = null,
+        var requestBodyRoomId: String? = null,
+        var requestBodySenderKey: String? = null,
+        var requestBodySessionId: String? = null,
+        // State
         var state: Int = 0
 ) : RealmObject() {
 
@@ -37,7 +42,12 @@ internal open class OutgoingRoomKeyRequestEntity(
      */
     fun toOutgoingRoomKeyRequest(): OutgoingRoomKeyRequest {
         return OutgoingRoomKeyRequest(
-                getRequestBody(),
+                RoomKeyRequestBody().apply {
+                    algorithm = requestBodyAlgorithm
+                    roomId = requestBodyRoomId
+                    senderKey = requestBodySenderKey
+                    sessionId = requestBodySessionId
+                },
                 getRecipients(),
                 requestId,
                 OutgoingRoomKeyRequest.RequestState.from(state)
@@ -46,7 +56,7 @@ internal open class OutgoingRoomKeyRequestEntity(
         }
     }
 
-    fun getRecipients(): List<MutableMap<String, String>>? {
+    private fun getRecipients(): List<MutableMap<String, String>>? {
         return deserializeFromRealm(recipientsData)
     }
 
@@ -54,12 +64,13 @@ internal open class OutgoingRoomKeyRequestEntity(
         recipientsData = serializeForRealm(recipients)
     }
 
-    fun getRequestBody(): Map<String, String>? {
-        return deserializeFromRealm(requestBodyString)
-    }
-
-    fun putRequestBody(requestBody: Map<String, String>?) {
-        requestBodyString = serializeForRealm(requestBody)
+    fun putRequestBody(requestBody: RoomKeyRequestBody?) {
+        requestBody?.let {
+            requestBodyAlgorithm = it.algorithm
+            requestBodyRoomId = it.roomId
+            requestBodySenderKey = it.senderKey
+            requestBodySessionId = it.sessionId
+        }
     }
 }
 

@@ -1,5 +1,4 @@
 /*
- * Copyright 2016 OpenMarket Ltd
  * Copyright 2019 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,22 +15,22 @@
  */
 package org.matrix.androidsdk.rest.model.crypto;
 
+import com.google.gson.JsonElement;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Class representing an room key request body content
- * <p>
- * Note: Keep Serializable interface for the Realm migration
+ * Parent class representing an room key action request
+ * Note: this class cannot be abstract because of {@link org.matrix.androidsdk.util.JsonUtils#toRoomKeyShare(JsonElement)}
  */
-public class RoomKeyRequestBody implements java.io.Serializable {
-    public String algorithm;
+public class RoomKeyShare implements SendToDeviceObject {
+    public static final String ACTION_SHARE_REQUEST = "request";
+    public static final String ACTION_SHARE_CANCELLATION = "request_cancellation";
 
-    @SerializedName("room_id")
-    public String roomId;
+    public String action;
 
-    @SerializedName("sender_key")
-    public String senderKey;
+    @SerializedName("requesting_device_id")
+    public String requestingDeviceId;
 
-    @SerializedName("session_id")
-    public String sessionId;
+    @SerializedName("request_id")
+    public String requestId;
 }
