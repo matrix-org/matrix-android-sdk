@@ -1,4 +1,4 @@
-Changes to Matrix Android SDK in 0.9.17 (2019-XX-XX)
+Changes to Matrix Android SDK in 0.9.17 (2019-02-21)
 =======================================================
 
 Features:
@@ -14,22 +14,13 @@ Bugfix:
  - CreateRoomParams - setHistoryVisibility: remove existing value if any.
  - Fix issue in Japanese translation (#423)
 
-API Change:
- -
-
-Translations:
- -
-
 Others:
  - Create a RealmCryptoStoreModule to allow clients of the Matrix SDK to use Realm
 
 Build:
  - Enforce lint rules check
 
-Test:
- -
-
-Changes to Matrix Android SDK in 0.9.16 (2019-02-01)
+Changes to Matrix Android SDK in 0.9.16 beta (2019-02-01)
 =======================================================
 
 Improvements:
