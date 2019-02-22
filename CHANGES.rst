@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Failed to send a video captured by the native camera. Replace the file scheme "file://" with "file:/" used by some Android devices.
 
 API Change:
  -
