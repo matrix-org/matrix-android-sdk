@@ -59,13 +59,15 @@ fun generatePrivateKeyWithPassword(password: String, progressListener: ProgressL
  * @param password the password used to generated the private key.
  * @param salt the salt.
  * @param iterations number of key derivations.
+ * @param progressListener the progress listener
  *
  * @return a private key.
  */
 fun retrievePrivateKeyWithPassword(password: String,
                                    salt: String,
-                                   iterations: Int): ByteArray {
-    return deriveKey(password, salt, iterations, null)
+                                   iterations: Int,
+                                   progressListener: ProgressListener? = null): ByteArray {
+    return deriveKey(password, salt, iterations, progressListener)
 }
 
 /**

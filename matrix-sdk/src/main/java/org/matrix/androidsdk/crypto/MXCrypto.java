@@ -45,6 +45,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
+import org.matrix.androidsdk.listeners.ProgressListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
@@ -2319,12 +2320,14 @@ public class MXCrypto {
     /**
      * Import the room keys
      *
-     * @param roomKeysAsArray the room keys as array.
-     * @param password        the password
-     * @param callback        the asynchronous callback.
+     * @param roomKeysAsArray  the room keys as array.
+     * @param password         the password
+     * @param progressListener the progress listener
+     * @param callback         the asynchronous callback.
      */
     public void importRoomKeys(final byte[] roomKeysAsArray,
                                final String password,
+                               @Nullable final ProgressListener progressListener,
                                final ApiCallback<ImportRoomKeysResult> callback) {
         getDecryptingThreadHandler().post(new Runnable() {
             @Override
@@ -2370,7 +2373,7 @@ public class MXCrypto {
 
                 Log.d(LOG_TAG, "## importRoomKeys : JSON parsing " + (t2 - t1) + " ms");
 
-                importMegolmSessionsData(importedSessions, true, callback);
+                importMegolmSessionsData(importedSessions, true, progressListener, callback);
             }
         });
     }
@@ -2380,10 +2383,12 @@ public class MXCrypto {
      *
      * @param megolmSessionsData megolm sessions.
      * @param backUpKeys         true to back up them to the homeserver.
+     * @param progressListener   the progress listener
      * @param callback
      */
     public void importMegolmSessionsData(final List<MegolmSessionData> megolmSessionsData,
                                          final boolean backUpKeys,
+                                         @Nullable final ProgressListener progressListener,
                                          final ApiCallback<ImportRoomKeysResult> callback) {
         getDecryptingThreadHandler().post(new Runnable() {
             @Override
@@ -2391,10 +2396,22 @@ public class MXCrypto {
                 long t0 = System.currentTimeMillis();
 
                 final int totalNumbersOfKeys = megolmSessionsData.size();
+                int cpt = 0;
+                int lastProgress = 0;
                 int totalNumbersOfImportedKeys = 0;
 
+                if (progressListener != null) {
+                    getUIHandler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            progressListener.onProgress(0, 100);
+                        }
+                    });
+                }
 
                 for (MegolmSessionData megolmSessionData : megolmSessionsData) {
+                    cpt++;
+
                     MXOlmInboundGroupSession2 session = mOlmDevice.importInboundGroupSession(megolmSessionData);
 
                     if ((null != session) && mRoomDecryptors.containsKey(session.mRoomId)) {
@@ -2429,6 +2446,21 @@ public class MXCrypto {
                             } catch (Exception e) {
                                 Log.e(LOG_TAG, "## importRoomKeys() : onNewSession failed " + e.getMessage(), e);
                             }
+                        }
+                    }
+
+                    if (progressListener != null) {
+                        final int progress = 100 * cpt / totalNumbersOfKeys;
+
+                        if (lastProgress != progress) {
+                            lastProgress = progress;
+
+                            getUIHandler().post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    progressListener.onProgress(progress, 100);
+                                }
+                            });
                         }
                     }
                 }

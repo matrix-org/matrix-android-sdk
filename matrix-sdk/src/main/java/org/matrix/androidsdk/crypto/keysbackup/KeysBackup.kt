@@ -31,6 +31,7 @@ import org.matrix.androidsdk.crypto.util.computeRecoveryKey
 import org.matrix.androidsdk.crypto.util.extractCurveKeyFromRecoveryKey
 import org.matrix.androidsdk.data.cryptostore.db.model.KeysBackupDataEntity
 import org.matrix.androidsdk.listeners.ProgressListener
+import org.matrix.androidsdk.listeners.StepProgressListener
 import org.matrix.androidsdk.rest.callback.ApiCallback
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback
 import org.matrix.androidsdk.rest.callback.SuccessCallback
@@ -603,7 +604,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
 
             // Compare both
             if (publicKey != authData.publicKey) {
-                Log.w(LOG_TAG, "trustKeysBackupVersionWithRecoveryKey: Invalid recovery key");
+                Log.w(LOG_TAG, "trustKeysBackupVersionWithRecoveryKey: Invalid recovery key")
 
                 mCrypto.uiHandler.post {
                     callback.onUnexpectedError(IllegalArgumentException("Invalid recovery key or password"))
@@ -713,16 +714,18 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     /**
      * Restore a backup with a recovery key from a given backup version stored on the homeserver.
      *
-     * @param version     the backup version to restore from.
-     * @param recoveryKey the recovery key to decrypt the retrieved backup.
-     * @param roomId      the id of the room to get backup data from.
-     * @param sessionId   the id of the session to restore.
-     * @param callback    Callback. It provides the number of found keys and the number of successfully imported keys.
+     * @param version              the backup version to restore from.
+     * @param recoveryKey          the recovery key to decrypt the retrieved backup.
+     * @param roomId               the id of the room to get backup data from.
+     * @param sessionId            the id of the session to restore.
+     * @param stepProgressListener the step progress listener
+     * @param callback             Callback. It provides the number of found keys and the number of successfully imported keys.
      */
     fun restoreKeysWithRecoveryKey(version: String,
                                    recoveryKey: String,
                                    roomId: String?,
                                    sessionId: String?,
+                                   stepProgressListener: StepProgressListener?,
                                    callback: ApiCallback<ImportRoomKeysResult>) {
         Log.d(LOG_TAG, "restoreKeysWithRecoveryKey: From backup version: $version")
 
@@ -733,6 +736,10 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 Log.e(LOG_TAG, "restoreKeysWithRecoveryKey: Invalid recovery key. Error")
                 mCrypto.uiHandler.post { callback.onUnexpectedError(InvalidParameterException("Invalid recovery key")) }
                 return@Runnable
+            }
+
+            if (stepProgressListener != null) {
+                mCrypto.uiHandler.post { stepProgressListener.onStepProgress(StepProgressListener.Step.DownloadingKey) }
             }
 
             // Get backed up keys from the homeserver
@@ -783,7 +790,19 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     }
 
                     // Import them into the crypto store
-                    mCrypto.importMegolmSessionsData(sessionsData, backUp, callback)
+                    val progressListener = if (stepProgressListener != null) {
+                        object : ProgressListener {
+                            override fun onProgress(progress: Int, total: Int) {
+                                mCrypto.uiHandler.post {
+                                    stepProgressListener.onStepProgress(StepProgressListener.Step.ImportingKey(progress, total))
+                                }
+                            }
+                        }
+                    } else {
+                        null
+                    }
+
+                    mCrypto.importMegolmSessionsData(sessionsData, backUp, progressListener, callback)
                 }
             })
         })
@@ -796,12 +815,14 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
      * @param password the password to decrypt the retrieved backup.
      * @param roomId the id of the room to get backup data from.
      * @param sessionId the id of the session to restore.
+     * @param stepProgressListener the step progress listener
      * @param callback Callback. It provides the number of found keys and the number of successfully imported keys.
      */
     fun restoreKeyBackupWithPassword(version: String,
                                      password: String,
                                      roomId: String?,
                                      sessionId: String?,
+                                     stepProgressListener: StepProgressListener?,
                                      callback: ApiCallback<ImportRoomKeysResult>) {
         Log.d(LOG_TAG, "[MXKeyBackup] restoreKeyBackup with password: From backup version: $version")
 
@@ -816,14 +837,27 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     return
                 }
 
+                val progressListener = if (stepProgressListener != null) {
+                    object : ProgressListener {
+                        override fun onProgress(progress: Int, total: Int) {
+                            mCrypto.uiHandler.post {
+                                stepProgressListener.onStepProgress(StepProgressListener.Step.ComputingKey(progress, total))
+                            }
+                        }
+                    }
+                } else {
+                    null
+                }
+
                 mCrypto.decryptingThreadHandler.post {
                     // Compute the recovery key
                     val privateKey = retrievePrivateKeyWithPassword(password,
                             megolmBackupAuthData.privateKeySalt!!,
-                            megolmBackupAuthData.privateKeyIterations!!)
+                            megolmBackupAuthData.privateKeyIterations!!,
+                            progressListener)
 
                     val recoveryKey = computeRecoveryKey(privateKey)
-                    restoreKeysWithRecoveryKey(version, recoveryKey, roomId, sessionId, callback)
+                    restoreKeysWithRecoveryKey(version, recoveryKey, roomId, sessionId, stepProgressListener, callback)
                 }
 
             }

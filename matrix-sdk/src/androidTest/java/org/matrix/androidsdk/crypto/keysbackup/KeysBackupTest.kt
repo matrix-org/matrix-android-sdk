@@ -32,6 +32,7 @@ import org.matrix.androidsdk.crypto.data.ImportRoomKeysResult
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2
 import org.matrix.androidsdk.listeners.ProgressListener
+import org.matrix.androidsdk.listeners.StepProgressListener
 import org.matrix.androidsdk.rest.callback.SuccessCallback
 import org.matrix.androidsdk.rest.callback.SuccessErrorCallback
 import org.matrix.androidsdk.rest.model.keys.CreateKeysBackupVersionBody
@@ -345,6 +346,7 @@ class KeysBackupTest {
                 testData.prepareKeysBackupDataResult.megolmBackupCreationInfo.recoveryKey,
                 null,
                 null,
+                null,
                 object : TestApiCallback<ImportRoomKeysResult>(latch2) {
                     override fun onSuccess(info: ImportRoomKeysResult) {
                         importRoomKeysResult = info
@@ -392,6 +394,7 @@ class KeysBackupTest {
         var importRoomKeysResult: ImportRoomKeysResult? = null
         testData.aliceSession2.crypto!!.keysBackup.restoreKeysWithRecoveryKey(testData.prepareKeysBackupDataResult.version,
                 testData.prepareKeysBackupDataResult.megolmBackupCreationInfo.recoveryKey,
+                null,
                 null,
                 null,
                 object : TestApiCallback<ImportRoomKeysResult>(latch2) {
@@ -767,6 +770,7 @@ class KeysBackupTest {
                 "EsTc LW2K PGiF wKEA 3As5 g5c4 BXwk qeeJ ZJV8 Q9fu gUMN UE4d",
                 null,
                 null,
+                null,
                 object : TestApiCallback<ImportRoomKeysResult>(latch2, false) {
                     override fun onSuccess(info: ImportRoomKeysResult) {
                         importRoomKeysResult = info
@@ -799,10 +803,17 @@ class KeysBackupTest {
         // - Restore the e2e backup with the password
         val latch2 = CountDownLatch(1)
         var importRoomKeysResult: ImportRoomKeysResult? = null
+        val steps = ArrayList<StepProgressListener.Step>()
+
         testData.aliceSession2.crypto!!.keysBackup.restoreKeyBackupWithPassword(testData.prepareKeysBackupDataResult.version,
                 password,
                 null,
                 null,
+                object : StepProgressListener {
+                    override fun onStepProgress(step: StepProgressListener.Step) {
+                        steps.add(step)
+                    }
+                },
                 object : TestApiCallback<ImportRoomKeysResult>(latch2) {
                     override fun onSuccess(info: ImportRoomKeysResult) {
                         importRoomKeysResult = info
@@ -811,6 +822,27 @@ class KeysBackupTest {
                 }
         )
         mTestHelper.await(latch2)
+
+        // Check steps
+        assertEquals(105, steps.size)
+
+        for (i in 0..100) {
+            assertTrue(steps[i] is StepProgressListener.Step.ComputingKey)
+            assertEquals(i, (steps[i] as StepProgressListener.Step.ComputingKey).progress)
+            assertEquals(100, (steps[i] as StepProgressListener.Step.ComputingKey).total)
+        }
+
+        assertTrue(steps[101] is StepProgressListener.Step.DownloadingKey)
+
+        // 2 Keys to import, value will be 0%, 50%, 100%
+        for (i in 102..104) {
+            assertTrue(steps[i] is StepProgressListener.Step.ImportingKey)
+            assertEquals(100, (steps[i] as StepProgressListener.Step.ImportingKey).total)
+        }
+
+        assertEquals(0, (steps[102] as StepProgressListener.Step.ImportingKey).progress)
+        assertEquals(50, (steps[103] as StepProgressListener.Step.ImportingKey).progress)
+        assertEquals(100, (steps[104] as StepProgressListener.Step.ImportingKey).progress)
 
         checkRestoreSuccess(testData, importRoomKeysResult!!.totalNumberOfKeys, importRoomKeysResult!!.successfullyNumberOfImportedKeys)
 
@@ -837,6 +869,7 @@ class KeysBackupTest {
         var importRoomKeysResult: ImportRoomKeysResult? = null
         testData.aliceSession2.crypto!!.keysBackup.restoreKeyBackupWithPassword(testData.prepareKeysBackupDataResult.version,
                 wrongPassword,
+                null,
                 null,
                 null,
                 object : TestApiCallback<ImportRoomKeysResult>(latch2, false) {
@@ -875,6 +908,7 @@ class KeysBackupTest {
                 testData.prepareKeysBackupDataResult.megolmBackupCreationInfo.recoveryKey,
                 null,
                 null,
+                null,
                 object : TestApiCallback<ImportRoomKeysResult>(latch2) {
                     override fun onSuccess(info: ImportRoomKeysResult) {
                         importRoomKeysResult = info
@@ -906,6 +940,7 @@ class KeysBackupTest {
         var importRoomKeysResult: ImportRoomKeysResult? = null
         testData.aliceSession2.crypto!!.keysBackup.restoreKeyBackupWithPassword(testData.prepareKeysBackupDataResult.version,
                 "password",
+                null,
                 null,
                 null,
                 object : TestApiCallback<ImportRoomKeysResult>(latch2, false) {
