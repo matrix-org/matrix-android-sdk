@@ -19,6 +19,7 @@
  */
 package org.matrix.androidsdk.crypto.keysbackup
 
+import android.support.annotation.WorkerThread
 import org.matrix.androidsdk.listeners.ProgressListener
 import org.matrix.androidsdk.util.Log
 import java.util.*
@@ -45,6 +46,7 @@ data class GeneratePrivateKeyResult(
  *
  * @return a {privateKey, salt, iterations} tuple.
  */
+@WorkerThread
 fun generatePrivateKeyWithPassword(password: String, progressListener: ProgressListener?): GeneratePrivateKeyResult {
     val salt = generateSalt()
     val iterations = DEFAULT_ITERATION
@@ -63,6 +65,7 @@ fun generatePrivateKeyWithPassword(password: String, progressListener: ProgressL
  *
  * @return a private key.
  */
+@WorkerThread
 fun retrievePrivateKeyWithPassword(password: String,
                                    salt: String,
                                    iterations: Int,
@@ -72,6 +75,7 @@ fun retrievePrivateKeyWithPassword(password: String,
 
 /**
  * Compute a private key by deriving a password and a salt strings.
+ *
  * @param password the password.
  * @param salt the salt.
  * @param iterations number of derivations.
@@ -79,6 +83,7 @@ fun retrievePrivateKeyWithPassword(password: String,
  *
  * @return a private key.
  */
+@WorkerThread
 private fun deriveKey(password: String,
                       salt: String,
                       iterations: Int,
