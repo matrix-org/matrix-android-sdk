@@ -39,6 +39,7 @@ import org.matrix.androidsdk.rest.model.keys.CreateKeysBackupVersionBody
 import org.matrix.androidsdk.rest.model.keys.KeysVersion
 import org.matrix.androidsdk.rest.model.keys.KeysVersionResult
 import org.matrix.androidsdk.util.JsonUtils
+import java.util.*
 import java.util.concurrent.CountDownLatch
 
 @RunWith(AndroidJUnit4::class)
@@ -81,7 +82,7 @@ class KeysBackupTest {
         // - Check backup keys after having marked one as backed up
         val session = sessions[0]
 
-        store.markBackupDoneForInboundGroupSessionWithId(session.mSession.sessionIdentifier(), session.mSenderKey)
+        store.markBackupDoneForInboundGroupSessions(Collections.singletonList(session))
 
         assertEquals(sessionsCount, store.inboundGroupSessionsCount(false))
         assertEquals(1, store.inboundGroupSessionsCount(true))

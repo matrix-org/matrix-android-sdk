@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - Improve import of keys performance (vector-im/riot-android#2960)
 
 Bugfix:
  -

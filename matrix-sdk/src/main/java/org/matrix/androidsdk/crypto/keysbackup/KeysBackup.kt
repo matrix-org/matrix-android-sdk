@@ -1333,13 +1333,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                         Log.d(LOG_TAG, "backupKeys: 5a - Request complete")
 
                         // Mark keys as backed up
-                        for (session in sessions) {
-                            try {
-                                mCrypto.cryptoStore.markBackupDoneForInboundGroupSessionWithId(session.mSession.sessionIdentifier(), session.mSenderKey)
-                            } catch (e: OlmException) {
-                                Log.e(LOG_TAG, "OlmException", e)
-                            }
-                        }
+                        mCrypto.cryptoStore.markBackupDoneForInboundGroupSessions(sessions)
 
                         if (sessions.size < KEY_BACKUP_SEND_KEYS_MAX_COUNT) {
                             Log.d(LOG_TAG, "backupKeys: All keys have been backed up")

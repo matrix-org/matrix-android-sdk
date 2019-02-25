@@ -2409,27 +2409,20 @@ public class MXCrypto {
                     });
                 }
 
+                List<MXOlmInboundGroupSession2> sessions = mOlmDevice.importInboundGroupSessions(megolmSessionsData);
+
                 for (MegolmSessionData megolmSessionData : megolmSessionsData) {
                     cpt++;
 
-                    MXOlmInboundGroupSession2 session = mOlmDevice.importInboundGroupSession(megolmSessionData);
-
-                    if ((null != session) && mRoomDecryptors.containsKey(session.mRoomId)) {
-                        IMXDecrypting decrypting = mRoomDecryptors.get(session.mRoomId).get(megolmSessionData.algorithm);
+                    if ((null != megolmSessionData) && mRoomDecryptors.containsKey(megolmSessionData.roomId)) {
+                        IMXDecrypting decrypting = mRoomDecryptors.get(megolmSessionData.roomId).get(megolmSessionData.algorithm);
 
                         if (null != decrypting) {
                             try {
-                                String sessionId = session.mSession.sessionIdentifier();
-                                Log.d(LOG_TAG, "## importRoomKeys retrieve mSenderKey " + session.mSenderKey + " sessionId " + sessionId);
+                                String sessionId = megolmSessionData.sessionId;
+                                Log.d(LOG_TAG, "## importRoomKeys retrieve mSenderKey " + megolmSessionData.senderKey + " sessionId " + sessionId);
 
                                 totalNumbersOfImportedKeys++;
-
-                                // Do not back up the key if it comes from a backup recovery
-                                if (backUpKeys) {
-                                    mKeysBackup.maybeBackupKeys();
-                                } else {
-                                    mCryptoStore.markBackupDoneForInboundGroupSessionWithId(sessionId, session.mSenderKey);
-                                }
 
                                 // cancel any outstanding room key requests for this session
                                 RoomKeyRequestBody roomKeyRequestBody = new RoomKeyRequestBody();
@@ -2442,7 +2435,7 @@ public class MXCrypto {
                                 cancelRoomKeyRequest(roomKeyRequestBody);
 
                                 // Have another go at decrypting events sent with this session
-                                decrypting.onNewSession(session.mSenderKey, sessionId);
+                                decrypting.onNewSession(megolmSessionData.senderKey, sessionId);
                             } catch (Exception e) {
                                 Log.e(LOG_TAG, "## importRoomKeys() : onNewSession failed " + e.getMessage(), e);
                             }
@@ -2463,6 +2456,13 @@ public class MXCrypto {
                             });
                         }
                     }
+                }
+
+                // Do not back up the key if it comes from a backup recovery
+                if (backUpKeys) {
+                    mKeysBackup.maybeBackupKeys();
+                } else {
+                    mCryptoStore.markBackupDoneForInboundGroupSessions(sessions);
                 }
 
                 long t1 = System.currentTimeMillis();
