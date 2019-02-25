@@ -453,6 +453,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     fun trustKeysBackupVersion(keysBackupVersion: KeysVersionResult,
                                trust: Boolean,
                                callback: ApiCallback<Void>) {
+        Log.d(LOG_TAG, "trustKeyBackupVersion: $trust, version ${keysBackupVersion.version}")
+
         mCrypto.decryptingThreadHandler.post {
             val myUserId = mCrypto.myDevice.userId
 
@@ -549,6 +551,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     fun trustKeysBackupVersionWithRecoveryKey(keysBackupVersion: KeysVersionResult,
                                               recoveryKey: String,
                                               callback: ApiCallback<Void>) {
+        Log.d(LOG_TAG, "trustKeysBackupVersionWithRecoveryKey: version ${keysBackupVersion.version}")
+
         mCrypto.decryptingThreadHandler.post {
             if (!isValidRecoveryKeyForKeysBackupVersion(recoveryKey, keysBackupVersion)) {
                 Log.w(LOG_TAG, "trustKeyBackupVersionWithRecoveryKey: Invalid recovery key.")
@@ -573,6 +577,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     fun trustKeysBackupVersionWithPassphrase(keysBackupVersion: KeysVersionResult,
                                              password: String,
                                              callback: ApiCallback<Void>) {
+        Log.d(LOG_TAG, "trustKeysBackupVersionWithPassphrase: version ${keysBackupVersion.version}")
+
         mCrypto.decryptingThreadHandler.post {
             val recoveryKey = recoveryKeyFromPassword(password, keysBackupVersion, null)
 
@@ -1011,10 +1017,12 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     }
 
     private fun checkAndStartWithKeysBackupVersion(keyBackupVersion: KeysVersionResult?) {
+        Log.d(LOG_TAG, "checkAndStartWithKeyBackupVersion: ${keyBackupVersion?.version}")
+
         mKeysBackupVersion = keyBackupVersion
 
         if (keyBackupVersion == null) {
-            Log.d(LOG_TAG, "checkAndStartKeysBackup: Found no key backup version on the homeserver")
+            Log.d(LOG_TAG, "checkAndStartWithKeysBackupVersion: Found no key backup version on the homeserver")
             resetKeysBackupData()
             mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
         } else {
@@ -1022,7 +1030,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 val versionInStore = mCrypto.cryptoStore.keyBackupVersion
 
                 if (trustInfo.usable) {
-                    Log.d(LOG_TAG, "checkAndStartKeysBackup: Found usable key backup. version: " + keyBackupVersion.version)
+                    Log.d(LOG_TAG, "checkAndStartWithKeysBackupVersion: Found usable key backup. version: " + keyBackupVersion.version)
                     // Check the version we used at the previous app run
                     if (versionInStore != null && versionInStore != keyBackupVersion.version) {
                         Log.d(LOG_TAG, " -> clean the previously used version $versionInStore")
@@ -1032,7 +1040,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     Log.d(LOG_TAG, "   -> enabling key backups")
                     enableKeysBackup(keyBackupVersion)
                 } else {
-                    Log.d(LOG_TAG, "checkAndStartKeysBackup: No usable key backup. version: " + keyBackupVersion.version)
+                    Log.d(LOG_TAG, "checkAndStartWithKeysBackupVersion: No usable key backup. version: " + keyBackupVersion.version)
                     if (versionInStore != null) {
                         Log.d(LOG_TAG, "   -> disabling key backup")
                         resetKeysBackupData()

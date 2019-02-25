@@ -560,7 +560,7 @@ public class MXOlmDevice {
                 return false;
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## addInboundGroupSession : sessionIdentifier') failed " + e.getMessage(), e);
+            Log.e(LOG_TAG, "## addInboundGroupSession : sessionIdentifier() failed " + e.getMessage(), e);
             return false;
         }
 
@@ -614,7 +614,7 @@ public class MXOlmDevice {
                 return null;
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## importInboundGroupSession : sessionIdentifier') failed " + e.getMessage(), e);
+            Log.e(LOG_TAG, "## importInboundGroupSession : sessionIdentifier() failed " + e.getMessage(), e);
             return null;
         }
 
