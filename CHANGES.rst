@@ -2,7 +2,7 @@ Changes to Matrix Android SDK in 0.9.18 (2019-XX-XX)
 =======================================================
 
 Features:
- -
+ - .well-known support #2982
 
 Improvements:
  -
