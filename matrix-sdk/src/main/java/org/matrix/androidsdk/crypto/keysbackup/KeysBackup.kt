@@ -726,9 +726,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     val progressListener = if (stepProgressListener != null) {
                         object : ProgressListener {
                             override fun onProgress(progress: Int, total: Int) {
-                                mCrypto.uiHandler.post {
-                                    stepProgressListener.onStepProgress(StepProgressListener.Step.ImportingKey(progress, total))
-                                }
+                                // Note: no need to post to UI thread, importMegolmSessionsData() will do it
+                                stepProgressListener.onStepProgress(StepProgressListener.Step.ImportingKey(progress, total))
                             }
                         }
                     } else {
@@ -777,7 +776,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
             if (recoveryKey == null) {
                 mCrypto.uiHandler.post {
                     Log.d(LOG_TAG, "backupKeys: Invalid configuration")
-                    callback?.onUnexpectedError(IllegalStateException("Invalid configuration"))
+                    callback.onUnexpectedError(IllegalStateException("Invalid configuration"))
                 }
 
                 return@post
