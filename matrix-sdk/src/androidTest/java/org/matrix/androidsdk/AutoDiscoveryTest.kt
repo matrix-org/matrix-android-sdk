@@ -17,14 +17,12 @@
 package org.matrix.androidsdk
 
 import android.os.Looper
-import okhttp3.OkHttpClient
 import org.junit.Assert
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runners.MethodSorters
 import org.matrix.androidsdk.common.MockOkHttpInterceptor
 import org.matrix.androidsdk.common.TestApiCallback
-import org.matrix.androidsdk.common.TestConstants
 import org.matrix.androidsdk.login.AutoDiscovery
 import java.util.concurrent.CountDownLatch
 
@@ -38,28 +36,26 @@ class AutoDiscoveryTest {
 
         val mockInterceptor = MockOkHttpInterceptor()
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 404))
-        var okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(mockInterceptor)
-                .build()
 
-        val ad = AutoDiscovery(okHttpClient)
+        RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+        val ad = AutoDiscovery()
 
         var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
-        var config: AutoDiscovery.DiscoveredClientConfig? = null
+        var discovery: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
             override fun onSuccess(info: AutoDiscovery.DiscoveredClientConfig) {
-                config = info
+                discovery = info
                 callbackThread = Thread.currentThread()
                 super.onSuccess(info)
             }
 
         })
         lock.await()
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.IGNORE, config!!.action)
-        Assert.assertNull(config?.homeServerUrl)
-        Assert.assertNull(config?.idendityServerUrl)
+        Assert.assertNotNull(discovery)
+        Assert.assertEquals(AutoDiscovery.Action.IGNORE, discovery!!.action)
+        Assert.assertNull(discovery?.wellKnown?.homeServer)
+        Assert.assertNull(discovery?.wellKnown?.identityServer)
         Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
 
     }
@@ -72,20 +68,16 @@ class AutoDiscoveryTest {
         val mockInterceptor = MockOkHttpInterceptor()
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 500))
 
-        val okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(mockInterceptor)
-                .build()
-
-        val ad = AutoDiscovery(okHttpClient)
-
+        RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+        val ad = AutoDiscovery()
 
         //Act
         var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
-        var config: AutoDiscovery.DiscoveredClientConfig? = null
+        var discovery: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
             override fun onSuccess(info: AutoDiscovery.DiscoveredClientConfig) {
-                config = info
+                discovery = info
                 callbackThread = Thread.currentThread()
                 super.onSuccess(info)
             }
@@ -95,10 +87,10 @@ class AutoDiscoveryTest {
 
 
         //Assert
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, config!!.action)
-        Assert.assertNull(config?.homeServerUrl)
-        Assert.assertNull(config?.idendityServerUrl)
+        Assert.assertNotNull(discovery)
+        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
+        Assert.assertNull(discovery?.wellKnown?.homeServer)
+        Assert.assertNull(discovery?.wellKnown?.identityServer)
         Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
@@ -109,19 +101,16 @@ class AutoDiscoveryTest {
         //Arrange
         val mockInterceptor = MockOkHttpInterceptor()
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, ""))
-
-        val okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(mockInterceptor)
-                .build()
-        val ad = AutoDiscovery(okHttpClient)
+        RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+        val ad = AutoDiscovery()
 
         //Act
         var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
-        var config: AutoDiscovery.DiscoveredClientConfig? = null
+        var discovery: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
             override fun onSuccess(info: AutoDiscovery.DiscoveredClientConfig) {
-                config = info
+                discovery = info
                 callbackThread = Thread.currentThread()
                 super.onSuccess(info)
             }
@@ -130,10 +119,10 @@ class AutoDiscoveryTest {
         lock.await()
 
         //Assert
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, config!!.action)
-        Assert.assertNull(config?.homeServerUrl)
-        Assert.assertNull(config?.idendityServerUrl)
+        Assert.assertNotNull(discovery)
+        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
+        Assert.assertNull(discovery?.wellKnown?.homeServer)
+        Assert.assertNull(discovery?.wellKnown?.identityServer)
         Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
@@ -145,19 +134,16 @@ class AutoDiscoveryTest {
         val malformedValue = "<html><h1>Hello world!</h1></html>"
         val mockInterceptor = MockOkHttpInterceptor()
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, malformedValue))
-
-        val okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(mockInterceptor)
-                .build()
-        val ad = AutoDiscovery(okHttpClient)
+        RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+        val ad = AutoDiscovery()
 
         //Act
         var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
-        var config: AutoDiscovery.DiscoveredClientConfig? = null
+        var discovery: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
             override fun onSuccess(info: AutoDiscovery.DiscoveredClientConfig) {
-                config = info
+                discovery = info
                 callbackThread = Thread.currentThread()
                 super.onSuccess(info)
             }
@@ -166,10 +152,10 @@ class AutoDiscoveryTest {
 
         //Assert
         lock.await()
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, config!!.action)
-        Assert.assertNull(config?.homeServerUrl)
-        Assert.assertNull(config?.idendityServerUrl)
+        Assert.assertNotNull(discovery)
+        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
+        Assert.assertNull(discovery?.wellKnown?.homeServer)
+        Assert.assertNull(discovery?.wellKnown?.homeServer)
         Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
 
     }
@@ -183,19 +169,17 @@ class AutoDiscoveryTest {
         val mockBody = "{\"m.homesorv4r\" : \"{}\"}"
         val mockInterceptor = MockOkHttpInterceptor()
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
+        RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+        val ad = AutoDiscovery()
 
-        val okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(mockInterceptor)
-                .build()
-        val ad = AutoDiscovery(okHttpClient)
 
         //Act
         var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
-        var config: AutoDiscovery.DiscoveredClientConfig? = null
+        var discovery: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
             override fun onSuccess(info: AutoDiscovery.DiscoveredClientConfig) {
-                config = info
+                discovery = info
                 callbackThread = Thread.currentThread()
                 super.onSuccess(info)
             }
@@ -204,10 +188,10 @@ class AutoDiscoveryTest {
         lock.await()
 
         //Assert
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, config!!.action)
-        Assert.assertNull(config?.homeServerUrl)
-        Assert.assertNull(config?.idendityServerUrl)
+        Assert.assertNotNull(discovery)
+        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
+        Assert.assertNull(discovery?.wellKnown?.homeServer)
+        Assert.assertNull(discovery?.wellKnown?.identityServer)
         Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
@@ -219,19 +203,16 @@ class AutoDiscoveryTest {
         val mockBody = "{\"m.homeserver\" : {}}"
         val mockInterceptor = MockOkHttpInterceptor()
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
-
-        val okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(mockInterceptor)
-                .build()
-        val ad = AutoDiscovery(okHttpClient)
+        RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+        val ad = AutoDiscovery()
 
         //Act
         var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
-        var config: AutoDiscovery.DiscoveredClientConfig? = null
+        var discovery: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
             override fun onSuccess(info: AutoDiscovery.DiscoveredClientConfig) {
-                config = info
+                discovery = info
                 callbackThread = Thread.currentThread()
                 super.onSuccess(info)
             }
@@ -240,10 +221,10 @@ class AutoDiscoveryTest {
 
         //Assert
         lock.await()
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, config!!.action)
-        Assert.assertNull(config?.homeServerUrl)
-        Assert.assertNull(config?.idendityServerUrl)
+        Assert.assertNotNull(discovery)
+        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
+        Assert.assertNull(discovery?.wellKnown?.homeServer)
+        Assert.assertNull(discovery?.wellKnown?.identityServer)
         Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
 
     }
@@ -258,18 +239,16 @@ class AutoDiscoveryTest {
         val mockInterceptor = MockOkHttpInterceptor()
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
 
-        val okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(mockInterceptor)
-                .build()
-        val ad = AutoDiscovery(okHttpClient)
+        RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+        val ad = AutoDiscovery()
 
         //Act
         var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
-        var config: AutoDiscovery.DiscoveredClientConfig? = null
+        var discovery: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
             override fun onSuccess(info: AutoDiscovery.DiscoveredClientConfig) {
-                config = info
+                discovery = info
                 callbackThread = Thread.currentThread()
                 super.onSuccess(info)
             }
@@ -278,17 +257,17 @@ class AutoDiscoveryTest {
 
         //Assert
         lock.await()
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_ERROR, config!!.action)
-        Assert.assertNull(config?.homeServerUrl)
-        Assert.assertNull(config?.idendityServerUrl)
+        Assert.assertNotNull(discovery)
+        Assert.assertEquals(AutoDiscovery.Action.FAIL_ERROR, discovery!!.action)
+        Assert.assertNull(discovery?.wellKnown?.homeServer)
+        Assert.assertNull(discovery?.wellKnown?.homeServer)
         Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
 
     }
 
 
     @Test
-    // if base_url from m.homeserver is not an URL, then FAIL_ERROR.
+    // if base_url from m.homeserver is not a valid Home Server, then FAIL_ERROR.
     fun testAutoDiscoveryNotValideHSURL() {
 
         //Arrange
@@ -298,18 +277,16 @@ class AutoDiscoveryTest {
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl, 404))
 
-        val okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(mockInterceptor)
-                .build()
-        val ad = AutoDiscovery(okHttpClient)
+        RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+        val ad = AutoDiscovery()
 
         //Act
         var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
-        var config: AutoDiscovery.DiscoveredClientConfig? = null
+        var discovery: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
             override fun onSuccess(info: AutoDiscovery.DiscoveredClientConfig) {
-                config = info
+                discovery = info
                 callbackThread = Thread.currentThread()
                 super.onSuccess(info)
             }
@@ -318,10 +295,10 @@ class AutoDiscoveryTest {
 
         //Assert
         lock.await()
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_ERROR, config!!.action)
-        Assert.assertNull(config?.homeServerUrl)
-        Assert.assertNull(config?.idendityServerUrl)
+        Assert.assertNotNull(discovery)
+        Assert.assertEquals(AutoDiscovery.Action.FAIL_ERROR, discovery!!.action)
+        Assert.assertNull(discovery?.wellKnown?.homeServer)
+        Assert.assertNull(discovery?.wellKnown?.identityServer)
         Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
@@ -340,18 +317,16 @@ class AutoDiscoveryTest {
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
 
-        val okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(mockInterceptor)
-                .build()
-        val ad = AutoDiscovery(okHttpClient)
+        RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+        val ad = AutoDiscovery()
 
         //Act
         var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
-        var config: AutoDiscovery.DiscoveredClientConfig? = null
+        var discovery: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
             override fun onSuccess(info: AutoDiscovery.DiscoveredClientConfig) {
-                config = info
+                discovery = info
                 callbackThread = Thread.currentThread()
                 super.onSuccess(info)
             }
@@ -360,11 +335,11 @@ class AutoDiscoveryTest {
 
         //Assert
         lock.await()
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.PROMPT, config!!.action)
-        Assert.assertNotNull(config!!.homeServerUrl)
-        Assert.assertEquals(baseURl, config!!.homeServerUrl)
-        Assert.assertNull(config!!.idendityServerUrl)
+        Assert.assertNotNull(discovery)
+        Assert.assertEquals(AutoDiscovery.Action.PROMPT, discovery!!.action)
+        Assert.assertNotNull(discovery!!.wellKnown?.homeServer)
+        Assert.assertEquals(baseURl, discovery!!.wellKnown!!.homeServer?.baseURL)
+        Assert.assertNull(discovery?.wellKnown?.identityServer)
         Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
@@ -386,10 +361,8 @@ class AutoDiscoveryTest {
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
 
-        val okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(mockInterceptor)
-                .build()
-        val ad = AutoDiscovery(okHttpClient)
+        RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+        val ad = AutoDiscovery()
 
         //Act
         val lock = CountDownLatch(1)
@@ -429,10 +402,8 @@ class AutoDiscoveryTest {
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
 
-        val okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(mockInterceptor)
-                .build()
-        val ad = AutoDiscovery(okHttpClient)
+        RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+        val ad = AutoDiscovery()
 
         //Act
         val lock = CountDownLatch(1)
@@ -473,11 +444,8 @@ class AutoDiscoveryTest {
 
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(idServerBaseURL + "/_matrix/identity/api/v1", 404))
 
-
-        val okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(mockInterceptor)
-                .build()
-        val ad = AutoDiscovery(okHttpClient)
+        RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+        val ad = AutoDiscovery()
 
         //Act
         val lock = CountDownLatch(1)
@@ -523,10 +491,8 @@ class AutoDiscoveryTest {
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(idServerBaseURL + "/_matrix/identity/api/v1", 200, idServerResponse))
 
 
-        val okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(mockInterceptor)
-                .build()
-        val ad = AutoDiscovery(okHttpClient)
+        RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+        val ad = AutoDiscovery()
 
         //Act
         val lock = CountDownLatch(1)
@@ -542,34 +508,35 @@ class AutoDiscoveryTest {
         lock.await()
         Assert.assertNotNull(config)
         Assert.assertEquals(AutoDiscovery.Action.PROMPT, config!!.action)
-        Assert.assertNotNull(config!!.homeServerUrl)
-        Assert.assertNotNull(config!!.idendityServerUrl)
-        Assert.assertEquals(baseURl, config!!.homeServerUrl)
-        Assert.assertEquals(idServerBaseURL, config!!.idendityServerUrl)
+        Assert.assertNotNull(config?.wellKnown?.homeServer)
+        Assert.assertNotNull(config!!.wellKnown?.identityServer)
+        Assert.assertEquals(baseURl, config!!.wellKnown?.homeServer?.baseURL)
+        Assert.assertEquals(idServerBaseURL, config!!.wellKnown?.identityServer?.baseURL)
     }
 
 
-    //@//Test
-    fun testLocal() {
+//    @Test
+//    fun testLocal() {
+//
+//        val lock = CountDownLatch(1)
+//        var config: AutoDiscovery.DiscoveredClientConfig? = null
+//        val domain = "kde.org"//TestConstants.TESTS_HOME_SERVER_URL.substring("http://".length)
+//        AutoDiscovery.instance.findClientConfig(domain, object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
+//            override fun onSuccess(info: AutoDiscovery.DiscoveredClientConfig) {
+//                config = info
+//                super.onSuccess(info)
+//            }
+//        })
+//        lock.await()
+//
+//        Assert.assertNotNull(config)
+//        Assert.assertNotNull(config)
+//        Assert.assertEquals(AutoDiscovery.Action.PROMPT, config!!.action)
+//        Assert.assertNotNull(config?.wellKnown?.homeServer)
+//        Assert.assertNotNull(config!!.wellKnown?.identityServer)
+//        Assert.assertEquals("https://kde.modular.im", config!!.wellKnown?.homeServer?.baseURL)
+//        Assert.assertEquals("https://vector.im", config!!.wellKnown?.identityServer?.baseURL)
+//    }
 
-        val lock = CountDownLatch(1)
-        var config: AutoDiscovery.DiscoveredClientConfig? = null
-        val domain = TestConstants.TESTS_HOME_SERVER_URL.substring("http://".length)
-        AutoDiscovery.instance.findClientConfig(domain, object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
-            override fun onSuccess(info: AutoDiscovery.DiscoveredClientConfig) {
-                config = info
-                super.onSuccess(info)
-            }
-        })
-        lock.await()
-
-
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.PROMPT, config!!.action)
-        Assert.assertNotNull(config!!.homeServerUrl)
-        Assert.assertNotNull(config!!.idendityServerUrl)
-        Assert.assertEquals("https://matrix.org", config!!.homeServerUrl)
-        Assert.assertEquals("https://vector.im", config!!.idendityServerUrl)
-    }
 }
 
