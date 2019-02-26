@@ -109,12 +109,13 @@ public class PermalinkUtils {
 
     /**
      * Escape '/' in id, because it is used as a separator
+     * Escape '+' in room v3
      *
      * @param id the id to escape
      * @return the escaped id
      */
     private static String escape(String id) {
-        return id.replaceAll("/", "%2F");
+        return id.replaceAll("/", "%2F").replaceAll("\\+", "%2B");
     }
 
     /***
@@ -153,7 +154,7 @@ public class PermalinkUtils {
 
             // remove the server part
             String uriFragment;
-            if ((uriFragment = uri.getFragment()) != null) {
+            if ((uriFragment = uri.getEncodedFragment()) != null) {
                 uriFragment = uriFragment.substring(1); // get rid of first "/"
             } else {
                 Log.e(LOG_TAG, "## parseUniversalLink : cannot extract path");
@@ -161,6 +162,9 @@ public class PermalinkUtils {
             }
 
             String temp[] = uriFragment.split("/", 3); // limit to 3 for security concerns (stack overflow injection)
+            for (int i = 0; i < temp.length; i++) {
+                temp[i] = URLDecoder.decode(temp[i], "UTF-8");
+            }
 
             if (!isSupportedHost) {
                 List<String> compliantList = new ArrayList<>(Arrays.asList(temp));
