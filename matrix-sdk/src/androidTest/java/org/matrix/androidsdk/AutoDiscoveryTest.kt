@@ -44,7 +44,7 @@ class AutoDiscoveryTest {
 
         val ad = AutoDiscovery(okHttpClient)
 
-        var callbackThread : Thread? = null
+        var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
         var config: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
@@ -60,7 +60,7 @@ class AutoDiscoveryTest {
         Assert.assertEquals(AutoDiscovery.Action.IGNORE, config!!.action)
         Assert.assertNull(config?.homeServerUrl)
         Assert.assertNull(config?.idendityServerUrl)
-        Assert.assertTrue("Callback should be in main thread",Looper.getMainLooper().thread == callbackThread)
+        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
 
     }
 
@@ -80,7 +80,7 @@ class AutoDiscoveryTest {
 
 
         //Act
-        var callbackThread : Thread? = null
+        var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
         var config: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
@@ -99,7 +99,7 @@ class AutoDiscoveryTest {
         Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, config!!.action)
         Assert.assertNull(config?.homeServerUrl)
         Assert.assertNull(config?.idendityServerUrl)
-        Assert.assertTrue("Callback should be in main thread",Looper.getMainLooper().thread == callbackThread)
+        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
     @Test
@@ -116,7 +116,7 @@ class AutoDiscoveryTest {
         val ad = AutoDiscovery(okHttpClient)
 
         //Act
-        var callbackThread : Thread? = null
+        var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
         var config: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
@@ -134,7 +134,7 @@ class AutoDiscoveryTest {
         Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, config!!.action)
         Assert.assertNull(config?.homeServerUrl)
         Assert.assertNull(config?.idendityServerUrl)
-        Assert.assertTrue("Callback should be in main thread",Looper.getMainLooper().thread == callbackThread)
+        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
     @Test
@@ -152,7 +152,7 @@ class AutoDiscoveryTest {
         val ad = AutoDiscovery(okHttpClient)
 
         //Act
-        var callbackThread : Thread? = null
+        var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
         var config: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
@@ -170,7 +170,7 @@ class AutoDiscoveryTest {
         Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, config!!.action)
         Assert.assertNull(config?.homeServerUrl)
         Assert.assertNull(config?.idendityServerUrl)
-        Assert.assertTrue("Callback should be in main thread",Looper.getMainLooper().thread == callbackThread)
+        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
 
     }
 
@@ -190,7 +190,7 @@ class AutoDiscoveryTest {
         val ad = AutoDiscovery(okHttpClient)
 
         //Act
-        var callbackThread : Thread? = null
+        var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
         var config: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
@@ -208,7 +208,7 @@ class AutoDiscoveryTest {
         Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, config!!.action)
         Assert.assertNull(config?.homeServerUrl)
         Assert.assertNull(config?.idendityServerUrl)
-        Assert.assertTrue("Callback should be in main thread",Looper.getMainLooper().thread == callbackThread)
+        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
     @Test
@@ -226,7 +226,7 @@ class AutoDiscoveryTest {
         val ad = AutoDiscovery(okHttpClient)
 
         //Act
-        var callbackThread : Thread? = null
+        var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
         var config: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
@@ -244,7 +244,7 @@ class AutoDiscoveryTest {
         Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, config!!.action)
         Assert.assertNull(config?.homeServerUrl)
         Assert.assertNull(config?.idendityServerUrl)
-        Assert.assertTrue("Callback should be in main thread",Looper.getMainLooper().thread == callbackThread)
+        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
 
     }
 
@@ -264,7 +264,7 @@ class AutoDiscoveryTest {
         val ad = AutoDiscovery(okHttpClient)
 
         //Act
-        var callbackThread : Thread? = null
+        var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
         var config: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
@@ -282,7 +282,7 @@ class AutoDiscoveryTest {
         Assert.assertEquals(AutoDiscovery.Action.FAIL_ERROR, config!!.action)
         Assert.assertNull(config?.homeServerUrl)
         Assert.assertNull(config?.idendityServerUrl)
-        Assert.assertTrue("Callback should be in main thread",Looper.getMainLooper().thread == callbackThread)
+        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
 
     }
 
@@ -304,7 +304,7 @@ class AutoDiscoveryTest {
         val ad = AutoDiscovery(okHttpClient)
 
         //Act
-        var callbackThread : Thread? = null
+        var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
         var config: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
@@ -322,7 +322,7 @@ class AutoDiscoveryTest {
         Assert.assertEquals(AutoDiscovery.Action.FAIL_ERROR, config!!.action)
         Assert.assertNull(config?.homeServerUrl)
         Assert.assertNull(config?.idendityServerUrl)
-        Assert.assertTrue("Callback should be in main thread",Looper.getMainLooper().thread == callbackThread)
+        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
 
@@ -334,7 +334,8 @@ class AutoDiscoveryTest {
         val mockBody = "{\"m.homeserver\" : {\"base_url\" : \"$baseURl\"}}"
         val mockInterceptor = MockOkHttpInterceptor()
 
-        val hsVersionResponse = "{\"versions\": [\"r0.0.1\", \"r0.1.0\", \"r0.2.0\", \"r0.3.0\", \"r0.4.0\"], \"unstable_features\": {\"m.lazy_load_members\": true}}"
+        val hsVersionResponse = "{\"versions\": [\"r0.0.1\", \"r0.1.0\", \"r0.2.0\", \"r0.3.0\", \"r0.4.0\"]," +
+                " \"unstable_features\": {\"m.lazy_load_members\": true}}"
 
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
@@ -345,7 +346,7 @@ class AutoDiscoveryTest {
         val ad = AutoDiscovery(okHttpClient)
 
         //Act
-        var callbackThread : Thread? = null
+        var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
         var config: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
@@ -364,7 +365,7 @@ class AutoDiscoveryTest {
         Assert.assertNotNull(config!!.homeServerUrl)
         Assert.assertEquals(baseURl, config!!.homeServerUrl)
         Assert.assertNull(config!!.idendityServerUrl)
-        Assert.assertTrue("Callback should be in main thread",Looper.getMainLooper().thread == callbackThread)
+        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
     @Test
@@ -379,7 +380,8 @@ class AutoDiscoveryTest {
                 "\"m.identity_server\" : {}" +
                 "}"
         val mockInterceptor = MockOkHttpInterceptor()
-        val hsVersionResponse = "{\"versions\": [\"r0.0.1\", \"r0.1.0\", \"r0.2.0\", \"r0.3.0\", \"r0.4.0\"], \"unstable_features\": {\"m.lazy_load_members\": true}}"
+        val hsVersionResponse = "{\"versions\": [\"r0.0.1\", \"r0.1.0\", \"r0.2.0\", \"r0.3.0\", \"r0.4.0\"]," +
+                " \"unstable_features\": {\"m.lazy_load_members\": true}}"
 
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
@@ -421,7 +423,8 @@ class AutoDiscoveryTest {
                 "}"
 
         val mockInterceptor = MockOkHttpInterceptor()
-        val hsVersionResponse = "{\"versions\": [\"r0.0.1\", \"r0.1.0\", \"r0.2.0\", \"r0.3.0\", \"r0.4.0\"], \"unstable_features\": {\"m.lazy_load_members\": true}}"
+        val hsVersionResponse = "{\"versions\": [\"r0.0.1\", \"r0.1.0\", \"r0.2.0\", \"r0.3.0\", \"r0.4.0\"]," +
+                " \"unstable_features\": {\"m.lazy_load_members\": true}}"
 
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
@@ -462,7 +465,8 @@ class AutoDiscoveryTest {
                 "}" +
                 "}"
         val mockInterceptor = MockOkHttpInterceptor()
-        val hsVersionResponse = "{\"versions\": [\"r0.0.1\", \"r0.1.0\", \"r0.2.0\", \"r0.3.0\", \"r0.4.0\"], \"unstable_features\": {\"m.lazy_load_members\": true}}"
+        val hsVersionResponse = "{\"versions\": [\"r0.0.1\", \"r0.1.0\", \"r0.2.0\", \"r0.3.0\", \"r0.4.0\"]," +
+                " \"unstable_features\": {\"m.lazy_load_members\": true}}"
 
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
