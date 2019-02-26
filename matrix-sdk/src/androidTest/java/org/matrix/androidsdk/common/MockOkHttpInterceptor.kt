@@ -17,6 +17,21 @@ package org.matrix.androidsdk.common
 
 import okhttp3.*
 
+/*
+* Allows to intercept network requests for test purpose by
+*   - re-writing the response
+*   - changing the response code (200/404/etc..).
+*   - Test delays..
+*
+* Basic usage:
+* <code>
+*     val mockInterceptor = MockOkHttpInterceptor()
+*      mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, "{}"))
+*
+*      RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+*      AutoDiscovery().findClientConfig("matrix.org", <callback>)
+* </code>
+ */
 class MockOkHttpInterceptor : Interceptor {
 
     private var rules: ArrayList<Rule> = ArrayList()
@@ -30,9 +45,9 @@ class MockOkHttpInterceptor : Interceptor {
         val iterator = rules.iterator()
         val originalRequest = chain.request()
         while (iterator.hasNext()) {
-            val next = iterator.next()
-            if (originalRequest.url().toString().contains(next.match)) {
-                return next.process(originalRequest)
+            val rule = iterator.next()
+            if (originalRequest.url().toString().contains(rule.match)) {
+                return rule.process(originalRequest)
             }
         }
         return chain.proceed(originalRequest)
@@ -43,6 +58,9 @@ class MockOkHttpInterceptor : Interceptor {
         abstract fun process(originalRequest: Request): Response
     }
 
+    /**
+     * Simple rule that reply with the given body for any request that matches the match param
+     */
     class SimpleRule(match: String, val code: Int, val body: String? = null) : Rule(match) {
 
         override fun process(originalRequest: Request): Response {
@@ -51,7 +69,8 @@ class MockOkHttpInterceptor : Interceptor {
                     .request(originalRequest)
                     .message("mocked answer")
                     .body(ResponseBody.create(null, body ?: "{}"))
-                    .code(code).build()
+                    .code(code)
+                    .build()
         }
 
     }
