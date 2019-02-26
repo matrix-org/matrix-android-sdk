@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - Improve import of keys performance (vector-im/riot-android#2960)
 
 Bugfix:
  - Failed to send a video captured by the native camera. Replace the file scheme "file://" with "file:/" used by some Android devices.

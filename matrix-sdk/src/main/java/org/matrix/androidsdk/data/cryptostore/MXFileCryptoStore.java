@@ -23,6 +23,7 @@ import android.os.Looper;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
+import org.jetbrains.annotations.NotNull;
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
@@ -846,50 +847,8 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void storeInboundGroupSession(final MXOlmInboundGroupSession2 session) {
-        if (!mIsReady) {
-            Log.e(LOG_TAG, "## storeInboundGroupSession() : the store is not ready");
-            return;
-        }
-
-        String sessionIdentifier = null;
-
-        if ((null != session) && (null != session.mSenderKey) && (null != session.mSession)) {
-            try {
-                sessionIdentifier = session.mSession.sessionIdentifier();
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## storeInboundGroupSession() : sessionIdentifier failed " + e.getMessage(), e);
-            }
-        }
-
-        if (null != sessionIdentifier) {
-            synchronized (mInboundGroupSessionsLock) {
-                if (!mInboundGroupSessions.containsKey(session.mSenderKey)) {
-                    mInboundGroupSessions.put(session.mSenderKey, new HashMap<String, MXOlmInboundGroupSession2>());
-                }
-
-                MXOlmInboundGroupSession2 curSession = mInboundGroupSessions.get(session.mSenderKey).get(sessionIdentifier);
-
-                if (curSession != session) {
-                    // release memory
-                    if (null != curSession) {
-                        curSession.mSession.releaseSession();
-                    }
-                    // update the map
-                    mInboundGroupSessions.get(session.mSenderKey).put(sessionIdentifier, session);
-                }
-            }
-
-            Log.d(LOG_TAG, "## storeInboundGroupSession() : store session " + sessionIdentifier);
-
-            File senderKeyFolder = new File(mInboundGroupSessionsFolder, encodeFilename(session.mSenderKey));
-
-            if (!senderKeyFolder.exists()) {
-                senderKeyFolder.mkdir();
-            }
-
-            storeObject(session, senderKeyFolder, encodeFilename(sessionIdentifier), "storeInboundGroupSession - in background");
-        }
+    public void storeInboundGroupSessions(@NotNull List<MXOlmInboundGroupSession2> sessions) {
+        // No op
     }
 
     @Override
@@ -942,7 +901,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void markBackupDoneForInboundGroupSessionWithId(String sessionId, String senderKey) {
+    public void markBackupDoneForInboundGroupSessions(@NotNull List<MXOlmInboundGroupSession2> sessions) {
         // No op
     }
 
