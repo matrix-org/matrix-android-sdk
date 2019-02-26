@@ -166,7 +166,11 @@ class AutoDiscoveryTest {
     fun testAutoDiscoveryMissingHS() {
 
         //Arrange
-        val mockBody = "{\"m.homesorv4r\" : \"{}\"}"
+        val mockBody = """
+        {
+            "m.homesorv4r" : {}
+        }
+        """
         val mockInterceptor = MockOkHttpInterceptor()
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
@@ -235,7 +239,13 @@ class AutoDiscoveryTest {
 
         //Arrange
         val invalidURL = "foo\$[level]/r\$[y]"
-        val mockBody = "{\"m.homeserver\" : {\"base_url\" : \"$invalidURL\"}}"
+        val mockBody = """
+            {
+                "m.homeserver" : {
+                    "base_url" : "$invalidURL"
+                }
+            }
+            """
         val mockInterceptor = MockOkHttpInterceptor()
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
 
@@ -272,7 +282,14 @@ class AutoDiscoveryTest {
 
         //Arrange
         val baseURl = "https://myhs.org"
-        val mockBody = "{\"m.homeserver\" : {\"base_url\" : \"$baseURl\"}}"
+
+        val mockBody = """
+            {
+                "m.homeserver" : {
+                    "base_url" : "$baseURl"
+                }
+            }
+            """
         val mockInterceptor = MockOkHttpInterceptor()
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl, 404))
@@ -308,12 +325,22 @@ class AutoDiscoveryTest {
 
         //Arrange
         val baseURl = "https://myhs.org"
-        val mockBody = "{\"m.homeserver\" : {\"base_url\" : \"$baseURl\"}}"
+        val mockBody = """
+            {
+                "m.homeserver" : {
+                    "base_url" : "$baseURl"
+                }
+            }
+            """
+        val hsVersionResponse = """
+                {
+                    "versions": ["r0.4.0"],
+                    "unstable_features": { "m.lazy_load_members": true}
+                }
+
+        """
+
         val mockInterceptor = MockOkHttpInterceptor()
-
-        val hsVersionResponse = "{\"versions\": [\"r0.0.1\", \"r0.1.0\", \"r0.2.0\", \"r0.3.0\", \"r0.4.0\"]," +
-                " \"unstable_features\": {\"m.lazy_load_members\": true}}"
-
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
 
@@ -348,16 +375,22 @@ class AutoDiscoveryTest {
 
         //Arrange
         val baseURl = "https://myhs.org"
-        val mockBody = "{" +
-                "\"m.homeserver\" : {\"" +
-                "base_url\" : \"$baseURl\"" +
-                "}," +
-                "\"m.identity_server\" : {}" +
-                "}"
-        val mockInterceptor = MockOkHttpInterceptor()
-        val hsVersionResponse = "{\"versions\": [\"r0.0.1\", \"r0.1.0\", \"r0.2.0\", \"r0.3.0\", \"r0.4.0\"]," +
-                " \"unstable_features\": {\"m.lazy_load_members\": true}}"
+        val mockBody = """
+            {
+                "m.homeserver" : {
+                    "base_url" : "$baseURl"
+                },
+                "m.identity_server" : {}
+            }
+            """
+        val hsVersionResponse = """
+                {
+                    "versions": ["r0.4.0"],
+                    "unstable_features": { "m.lazy_load_members": true}
+                }
 
+        """
+        val mockInterceptor = MockOkHttpInterceptor()
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
 
@@ -386,19 +419,25 @@ class AutoDiscoveryTest {
         //Arrange
         val baseURl = "https://myhs.org"
         val idServerBaseURL = ""
-        val mockBody = "{" +
-                "\"m.homeserver\" : {" +
-                "\"base_url\" : \"$baseURl\"" +
-                "}," +
-                "\"m.identity_server\" : {" +
-                "\"base_url\" : \"$idServerBaseURL\"" +
-                "}" +
-                "}"
+        val mockBody = """
+            {
+                "m.homeserver" : {
+                    "base_url" : "$baseURl"
+                },
+                "m.identity_server" : {
+                    "base_url" : "$idServerBaseURL"
+                }
+            }
+            """
+        val hsVersionResponse = """
+                {
+                    "versions": ["r0.4.0"],
+                    "unstable_features": { "m.lazy_load_members": true}
+                }
+
+        """
 
         val mockInterceptor = MockOkHttpInterceptor()
-        val hsVersionResponse = "{\"versions\": [\"r0.0.1\", \"r0.1.0\", \"r0.2.0\", \"r0.3.0\", \"r0.4.0\"]," +
-                " \"unstable_features\": {\"m.lazy_load_members\": true}}"
-
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
 
@@ -427,18 +466,26 @@ class AutoDiscoveryTest {
         //Arrange
         val baseURl = "https://myhs.org"
         val idServerBaseURL = "https://myhs.org"
-        val mockBody = "{" +
-                "\"m.homeserver\" : {" +
-                "\"base_url\" : \"$baseURl\"" +
-                "}," +
-                "\"m.identity_server\" : {" +
-                "\"base_url\" : \"$idServerBaseURL\"" +
-                "}" +
-                "}"
-        val mockInterceptor = MockOkHttpInterceptor()
-        val hsVersionResponse = "{\"versions\": [\"r0.0.1\", \"r0.1.0\", \"r0.2.0\", \"r0.3.0\", \"r0.4.0\"]," +
-                " \"unstable_features\": {\"m.lazy_load_members\": true}}"
 
+        val mockBody = """
+            {
+                "m.homeserver" : {
+                    "base_url" : "$baseURl"
+                },
+                "m.identity_server" : {
+                    "base_url" : "$idServerBaseURL"
+                }
+            }
+            """
+        val hsVersionResponse = """
+                {
+                    "versions": ["r0.4.0"],
+                    "unstable_features": { "m.lazy_load_members": true}
+                }
+
+        """
+
+        val mockInterceptor = MockOkHttpInterceptor()
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
 
@@ -470,18 +517,25 @@ class AutoDiscoveryTest {
         //Arrange
         val baseURl = "https://myhs.org"
         val idServerBaseURL = "https://boom.org"
-        val mockBody = "{" +
-                "\"m.homeserver\" : {" +
-                "\"base_url\" : \"$baseURl\"" +
-                "}," +
-                "\"m.identity_server\" : {" +
-                "\"base_url\" : \"$idServerBaseURL\"" +
-                "}" +
-                "}"
+        val mockBody = """
+            {
+                "m.homeserver" : {
+                    "base_url" : "$baseURl"
+                },
+                "m.identity_server" : {
+                    "base_url" : "$idServerBaseURL"
+                }
+            }
+            """
+        val hsVersionResponse = """
+                {
+                    "versions": ["r0.4.0"],
+                    "unstable_features": { "m.lazy_load_members": true}
+                }
+
+        """
+
         val mockInterceptor = MockOkHttpInterceptor()
-        val hsVersionResponse = "{\"versions\":" +
-                " [\"r0.0.1\", \"r0.1.0\", \"r0.2.0\", \"r0.3.0\", \"r0.4.0\"]," +
-                " \"unstable_features\": {\"m.lazy_load_members\": true}}"
 
         val idServerResponse = "{}"
 
