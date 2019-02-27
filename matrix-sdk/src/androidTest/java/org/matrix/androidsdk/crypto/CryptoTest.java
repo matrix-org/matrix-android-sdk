@@ -2116,7 +2116,7 @@ public class CryptoTest {
                                 super.onSuccess(info);
                             }
                         });
-        lock1b.await();
+        mTestHelper.await(lock1b);
         Assert.assertTrue(results.containsKey("setDeviceVerification20"));
 
         ///

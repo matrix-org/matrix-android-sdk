@@ -138,7 +138,7 @@ class KeysBackupTest {
                 latch.countDown()
             }
         })
-        latch.await()
+        mTestHelper.await(latch)
 
         stateObserver.stopAndCheckStates(null)
         bobSession.clear(InstrumentationRegistry.getContext())
@@ -174,7 +174,7 @@ class KeysBackupTest {
                 latch.countDown()
             }
         })
-        latch.await()
+        mTestHelper.await(latch)
 
         assertNotNull(megolmBackupCreationInfo)
 
