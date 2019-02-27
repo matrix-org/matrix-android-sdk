@@ -19,15 +19,16 @@ import com.google.gson.annotations.SerializedName
 
 /**
  * https://matrix.org/docs/spec/client_server/r0.4.0.html#server-discovery
- *
+ * <pre>
  * {
- * "m.homeserver": {
- * "base_url": "https://matrix.org"
- * },
- * "m.identity_server": {
- * "base_url": "https://vector.im"
+ *     "m.homeserver": {
+ *         "base_url": "https://matrix.org"
+ *     },
+ *     "m.identity_server": {
+ *         "base_url": "https://vector.im"
+ *     }
  * }
- * }
+ * </pre>
  */
 class WellKnown {
 

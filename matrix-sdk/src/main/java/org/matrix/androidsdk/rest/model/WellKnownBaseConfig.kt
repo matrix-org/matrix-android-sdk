@@ -19,9 +19,11 @@ import com.google.gson.annotations.SerializedName
 
 /**
  * https://matrix.org/docs/spec/client_server/r0.4.0.html#server-discovery
+ * <pre>
  * {
- * "base_url": "https://vector.im"
+ *     "base_url": "https://vector.im"
  * }
+ * </pre>
  */
 class WellKnownBaseConfig {
 

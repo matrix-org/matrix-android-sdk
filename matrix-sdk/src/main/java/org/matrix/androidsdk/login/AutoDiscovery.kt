@@ -30,17 +30,17 @@ import org.matrix.androidsdk.rest.model.WellKnown
 import java.lang.Exception
 import java.net.MalformedURLException
 import java.net.URL
+import javax.net.ssl.HttpsURLConnection
 
 
-class AutoDiscovery() {
+class AutoDiscovery {
 
-    companion object {
-        val instance = AutoDiscovery()
-    }
+    private var discoveryRestClient = AutoDiscoveryRestClient()
 
-    private var discoveryRestClient: AutoDiscoveryRestClient = AutoDiscoveryRestClient()
-
-    data class DiscoveredClientConfig(val action: Action, val wellKnown: WellKnown? = null)
+    data class DiscoveredClientConfig(
+            val action: Action,
+            val wellKnown: WellKnown? = null
+    )
 
     enum class Action {
         /*
@@ -91,7 +91,7 @@ class AutoDiscovery() {
             override fun onNetworkError(e: Exception) {
                 if (e is HttpException) {
                     when (e.httpError.httpCode) {
-                        404 -> callback.onSuccess(DiscoveredClientConfig(Action.IGNORE))
+                        HttpsURLConnection.HTTP_NOT_FOUND -> callback.onSuccess(DiscoveredClientConfig(Action.IGNORE))
                         else -> callback.onSuccess(DiscoveredClientConfig(Action.FAIL_PROMPT))
                     }
                     return

@@ -17,20 +17,20 @@ package org.matrix.androidsdk.common
 
 import okhttp3.*
 
-/*
-* Allows to intercept network requests for test purpose by
-*   - re-writing the response
-*   - changing the response code (200/404/etc..).
-*   - Test delays..
-*
-* Basic usage:
-* <code>
-*     val mockInterceptor = MockOkHttpInterceptor()
-*      mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, "{}"))
-*
-*      RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
-*      AutoDiscovery().findClientConfig("matrix.org", <callback>)
-* </code>
+/**
+ * Allows to intercept network requests for test purpose by
+ *   - re-writing the response
+ *   - changing the response code (200/404/etc..).
+ *   - Test delays..
+ *
+ * Basic usage:
+ * <code>
+ *     val mockInterceptor = MockOkHttpInterceptor()
+ *      mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, "{}"))
+ *
+ *      RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
+ *      AutoDiscovery().findClientConfig("matrix.org", <callback>)
+ * </code>
  */
 class MockOkHttpInterceptor : Interceptor {
 

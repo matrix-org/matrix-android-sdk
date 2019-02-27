@@ -28,17 +28,16 @@ import org.matrix.androidsdk.util.Log
 import java.util.concurrent.TimeUnit
 
 
-class RestClientHttpClientFactory(var testInterceptor: Interceptor? = null) {
+class RestClientHttpClientFactory(private val testInterceptor: Interceptor? = null) {
 
     companion object {
         const val READ_TIMEOUT_MS = 60000
         const val WRITE_TIMEOUT_MS = 60000
     }
 
-
-    fun <T : Any?> createHttpClient(hsConfig: HomeServerConnectionConfig,
-                                    endPoint: String,
-                                    authentInterceptor: Interceptor): OkHttpClient {
+    fun createHttpClient(hsConfig: HomeServerConnectionConfig,
+                         endPoint: String,
+                         authentInterceptor: Interceptor): OkHttpClient {
         val okHttpClientBuilder = OkHttpClient().newBuilder()
                 .connectTimeout(RestClient.CONNECTION_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
                 .readTimeout(READ_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
@@ -66,8 +65,6 @@ class RestClientHttpClientFactory(var testInterceptor: Interceptor? = null) {
         if (RestClient.mUseMXExecutor) {
             okHttpClientBuilder.dispatcher(Dispatcher(MXRestExecutorService()))
         }
-
-        val endPoint = endPoint
 
         try {
             val pair = CertUtil.newPinnedSSLSocketFactory(hsConfig)

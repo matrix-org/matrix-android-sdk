@@ -14,34 +14,44 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk
+package org.matrix.androidsdk.login
 
 import android.os.Looper
-import org.junit.Assert
+import org.junit.Assert.*
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runners.MethodSorters
+import org.matrix.androidsdk.RestClientHttpClientFactory
+import org.matrix.androidsdk.RestHttpClientFactoryProvider
+import org.matrix.androidsdk.common.CommonTestHelper
 import org.matrix.androidsdk.common.MockOkHttpInterceptor
 import org.matrix.androidsdk.common.TestApiCallback
-import org.matrix.androidsdk.login.AutoDiscovery
 import java.util.concurrent.CountDownLatch
-
 
 @FixMethodOrder(MethodSorters.JVM)
 class AutoDiscoveryTest {
 
-    @Test
+    companion object {
+        const val WELL_KNOWN_PATH = ".well-known/matrix/client"
+        const val MX_CLIENT_VERSION_PATH = "_matrix/client/versions"
+        const val MX_ID_PATH = "_matrix/identity/api/v1"
+    }
+
+    private val mTestHelper = CommonTestHelper()
+
     //If the returned status code is 404, then IGNORE.
+    @Test
     fun testAutoDiscoveryNotFound() {
 
         val mockInterceptor = MockOkHttpInterceptor()
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 404))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(WELL_KNOWN_PATH, 404))
 
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
         val ad = AutoDiscovery()
 
         var callbackThread: Thread? = null
         val lock = CountDownLatch(1)
+
         var discovery: AutoDiscovery.DiscoveredClientConfig? = null
         ad.findClientConfig("matrix.org", object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
             override fun onSuccess(info: AutoDiscovery.DiscoveredClientConfig) {
@@ -51,22 +61,23 @@ class AutoDiscoveryTest {
             }
 
         })
-        lock.await()
-        Assert.assertNotNull(discovery)
-        Assert.assertEquals(AutoDiscovery.Action.IGNORE, discovery!!.action)
-        Assert.assertNull(discovery?.wellKnown?.homeServer)
-        Assert.assertNull(discovery?.wellKnown?.identityServer)
-        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
+
+        mTestHelper.await(lock)
+        assertNotNull(discovery)
+        assertEquals(AutoDiscovery.Action.IGNORE, discovery!!.action)
+        assertNull(discovery?.wellKnown?.homeServer)
+        assertNull(discovery?.wellKnown?.identityServer)
+        assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
 
     }
 
-    @Test
     //If the returned status code is not 200 then FAIL_PROMPT.
+    @Test
     fun testAutoDiscoveryNotOK() {
 
         //Arrange
         val mockInterceptor = MockOkHttpInterceptor()
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 500))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(WELL_KNOWN_PATH, 500))
 
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
         val ad = AutoDiscovery()
@@ -83,24 +94,24 @@ class AutoDiscoveryTest {
             }
 
         })
-        lock.await()
+        mTestHelper.await(lock)
 
 
         //Assert
-        Assert.assertNotNull(discovery)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
-        Assert.assertNull(discovery?.wellKnown?.homeServer)
-        Assert.assertNull(discovery?.wellKnown?.identityServer)
-        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
+        assertNotNull(discovery)
+        assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
+        assertNull(discovery?.wellKnown?.homeServer)
+        assertNull(discovery?.wellKnown?.identityServer)
+        assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
-    @Test
     //  If the response body is empty then FAIL_PROMPT.
+    @Test
     fun testAutoDiscoveryEmptyBody() {
 
         //Arrange
         val mockInterceptor = MockOkHttpInterceptor()
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, ""))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(WELL_KNOWN_PATH, 200, ""))
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
         val ad = AutoDiscovery()
 
@@ -116,24 +127,24 @@ class AutoDiscoveryTest {
             }
 
         })
-        lock.await()
+        mTestHelper.await(lock)
 
         //Assert
-        Assert.assertNotNull(discovery)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
-        Assert.assertNull(discovery?.wellKnown?.homeServer)
-        Assert.assertNull(discovery?.wellKnown?.identityServer)
-        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
+        assertNotNull(discovery)
+        assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
+        assertNull(discovery?.wellKnown?.homeServer)
+        assertNull(discovery?.wellKnown?.identityServer)
+        assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
-    @Test
     //   If the content cannot be parsed, then FAIL_PROMPT.
+    @Test
     fun testAutoDiscoveryNotJSON() {
 
         //Arrange
         val malformedValue = "<html><h1>Hello world!</h1></html>"
         val mockInterceptor = MockOkHttpInterceptor()
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, malformedValue))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(WELL_KNOWN_PATH, 200, malformedValue))
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
         val ad = AutoDiscovery()
 
@@ -151,18 +162,18 @@ class AutoDiscoveryTest {
         })
 
         //Assert
-        lock.await()
-        Assert.assertNotNull(discovery)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
-        Assert.assertNull(discovery?.wellKnown?.homeServer)
-        Assert.assertNull(discovery?.wellKnown?.homeServer)
-        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
+        mTestHelper.await(lock)
+        assertNotNull(discovery)
+        assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
+        assertNull(discovery?.wellKnown?.homeServer)
+        assertNull(discovery?.wellKnown?.homeServer)
+        assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
 
     }
 
 
-    @Test
     //If  m.homeserver value is not provided, then FAIL_PROMPT.
+    @Test
     fun testAutoDiscoveryMissingHS() {
 
         //Arrange
@@ -172,7 +183,7 @@ class AutoDiscoveryTest {
         }
         """
         val mockInterceptor = MockOkHttpInterceptor()
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(WELL_KNOWN_PATH, 200, mockBody))
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
         val ad = AutoDiscovery()
 
@@ -189,24 +200,24 @@ class AutoDiscoveryTest {
             }
 
         })
-        lock.await()
+        mTestHelper.await(lock)
 
         //Assert
-        Assert.assertNotNull(discovery)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
-        Assert.assertNull(discovery?.wellKnown?.homeServer)
-        Assert.assertNull(discovery?.wellKnown?.identityServer)
-        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
+        assertNotNull(discovery)
+        assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
+        assertNull(discovery?.wellKnown?.homeServer)
+        assertNull(discovery?.wellKnown?.identityServer)
+        assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
-    @Test
     // if base_url from m.homeserver is not provided, then FAIL_PROMPT.
+    @Test
     fun testAutoDiscoveryMissingHSBaseURl() {
 
         //Arrange
         val mockBody = "{\"m.homeserver\" : {}}"
         val mockInterceptor = MockOkHttpInterceptor()
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(WELL_KNOWN_PATH, 200, mockBody))
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
         val ad = AutoDiscovery()
 
@@ -224,17 +235,17 @@ class AutoDiscoveryTest {
         })
 
         //Assert
-        lock.await()
-        Assert.assertNotNull(discovery)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
-        Assert.assertNull(discovery?.wellKnown?.homeServer)
-        Assert.assertNull(discovery?.wellKnown?.identityServer)
-        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
+        mTestHelper.await(lock)
+        assertNotNull(discovery)
+        assertEquals(AutoDiscovery.Action.FAIL_PROMPT, discovery!!.action)
+        assertNull(discovery?.wellKnown?.homeServer)
+        assertNull(discovery?.wellKnown?.identityServer)
+        assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
 
     }
 
-    @Test
     // if base_url from m.homeserver is not an URL, then FAIL_ERROR.
+    @Test
     fun testAutoDiscoveryHSBaseURlInvalid() {
 
         //Arrange
@@ -247,7 +258,7 @@ class AutoDiscoveryTest {
             }
             """
         val mockInterceptor = MockOkHttpInterceptor()
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(WELL_KNOWN_PATH, 200, mockBody))
 
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
         val ad = AutoDiscovery()
@@ -266,18 +277,18 @@ class AutoDiscoveryTest {
         })
 
         //Assert
-        lock.await()
-        Assert.assertNotNull(discovery)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_ERROR, discovery!!.action)
-        Assert.assertNull(discovery?.wellKnown?.homeServer)
-        Assert.assertNull(discovery?.wellKnown?.homeServer)
-        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
+        mTestHelper.await(lock)
+        assertNotNull(discovery)
+        assertEquals(AutoDiscovery.Action.FAIL_ERROR, discovery!!.action)
+        assertNull(discovery?.wellKnown?.homeServer)
+        assertNull(discovery?.wellKnown?.homeServer)
+        assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
 
     }
 
 
-    @Test
     // if base_url from m.homeserver is not a valid Home Server, then FAIL_ERROR.
+    @Test
     fun testAutoDiscoveryNotValideHSURL() {
 
         //Arrange
@@ -291,7 +302,7 @@ class AutoDiscoveryTest {
             }
             """
         val mockInterceptor = MockOkHttpInterceptor()
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(WELL_KNOWN_PATH, 200, mockBody))
         mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl, 404))
 
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
@@ -311,12 +322,12 @@ class AutoDiscoveryTest {
         })
 
         //Assert
-        lock.await()
-        Assert.assertNotNull(discovery)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_ERROR, discovery!!.action)
-        Assert.assertNull(discovery?.wellKnown?.homeServer)
-        Assert.assertNull(discovery?.wellKnown?.identityServer)
-        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
+        mTestHelper.await(lock)
+        assertNotNull(discovery)
+        assertEquals(AutoDiscovery.Action.FAIL_ERROR, discovery!!.action)
+        assertNull(discovery?.wellKnown?.homeServer)
+        assertNull(discovery?.wellKnown?.identityServer)
+        assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
 
@@ -341,8 +352,8 @@ class AutoDiscoveryTest {
         """
 
         val mockInterceptor = MockOkHttpInterceptor()
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(WELL_KNOWN_PATH, 200, mockBody))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule("$baseURl/$MX_CLIENT_VERSION_PATH", 200, hsVersionResponse))
 
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
         val ad = AutoDiscovery()
@@ -361,13 +372,13 @@ class AutoDiscoveryTest {
         })
 
         //Assert
-        lock.await()
-        Assert.assertNotNull(discovery)
-        Assert.assertEquals(AutoDiscovery.Action.PROMPT, discovery!!.action)
-        Assert.assertNotNull(discovery!!.wellKnown?.homeServer)
-        Assert.assertEquals(baseURl, discovery!!.wellKnown!!.homeServer?.baseURL)
-        Assert.assertNull(discovery?.wellKnown?.identityServer)
-        Assert.assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
+        mTestHelper.await(lock)
+        assertNotNull(discovery)
+        assertEquals(AutoDiscovery.Action.PROMPT, discovery!!.action)
+        assertNotNull(discovery!!.wellKnown?.homeServer)
+        assertEquals(baseURl, discovery!!.wellKnown!!.homeServer?.baseURL)
+        assertNull(discovery?.wellKnown?.identityServer)
+        assertTrue("Callback should be in main thread", Looper.getMainLooper().thread == callbackThread)
     }
 
     @Test
@@ -391,8 +402,8 @@ class AutoDiscoveryTest {
 
         """
         val mockInterceptor = MockOkHttpInterceptor()
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(WELL_KNOWN_PATH, 200, mockBody))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule("$baseURl/$MX_CLIENT_VERSION_PATH", 200, hsVersionResponse))
 
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
         val ad = AutoDiscovery()
@@ -408,9 +419,9 @@ class AutoDiscoveryTest {
         })
 
         //Assert
-        lock.await()
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_ERROR, config!!.action)
+        mTestHelper.await(lock)
+        assertNotNull(config)
+        assertEquals(AutoDiscovery.Action.FAIL_ERROR, config!!.action)
     }
 
     @Test
@@ -438,8 +449,8 @@ class AutoDiscoveryTest {
         """
 
         val mockInterceptor = MockOkHttpInterceptor()
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(WELL_KNOWN_PATH, 200, mockBody))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule("$baseURl/$MX_CLIENT_VERSION_PATH", 200, hsVersionResponse))
 
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
         val ad = AutoDiscovery()
@@ -455,9 +466,9 @@ class AutoDiscoveryTest {
         })
 
         //Assert
-        lock.await()
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_ERROR, config!!.action)
+        mTestHelper.await(lock)
+        assertNotNull(config)
+        assertEquals(AutoDiscovery.Action.FAIL_ERROR, config!!.action)
     }
 
     @Test
@@ -486,10 +497,10 @@ class AutoDiscoveryTest {
         """
 
         val mockInterceptor = MockOkHttpInterceptor()
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(WELL_KNOWN_PATH, 200, mockBody))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule("$baseURl/$MX_CLIENT_VERSION_PATH", 200, hsVersionResponse))
 
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(idServerBaseURL + "/_matrix/identity/api/v1", 404))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule("$idServerBaseURL/$MX_ID_PATH", 404))
 
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
         val ad = AutoDiscovery()
@@ -505,9 +516,9 @@ class AutoDiscoveryTest {
         })
 
         //Assert
-        lock.await()
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.FAIL_ERROR, config!!.action)
+        mTestHelper.await(lock)
+        assertNotNull(config)
+        assertEquals(AutoDiscovery.Action.FAIL_ERROR, config!!.action)
     }
 
 
@@ -539,10 +550,10 @@ class AutoDiscoveryTest {
 
         val idServerResponse = "{}"
 
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(".well-known/matrix/client", 200, mockBody))
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(baseURl + "/_matrix/client/versions", 200, hsVersionResponse))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(WELL_KNOWN_PATH, 200, mockBody))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule("$baseURl/$MX_CLIENT_VERSION_PATH", 200, hsVersionResponse))
 
-        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule(idServerBaseURL + "/_matrix/identity/api/v1", 200, idServerResponse))
+        mockInterceptor.addRule(MockOkHttpInterceptor.SimpleRule("$idServerBaseURL/$MX_ID_PATH", 200, idServerResponse))
 
 
         RestHttpClientFactoryProvider.defaultProvider = RestClientHttpClientFactory(mockInterceptor)
@@ -559,38 +570,14 @@ class AutoDiscoveryTest {
         })
 
         //Assert
-        lock.await()
-        Assert.assertNotNull(config)
-        Assert.assertEquals(AutoDiscovery.Action.PROMPT, config!!.action)
-        Assert.assertNotNull(config?.wellKnown?.homeServer)
-        Assert.assertNotNull(config!!.wellKnown?.identityServer)
-        Assert.assertEquals(baseURl, config!!.wellKnown?.homeServer?.baseURL)
-        Assert.assertEquals(idServerBaseURL, config!!.wellKnown?.identityServer?.baseURL)
+        mTestHelper.await(lock)
+        assertNotNull(config)
+        assertEquals(AutoDiscovery.Action.PROMPT, config!!.action)
+        assertNotNull(config?.wellKnown?.homeServer)
+        assertNotNull(config!!.wellKnown?.identityServer)
+        assertEquals(baseURl, config!!.wellKnown?.homeServer?.baseURL)
+        assertEquals(idServerBaseURL, config!!.wellKnown?.identityServer?.baseURL)
     }
-
-
-//    @Test
-//    fun testLocal() {
-//
-//        val lock = CountDownLatch(1)
-//        var config: AutoDiscovery.DiscoveredClientConfig? = null
-//        val domain = "kde.org"//TestConstants.TESTS_HOME_SERVER_URL.substring("http://".length)
-//        AutoDiscovery.instance.findClientConfig(domain, object : TestApiCallback<AutoDiscovery.DiscoveredClientConfig>(lock) {
-//            override fun onSuccess(info: AutoDiscovery.DiscoveredClientConfig) {
-//                config = info
-//                super.onSuccess(info)
-//            }
-//        })
-//        lock.await()
-//
-//        Assert.assertNotNull(config)
-//        Assert.assertNotNull(config)
-//        Assert.assertEquals(AutoDiscovery.Action.PROMPT, config!!.action)
-//        Assert.assertNotNull(config?.wellKnown?.homeServer)
-//        Assert.assertNotNull(config!!.wellKnown?.identityServer)
-//        Assert.assertEquals("https://kde.modular.im", config!!.wellKnown?.homeServer?.baseURL)
-//        Assert.assertEquals("https://vector.im", config!!.wellKnown?.identityServer?.baseURL)
-//    }
 
 }
 
