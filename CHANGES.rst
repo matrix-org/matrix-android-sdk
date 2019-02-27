@@ -9,6 +9,7 @@ Improvements:
 
 Bugfix:
  - Failed to send a video captured by the native camera. Replace the file scheme "file://" with "file:/" used by some Android devices.
+ - Fix / Escape room v3 event ids in permalinks (vector-im/riot-android#2981)
 
 API Change:
  -
