@@ -14,7 +14,7 @@
     <string name="notice_room_ban">منع ⁨%1$s⁩ ⁨%2$s⁩</string>
     <string name="notice_avatar_url_changed">غيّر ⁨%1$s⁩ صورته</string>
     <string name="notice_display_name_set">ضبط ⁨%1$s⁩ اسم العرض على ⁨%2$s⁩</string>
-    <string name="notice_display_name_changed_from">غيّر ⁨%1$⁩ اسم الحساب المعروض من %2$⁩ إلى %3$⁩</string>
+    <string name="notice_display_name_changed_from">غيّر ⁨%1$s⁩ اسم الحساب المعروض من %2$s⁩ إلى %3$s⁩</string>
     <string name="notice_display_name_removed">أزال ⁨%1$s⁩ اسم الحساب المعروض (⁨%2$s⁩)</string>
     <string name="notice_topic_changed">غيّر ⁨%1$s⁩ الموضوع إلى: ⁨%2$s⁩</string>
     <string name="notice_room_name_changed">غيّر ⁨%1$s⁩ اسم الغرفة إلى: ⁨%2$s⁩</string>
@@ -79,13 +79,13 @@
     <string name="room_displayname_two_members">‏⁨%1$s⁩ و ⁨%2$s⁩</string>
     <string name="room_displayname_room_invite">دعوة إلى غرفة</string>
 
-<plurals name="room_displayname_three_and_more_members">
-	<item quantity="zero">صفر</item>
-	<item quantity="one">واحد</item>
-	<item quantity="two">اثنان</item>
-	<item quantity="few">قليل</item>
-	<item quantity="many">كثير</item>
-	<item quantity="other">اخرى</item>
-</plurals>
+    <plurals name="room_displayname_three_and_more_members">
+        <item quantity="zero">صفر</item>
+        <item quantity="one">واحد</item>
+        <item quantity="two">اثنان</item>
+        <item quantity="few">قليل</item>
+        <item quantity="many">كثير</item>
+        <item quantity="other">اخرى</item>
+    </plurals>
 
-    </resources>
+</resources>

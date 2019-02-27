@@ -54,7 +54,7 @@
     <string name="message_failed_to_upload">Kép feltöltése sikertelen</string>
 
     <string name="network_error">Hálózat hiba</string>
-    <string name="matrix_error">[Matrix] hiba</string>
+    <string name="matrix_error">Matrix hiba</string>
 
     <string name="room_error_join_failed_empty_room">Jelenleg nem lehetséges újracsatlakozni egy üres szobába.</string>
 
