@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.login
 
 import android.net.Uri
+import com.google.gson.stream.MalformedJsonException
 import org.json.JSONObject
 import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.rest.callback.ApiCallback
@@ -27,9 +28,11 @@ import org.matrix.androidsdk.rest.model.HttpException
 import org.matrix.androidsdk.rest.model.MatrixError
 import org.matrix.androidsdk.rest.model.Versions
 import org.matrix.androidsdk.rest.model.WellKnown
+import java.io.EOFException
 import java.lang.Exception
 import java.net.MalformedURLException
 import java.net.URL
+import java.net.UnknownHostException
 import javax.net.ssl.HttpsURLConnection
 
 
@@ -94,9 +97,11 @@ class AutoDiscovery {
                         HttpsURLConnection.HTTP_NOT_FOUND -> callback.onSuccess(DiscoveredClientConfig(Action.IGNORE))
                         else -> callback.onSuccess(DiscoveredClientConfig(Action.FAIL_PROMPT))
                     }
-                    return
+                } else if (e is MalformedJsonException || e is EOFException) {
+                    callback.onSuccess(DiscoveredClientConfig(Action.FAIL_PROMPT))
+                } else {
+                    callback.onNetworkError(e);
                 }
-                callback.onSuccess(DiscoveredClientConfig(Action.FAIL_PROMPT))
             }
 
             override fun onMatrixError(e: MatrixError) {
