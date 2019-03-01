@@ -18,7 +18,7 @@ Translations:
  -
 
 Others:
- -
+ - Handle well-known data in the login response (vector-im/riot-android#3002)
 
 Build:
  -

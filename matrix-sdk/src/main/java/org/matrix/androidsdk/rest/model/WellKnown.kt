@@ -32,9 +32,11 @@ import com.google.gson.annotations.SerializedName
  */
 class WellKnown {
 
+    @JvmField
     @SerializedName("m.homeserver")
     var homeServer: WellKnownBaseConfig? = null
 
+    @JvmField
     @SerializedName("m.identity_server")
     var identityServer: WellKnownBaseConfig? = null
 }

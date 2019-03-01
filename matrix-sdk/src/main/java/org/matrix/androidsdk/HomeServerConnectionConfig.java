@@ -20,12 +20,14 @@ package org.matrix.androidsdk;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.ssl.Fingerprint;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -125,6 +127,37 @@ public class HomeServerConnectionConfig {
      */
     public void setCredentials(Credentials credentials) {
         mCredentials = credentials;
+
+        // Override home server url and/or identity server url if provided
+        if (credentials.wellKnown != null) {
+            if (credentials.wellKnown.homeServer != null) {
+                String homeServerUrl = credentials.wellKnown.homeServer.baseURL;
+
+                if (!TextUtils.isEmpty(homeServerUrl)) {
+                    // remove trailing "/"
+                    if (homeServerUrl.endsWith("/")) {
+                        homeServerUrl = homeServerUrl.substring(0, homeServerUrl.length() - 1);
+                    }
+
+                    Log.d("setCredentials", "Overriding homeserver url to " + homeServerUrl);
+                    mHomeServerUri = Uri.parse(homeServerUrl);
+                }
+            }
+
+            if (credentials.wellKnown.identityServer != null) {
+                String identityServerUrl = credentials.wellKnown.identityServer.baseURL;
+
+                if (!TextUtils.isEmpty(identityServerUrl)) {
+                    // remove trailing "/"
+                    if (identityServerUrl.endsWith("/")) {
+                        identityServerUrl = identityServerUrl.substring(0, identityServerUrl.length() - 1);
+                    }
+
+                    Log.d("setCredentials", "Overriding identity server url to " + identityServerUrl);
+                    mIdentityServerUri = Uri.parse(identityServerUrl);
+                }
+            }
+        }
     }
 
     /**

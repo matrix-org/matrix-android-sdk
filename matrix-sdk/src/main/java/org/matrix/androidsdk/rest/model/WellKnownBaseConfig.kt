@@ -27,6 +27,7 @@ import com.google.gson.annotations.SerializedName
  */
 class WellKnownBaseConfig {
 
+    @JvmField
     @SerializedName("base_url")
     var baseURL: String? = null
 }
