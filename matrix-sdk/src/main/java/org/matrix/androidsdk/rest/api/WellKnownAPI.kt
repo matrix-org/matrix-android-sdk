@@ -21,9 +21,9 @@ import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.Path
 
-interface AutoDiscoveryAPI {
+interface WellKnownAPI {
 
     @GET("https://{domain}/.well-known/matrix/client")
-    fun getAutoDiscovery(@Path("domain") domain: String): Call<WellKnown>
+    fun getWellKnown(@Path("domain") domain: String): Call<WellKnown>
 
 }

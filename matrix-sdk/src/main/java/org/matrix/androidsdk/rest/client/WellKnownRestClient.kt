@@ -19,17 +19,17 @@ import android.net.Uri
 
 import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.RestClient
-import org.matrix.androidsdk.rest.api.AutoDiscoveryAPI
+import org.matrix.androidsdk.rest.api.WellKnownAPI
 import org.matrix.androidsdk.rest.callback.ApiCallback
 import org.matrix.androidsdk.rest.callback.DefaultRetrofit2CallbackWrapper
 import org.matrix.androidsdk.rest.model.WellKnown
 
-class AutoDiscoveryRestClient() :
-        RestClient<AutoDiscoveryAPI>(HomeServerConnectionConfig.Builder().withHomeServerUri(Uri.parse("https://foo.bar")).build(),
-                AutoDiscoveryAPI::class.java, "") {
+class WellKnownRestClient() :
+        RestClient<WellKnownAPI>(HomeServerConnectionConfig.Builder().withHomeServerUri(Uri.parse("https://foo.bar")).build(),
+                WellKnownAPI::class.java, "") {
 
     fun getWellKnown(url: String, callback: ApiCallback<WellKnown>) {
-        mApi.getAutoDiscovery(url).enqueue(DefaultRetrofit2CallbackWrapper(callback))
+        mApi.getWellKnown(url).enqueue(DefaultRetrofit2CallbackWrapper(callback))
     }
 
 }

@@ -21,9 +21,10 @@ import com.google.gson.stream.MalformedJsonException
 import org.json.JSONObject
 import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.rest.callback.ApiCallback
-import org.matrix.androidsdk.rest.client.AutoDiscoveryRestClient
+import org.matrix.androidsdk.rest.callback.SimpleApiCallback
 import org.matrix.androidsdk.rest.client.IdentityPingRestClient
 import org.matrix.androidsdk.rest.client.LoginRestClient
+import org.matrix.androidsdk.rest.client.WellKnownRestClient
 import org.matrix.androidsdk.rest.model.HttpException
 import org.matrix.androidsdk.rest.model.MatrixError
 import org.matrix.androidsdk.rest.model.Versions
@@ -32,13 +33,12 @@ import java.io.EOFException
 import java.lang.Exception
 import java.net.MalformedURLException
 import java.net.URL
-import java.net.UnknownHostException
 import javax.net.ssl.HttpsURLConnection
 
 
 class AutoDiscovery {
 
-    private var discoveryRestClient = AutoDiscoveryRestClient()
+    private var wellKnownRestClient = WellKnownRestClient()
 
     data class DiscoveredClientConfig(
             val action: Action,
@@ -72,7 +72,7 @@ class AutoDiscovery {
 
     fun findClientConfig(domain: String, callback: ApiCallback<DiscoveredClientConfig>) {
 
-        discoveryRestClient.getWellKnown(domain, object : ApiCallback<WellKnown> {
+        wellKnownRestClient.getWellKnown(domain, object : SimpleApiCallback<WellKnown>(callback) {
             override fun onSuccess(wellKnown: WellKnown) {
                 if (wellKnown.homeServer?.baseURL.isNullOrBlank()) {
                     callback.onSuccess(DiscoveredClientConfig(Action.FAIL_PROMPT))
@@ -87,10 +87,6 @@ class AutoDiscovery {
                 }
             }
 
-            override fun onUnexpectedError(e: Exception) {
-                callback.onUnexpectedError(e)
-            }
-
             override fun onNetworkError(e: Exception) {
                 if (e is HttpException) {
                     when (e.httpError.httpCode) {
@@ -100,14 +96,9 @@ class AutoDiscovery {
                 } else if (e is MalformedJsonException || e is EOFException) {
                     callback.onSuccess(DiscoveredClientConfig(Action.FAIL_PROMPT))
                 } else {
-                    callback.onNetworkError(e);
+                    super.onNetworkError(e);
                 }
             }
-
-            override fun onMatrixError(e: MatrixError) {
-                callback.onMatrixError(e)
-            }
-
         })
     }
 
