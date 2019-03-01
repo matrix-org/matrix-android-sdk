@@ -17,9 +17,8 @@ package org.matrix.androidsdk
 
 class RestHttpClientFactoryProvider {
 
-    var factory: RestClientHttpClientFactory = RestClientHttpClientFactory()
-
     companion object {
+        // Default provider factory to all RestClient, can be overridden
         var defaultProvider = RestClientHttpClientFactory()
     }
 

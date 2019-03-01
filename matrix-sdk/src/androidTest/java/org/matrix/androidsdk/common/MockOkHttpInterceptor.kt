@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.common
 
 import okhttp3.*
+import javax.net.ssl.HttpsURLConnection
 
 /**
  * Allows to intercept network requests for test purpose by
@@ -42,14 +43,14 @@ class MockOkHttpInterceptor : Interceptor {
     }
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        val iterator = rules.iterator()
         val originalRequest = chain.request()
-        while (iterator.hasNext()) {
-            val rule = iterator.next()
+
+        rules.forEach { rule ->
             if (originalRequest.url().toString().contains(rule.match)) {
                 return rule.process(originalRequest)
             }
         }
+
         return chain.proceed(originalRequest)
     }
 
@@ -61,14 +62,16 @@ class MockOkHttpInterceptor : Interceptor {
     /**
      * Simple rule that reply with the given body for any request that matches the match param
      */
-    class SimpleRule(match: String, val code: Int, val body: String? = null) : Rule(match) {
+    class SimpleRule(match: String,
+                     private val code: Int = HttpsURLConnection.HTTP_OK,
+                     private val body: String = "{}") : Rule(match) {
 
         override fun process(originalRequest: Request): Response {
             return Response.Builder()
                     .protocol(Protocol.HTTP_1_1)
                     .request(originalRequest)
                     .message("mocked answer")
-                    .body(ResponseBody.create(null, body ?: "{}"))
+                    .body(ResponseBody.create(null, body))
                     .code(code)
                     .build()
         }

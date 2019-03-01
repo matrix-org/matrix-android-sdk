@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.rest.api
 
 import org.json.JSONObject
+import org.matrix.androidsdk.RestClient
 
 import retrofit2.Call
 import retrofit2.http.GET
@@ -27,6 +28,6 @@ interface IdentityPingApi {
      * Simple ping call to check if server alive
      * @return
      */
-    @GET("_matrix/identity/api/v1")
+    @GET(RestClient.URI_IDENTITY_PATH)
     fun ping(): Call<JSONObject>
 }

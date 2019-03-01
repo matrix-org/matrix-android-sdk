@@ -28,8 +28,8 @@ class WellKnownRestClient() :
         RestClient<WellKnownAPI>(HomeServerConnectionConfig.Builder().withHomeServerUri(Uri.parse("https://foo.bar")).build(),
                 WellKnownAPI::class.java, "") {
 
-    fun getWellKnown(url: String, callback: ApiCallback<WellKnown>) {
-        mApi.getWellKnown(url).enqueue(DefaultRetrofit2CallbackWrapper(callback))
+    fun getWellKnown(domain: String, callback: ApiCallback<WellKnown>) {
+        mApi.getWellKnown(domain).enqueue(DefaultRetrofit2CallbackWrapper(callback))
     }
 
 }

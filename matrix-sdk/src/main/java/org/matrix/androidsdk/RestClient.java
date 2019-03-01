@@ -60,7 +60,8 @@ public class RestClient<T> {
     /**
      * Prefix used in path of identity server API requests.
      */
-    public static final String URI_API_PREFIX_IDENTITY = "_matrix/identity/api/v1/";
+    public static final String URI_IDENTITY_PATH = "_matrix/identity/api/v1";
+    public static final String URI_API_PREFIX_IDENTITY = URI_IDENTITY_PATH + "/";
 
     /**
      * List the servers which should be used to define the base url.
@@ -129,7 +130,7 @@ public class RestClient<T> {
         mHsConfig = hsConfig;
         mCredentials = hsConfig.getCredentials();
 
-        Interceptor authentInterceptor = new Interceptor() {
+        Interceptor authenticationInterceptor = new Interceptor() {
 
             @Override
             public Response intercept(Chain chain) throws IOException {
@@ -152,7 +153,7 @@ public class RestClient<T> {
         };
 
         final String endPoint = makeEndpoint(hsConfig, uriPrefix, endPointServer);
-        mOkHttpClient = RestHttpClientFactoryProvider.Companion.getDefaultProvider().createHttpClient(hsConfig, endPoint, authentInterceptor);
+        mOkHttpClient = RestHttpClientFactoryProvider.Companion.getDefaultProvider().createHttpClient(hsConfig, endPoint, authenticationInterceptor);
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
         Retrofit.Builder builder = new Retrofit.Builder()

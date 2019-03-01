@@ -31,18 +31,18 @@ import java.util.concurrent.TimeUnit
 class RestClientHttpClientFactory(private val testInterceptor: Interceptor? = null) {
 
     companion object {
-        const val READ_TIMEOUT_MS = 60000
-        const val WRITE_TIMEOUT_MS = 60000
+        const val READ_TIMEOUT_MS = 60_000L
+        const val WRITE_TIMEOUT_MS = 60_000L
     }
 
     fun createHttpClient(hsConfig: HomeServerConnectionConfig,
                          endPoint: String,
-                         authentInterceptor: Interceptor): OkHttpClient {
+                         authenticationInterceptor: Interceptor): OkHttpClient {
         val okHttpClientBuilder = OkHttpClient().newBuilder()
                 .connectTimeout(RestClient.CONNECTION_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
-                .readTimeout(READ_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
-                .writeTimeout(WRITE_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
-                .addInterceptor(authentInterceptor)
+                .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .addInterceptor(authenticationInterceptor)
 
         if (BuildConfig.DEBUG) {
             val loggingInterceptor = HttpLoggingInterceptor(FormattedJsonHttpLogger())
