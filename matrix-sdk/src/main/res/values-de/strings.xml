@@ -4,7 +4,7 @@
     <string name="summary_message">%1$s: %2$s</string>
     <string name="summary_user_sent_image">%1$s hat ein Bild gesendet.</string>
 
-    <string name="notice_room_invite_no_invitee">%s\'s Einladung</string>
+    <string name="notice_room_invite_no_invitee">Einladung von %s</string>
     <string name="notice_room_invite">%1$s hat %2$s eingeladen</string>
     <string name="notice_room_invite_you">%1$s hat dich eingeladen</string>
     <string name="notice_room_join">%1$s hat den Raum betreten</string>
