@@ -31,6 +31,7 @@ import org.matrix.androidsdk.crypto.util.computeRecoveryKey
 import org.matrix.androidsdk.crypto.util.extractCurveKeyFromRecoveryKey
 import org.matrix.androidsdk.data.cryptostore.db.model.KeysBackupDataEntity
 import org.matrix.androidsdk.listeners.ProgressListener
+import org.matrix.androidsdk.listeners.StepProgressListener
 import org.matrix.androidsdk.rest.callback.ApiCallback
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback
 import org.matrix.androidsdk.rest.callback.SuccessCallback
@@ -452,26 +453,15 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     fun trustKeysBackupVersion(keysBackupVersion: KeysVersionResult,
                                trust: Boolean,
                                callback: ApiCallback<Void>) {
+        Log.d(LOG_TAG, "trustKeyBackupVersion: $trust, version ${keysBackupVersion.version}")
+
         mCrypto.decryptingThreadHandler.post {
             val myUserId = mCrypto.myDevice.userId
 
-            if (keysBackupVersion.version == null
-                    || keysBackupVersion.algorithm == null
-                    || keysBackupVersion.authData == null) {
-                Log.w(LOG_TAG, "trustKeyBackupVersion:trust: Key backup is missing required data")
-
-                mCrypto.uiHandler.post {
-                    callback.onUnexpectedError(IllegalArgumentException("Missing element"))
-                }
-
-                return@post
-            }
-
             // Get auth data to update it
-            val authData = keysBackupVersion.getAuthDataAsMegolmBackupAuthData()
+            val authData = getMegolmBackupAuthData(keysBackupVersion)
 
-            if (authData.publicKey.isEmpty()
-                    || authData.signatures == null) {
+            if (authData == null) {
                 Log.w(LOG_TAG, "trustKeyBackupVersion:trust: Key backup is missing required data")
 
                 mCrypto.uiHandler.post {
@@ -561,49 +551,11 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     fun trustKeysBackupVersionWithRecoveryKey(keysBackupVersion: KeysVersionResult,
                                               recoveryKey: String,
                                               callback: ApiCallback<Void>) {
+        Log.d(LOG_TAG, "trustKeysBackupVersionWithRecoveryKey: version ${keysBackupVersion.version}")
+
         mCrypto.decryptingThreadHandler.post {
-            // Build PK decryption instance with the recovery key
-            val publicKey = pkPublicKeyFromRecoveryKey(recoveryKey)
-
-            if (publicKey == null) {
+            if (!isValidRecoveryKeyForKeysBackupVersion(recoveryKey, keysBackupVersion)) {
                 Log.w(LOG_TAG, "trustKeyBackupVersionWithRecoveryKey: Invalid recovery key.")
-
-                mCrypto.uiHandler.post {
-                    callback.onUnexpectedError(IllegalArgumentException("Invalid recovery key or password"))
-                }
-                return@post
-            }
-
-
-            // Get the public key defined in the backup
-            if (keysBackupVersion.algorithm == null
-                    || keysBackupVersion.authData == null) {
-                Log.w(LOG_TAG, "trustKeysBackupVersionWithRecoveryKey: Key backup is missing required data")
-
-                mCrypto.uiHandler.post {
-                    callback.onUnexpectedError(IllegalArgumentException("Missing element"))
-                }
-
-                return@post
-            }
-
-            val authData = keysBackupVersion.getAuthDataAsMegolmBackupAuthData()
-
-            if (authData.publicKey.isEmpty()
-                    || authData.signatures == null) {
-                Log.w(LOG_TAG, "trustKeysBackupVersionWithRecoveryKey: Key backup is missing required data")
-
-                mCrypto.uiHandler.post {
-                    callback.onUnexpectedError(IllegalArgumentException("Missing element"))
-                }
-
-                return@post
-            }
-
-
-            // Compare both
-            if (publicKey != authData.publicKey) {
-                Log.w(LOG_TAG, "trustKeysBackupVersionWithRecoveryKey: Invalid recovery key");
 
                 mCrypto.uiHandler.post {
                     callback.onUnexpectedError(IllegalArgumentException("Invalid recovery key or password"))
@@ -625,9 +577,12 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     fun trustKeysBackupVersionWithPassphrase(keysBackupVersion: KeysVersionResult,
                                              password: String,
                                              callback: ApiCallback<Void>) {
+        Log.d(LOG_TAG, "trustKeysBackupVersionWithPassphrase: version ${keysBackupVersion.version}")
+
         mCrypto.decryptingThreadHandler.post {
-            // Extract MegolmBackupAuthData
-            if (keysBackupVersion.authData == null) {
+            val recoveryKey = recoveryKeyFromPassword(password, keysBackupVersion, null)
+
+            if (recoveryKey == null) {
                 Log.w(LOG_TAG, "trustKeysBackupVersionWithPassphrase: Key backup is missing required data")
 
                 mCrypto.uiHandler.post {
@@ -637,26 +592,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 return@post
             }
 
-            val authData = keysBackupVersion.getAuthDataAsMegolmBackupAuthData()
-
-            if (authData.privateKeySalt == null
-                    || authData.privateKeyIterations == null) {
-                Log.w(LOG_TAG, "trustKeysBackupVersionWithPassphrase: Salt and/or iterations not found: this backup cannot be trusted with a password")
-
-                mCrypto.uiHandler.post {
-                    callback.onUnexpectedError(IllegalArgumentException("Salt and/or iterations not found: this backup cannot be trusted with a password"))
-                }
-
-                return@post
-            }
-
-            // Extract the recovery key from the passphrase
-            val privateKeyData = retrievePrivateKeyWithPassword(password, authData.privateKeySalt!!, authData.privateKeyIterations!!)
-
-            val privateKey = computeRecoveryKey(privateKeyData)
-
             // Check trust using the recovery key
-            trustKeysBackupVersionWithRecoveryKey(keysBackupVersion, privateKey, callback)
+            trustKeysBackupVersionWithRecoveryKey(keysBackupVersion, recoveryKey, callback)
         }
     }
 
@@ -672,6 +609,8 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         val privateKey = extractCurveKeyFromRecoveryKey(recoveryKey)
 
         if (privateKey == null) {
+            Log.w(LOG_TAG, "pkPublicKeyFromRecoveryKey: private key is null")
+
             return null
         }
 
@@ -713,30 +652,44 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     /**
      * Restore a backup with a recovery key from a given backup version stored on the homeserver.
      *
-     * @param version     the backup version to restore from.
-     * @param recoveryKey the recovery key to decrypt the retrieved backup.
-     * @param roomId      the id of the room to get backup data from.
-     * @param sessionId   the id of the session to restore.
-     * @param callback    Callback. It provides the number of found keys and the number of successfully imported keys.
+     * @param keysVersionResult    the backup version to restore from.
+     * @param recoveryKey          the recovery key to decrypt the retrieved backup.
+     * @param roomId               the id of the room to get backup data from.
+     * @param sessionId            the id of the session to restore.
+     * @param stepProgressListener the step progress listener
+     * @param callback             Callback. It provides the number of found keys and the number of successfully imported keys.
      */
-    fun restoreKeysWithRecoveryKey(version: String,
+    fun restoreKeysWithRecoveryKey(keysVersionResult: KeysVersionResult,
                                    recoveryKey: String,
                                    roomId: String?,
                                    sessionId: String?,
+                                   stepProgressListener: StepProgressListener?,
                                    callback: ApiCallback<ImportRoomKeysResult>) {
-        Log.d(LOG_TAG, "restoreKeysWithRecoveryKey: From backup version: $version")
+        Log.d(LOG_TAG, "restoreKeysWithRecoveryKey: From backup version: ${keysVersionResult.version}")
 
         mCrypto.decryptingThreadHandler.post(Runnable {
+            // Check if the recovery is valid before going any further
+            if (!isValidRecoveryKeyForKeysBackupVersion(recoveryKey, keysVersionResult)) {
+                Log.e(LOG_TAG, "restoreKeysWithRecoveryKey: Invalid recovery key for this keys version")
+                mCrypto.uiHandler.post { callback.onUnexpectedError(InvalidParameterException("Invalid recovery key")) }
+                return@Runnable
+            }
+
             // Get a PK decryption instance
             val decryption = pkDecryptionFromRecoveryKey(recoveryKey)
             if (decryption == null) {
+                // This should not happen anymore
                 Log.e(LOG_TAG, "restoreKeysWithRecoveryKey: Invalid recovery key. Error")
                 mCrypto.uiHandler.post { callback.onUnexpectedError(InvalidParameterException("Invalid recovery key")) }
                 return@Runnable
             }
 
+            if (stepProgressListener != null) {
+                mCrypto.uiHandler.post { stepProgressListener.onStepProgress(StepProgressListener.Step.DownloadingKey) }
+            }
+
             // Get backed up keys from the homeserver
-            getKeys(sessionId, roomId, version, object : ApiCallback<KeysBackupData> {
+            getKeys(sessionId, roomId, keysVersionResult.version!!, object : ApiCallback<KeysBackupData> {
                 override fun onUnexpectedError(e: Exception) {
                     mCrypto.uiHandler.post { callback.onUnexpectedError(e) }
                 }
@@ -769,21 +722,25 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     Log.d(LOG_TAG, "restoreKeysWithRecoveryKey: Decrypted " + sessionsData.size + " keys out of "
                             + sessionsFromHsCount + " from the backup store on the homeserver")
 
-                    if (sessionsFromHsCount > 0 && sessionsData.size == 0) {
-                        // If we fail to decrypt all sessions, we have a credential problem
-                        Log.e(LOG_TAG, "[MXKeyBackup] restoreKeyBackup: Invalid recovery key or password")
-                        onUnexpectedError(InvalidParameterException("Invalid recovery key or password"))
-                        return
-                    }
-
                     // Do not trigger a backup for them if they come from the backup version we are using
-                    val backUp = version != mKeysBackupVersion?.version
+                    val backUp = keysVersionResult.version != mKeysBackupVersion?.version
                     if (backUp) {
                         Log.d(LOG_TAG, "restoreKeysWithRecoveryKey: Those keys will be backed up to backup version: " + mKeysBackupVersion?.version)
                     }
 
                     // Import them into the crypto store
-                    mCrypto.importMegolmSessionsData(sessionsData, backUp, callback)
+                    val progressListener = if (stepProgressListener != null) {
+                        object : ProgressListener {
+                            override fun onProgress(progress: Int, total: Int) {
+                                // Note: no need to post to UI thread, importMegolmSessionsData() will do it
+                                stepProgressListener.onStepProgress(StepProgressListener.Step.ImportingKey(progress, total))
+                            }
+                        }
+                    } else {
+                        null
+                    }
+
+                    mCrypto.importMegolmSessionsData(sessionsData, backUp, progressListener, callback)
                 }
             })
         })
@@ -792,42 +749,47 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     /**
      * Restore a backup with a password from a given backup version stored on the homeserver.
      *
-     * @param version the backup version to restore from.
+     * @param keysBackupVersion the backup version to restore from.
      * @param password the password to decrypt the retrieved backup.
      * @param roomId the id of the room to get backup data from.
      * @param sessionId the id of the session to restore.
+     * @param stepProgressListener the step progress listener
      * @param callback Callback. It provides the number of found keys and the number of successfully imported keys.
      */
-    fun restoreKeyBackupWithPassword(version: String,
+    fun restoreKeyBackupWithPassword(keysBackupVersion: KeysVersionResult,
                                      password: String,
                                      roomId: String?,
                                      sessionId: String?,
+                                     stepProgressListener: StepProgressListener?,
                                      callback: ApiCallback<ImportRoomKeysResult>) {
-        Log.d(LOG_TAG, "[MXKeyBackup] restoreKeyBackup with password: From backup version: $version")
+        Log.d(LOG_TAG, "[MXKeyBackup] restoreKeyBackup with password: From backup version: ${keysBackupVersion.version}")
 
-        // Fetch authentication info about this version
-        // to retrieve the private key from the password
-        getVersion(version, object : SimpleApiCallback<KeysVersionResult>(callback) {
-            override fun onSuccess(info: KeysVersionResult) {
-                val megolmBackupAuthData = info.getAuthDataAsMegolmBackupAuthData()
-
-                if (megolmBackupAuthData.privateKeySalt == null || megolmBackupAuthData.privateKeyIterations == null) {
-                    callback.onUnexpectedError(IllegalStateException("Salt and/or iterations not found: this backup cannot be restored with a password"))
-                    return
+        mCrypto.decryptingThreadHandler.post {
+            val progressListener = if (stepProgressListener != null) {
+                object : ProgressListener {
+                    override fun onProgress(progress: Int, total: Int) {
+                        mCrypto.uiHandler.post {
+                            stepProgressListener.onStepProgress(StepProgressListener.Step.ComputingKey(progress, total))
+                        }
+                    }
                 }
-
-                mCrypto.decryptingThreadHandler.post {
-                    // Compute the recovery key
-                    val privateKey = retrievePrivateKeyWithPassword(password,
-                            megolmBackupAuthData.privateKeySalt!!,
-                            megolmBackupAuthData.privateKeyIterations!!)
-
-                    val recoveryKey = computeRecoveryKey(privateKey)
-                    restoreKeysWithRecoveryKey(version, recoveryKey, roomId, sessionId, callback)
-                }
-
+            } else {
+                null
             }
-        })
+
+            val recoveryKey = recoveryKeyFromPassword(password, keysBackupVersion, progressListener)
+
+            if (recoveryKey == null) {
+                mCrypto.uiHandler.post {
+                    Log.d(LOG_TAG, "backupKeys: Invalid configuration")
+                    callback.onUnexpectedError(IllegalStateException("Invalid configuration"))
+                }
+
+                return@post
+            }
+
+            restoreKeysWithRecoveryKey(keysBackupVersion, recoveryKey, roomId, sessionId, stepProgressListener, callback)
+        }
     }
 
     /**
@@ -1055,10 +1017,12 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     }
 
     private fun checkAndStartWithKeysBackupVersion(keyBackupVersion: KeysVersionResult?) {
+        Log.d(LOG_TAG, "checkAndStartWithKeyBackupVersion: ${keyBackupVersion?.version}")
+
         mKeysBackupVersion = keyBackupVersion
 
         if (keyBackupVersion == null) {
-            Log.d(LOG_TAG, "checkAndStartKeysBackup: Found no key backup version on the homeserver")
+            Log.d(LOG_TAG, "checkAndStartWithKeysBackupVersion: Found no key backup version on the homeserver")
             resetKeysBackupData()
             mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
         } else {
@@ -1066,7 +1030,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 val versionInStore = mCrypto.cryptoStore.keyBackupVersion
 
                 if (trustInfo.usable) {
-                    Log.d(LOG_TAG, "checkAndStartKeysBackup: Found usable key backup. version: " + keyBackupVersion.version)
+                    Log.d(LOG_TAG, "checkAndStartWithKeysBackupVersion: Found usable key backup. version: " + keyBackupVersion.version)
                     // Check the version we used at the previous app run
                     if (versionInStore != null && versionInStore != keyBackupVersion.version) {
                         Log.d(LOG_TAG, " -> clean the previously used version $versionInStore")
@@ -1076,7 +1040,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     Log.d(LOG_TAG, "   -> enabling key backups")
                     enableKeysBackup(keyBackupVersion)
                 } else {
-                    Log.d(LOG_TAG, "checkAndStartKeysBackup: No usable key backup. version: " + keyBackupVersion.version)
+                    Log.d(LOG_TAG, "checkAndStartWithKeysBackupVersion: No usable key backup. version: " + keyBackupVersion.version)
                     if (versionInStore != null) {
                         Log.d(LOG_TAG, "   -> disabling key backup")
                         resetKeysBackupData()
@@ -1091,6 +1055,98 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
     /* ==========================================================================================
      * Private
      * ========================================================================================== */
+
+    /**
+     * Extract MegolmBackupAuthData data from a backup version.
+     *
+     * @param keysBackupData the key backup data
+     *
+     * @return the authentication if found and valid, null in other case
+     */
+    private fun getMegolmBackupAuthData(keysBackupData: KeysVersionResult): MegolmBackupAuthData? {
+        if (keysBackupData.version.isNullOrBlank()
+                || keysBackupData.algorithm != MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
+                || keysBackupData.authData == null) {
+            return null
+        }
+
+        val authData = keysBackupData.getAuthDataAsMegolmBackupAuthData()
+
+        if (authData.signatures == null
+                || authData.publicKey.isBlank()) {
+            return null
+        }
+
+        return authData
+    }
+
+    /**
+     * Compute the recovery key from a password and key backup version.
+     *
+     * @param password the password.
+     * @param keysBackupData the backup and its auth data.
+     *
+     * @return the recovery key if successful, null in other cases
+     */
+    @WorkerThread
+    private fun recoveryKeyFromPassword(password: String, keysBackupData: KeysVersionResult, progressListener: ProgressListener?): String? {
+        val authData = getMegolmBackupAuthData(keysBackupData)
+
+        if (authData == null) {
+            Log.w(LOG_TAG, "recoveryKeyFromPassword: invalid parameter")
+            return null
+        }
+
+        if (authData.privateKeySalt.isNullOrBlank()
+                || authData.privateKeyIterations == null) {
+            Log.w(LOG_TAG, "recoveryKeyFromPassword: Salt and/or iterations not found in key backup auth data")
+
+            return null
+        }
+
+        // Extract the recovery key from the passphrase
+        val data = retrievePrivateKeyWithPassword(password, authData.privateKeySalt!!, authData.privateKeyIterations!!, progressListener)
+
+        return computeRecoveryKey(data)
+    }
+
+    /**
+     * Check if a recovery key matches key backup authentication data.
+     *
+     * @param recoveryKey the recovery key to challenge.
+     * @param keysBackupData the backup and its auth data.
+     *
+     * @return true if successful.
+     */
+    @WorkerThread
+    private fun isValidRecoveryKeyForKeysBackupVersion(recoveryKey: String, keysBackupData: KeysVersionResult): Boolean {
+        // Build PK decryption instance with the recovery key
+        val publicKey = pkPublicKeyFromRecoveryKey(recoveryKey)
+
+        if (publicKey == null) {
+            Log.w(LOG_TAG, "isValidRecoveryKeyForKeysBackupVersion: public key is null")
+
+            return false
+        }
+
+        val authData = getMegolmBackupAuthData(keysBackupData)
+
+        if (authData == null) {
+            Log.w(LOG_TAG, "isValidRecoveryKeyForKeysBackupVersion: Key backup is missing required data")
+
+            return false
+        }
+
+        // Compare both
+        if (publicKey != authData.publicKey) {
+            Log.w(LOG_TAG, "isValidRecoveryKeyForKeysBackupVersion: Public keys mismatch")
+
+            return false
+        }
+
+        // Public keys match!
+        return true
+    }
 
     /**
      * Enable backing up of keys.
@@ -1277,13 +1333,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                         Log.d(LOG_TAG, "backupKeys: 5a - Request complete")
 
                         // Mark keys as backed up
-                        for (session in sessions) {
-                            try {
-                                mCrypto.cryptoStore.markBackupDoneForInboundGroupSessionWithId(session.mSession.sessionIdentifier(), session.mSenderKey)
-                            } catch (e: OlmException) {
-                                Log.e(LOG_TAG, "OlmException", e)
-                            }
-                        }
+                        mCrypto.cryptoStore.markBackupDoneForInboundGroupSessions(sessions)
 
                         if (sessions.size < KEY_BACKUP_SEND_KEYS_MAX_COUNT) {
                             Log.d(LOG_TAG, "backupKeys: All keys have been backed up")

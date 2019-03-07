@@ -55,6 +55,8 @@ public class LoginRestClient extends RestClient<LoginApi> {
     public static final String LOGIN_FLOW_TYPE_RECAPTCHA = "m.login.recaptcha";
     public static final String LOGIN_FLOW_TYPE_TERMS = "m.login.terms";
     public static final String LOGIN_FLOW_TYPE_DUMMY = "m.login.dummy";
+    public static final String LOGIN_FLOW_TYPE_SSO = "m.login.sso";
+    public static final String LOGIN_FLOW_TYPE_CAS = "m.login.cas";
 
     /**
      * Public constructor.

@@ -359,38 +359,40 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
                 .toMutableSet()
     }
 
-    override fun storeInboundGroupSession(session: MXOlmInboundGroupSession2?) {
-        if (session?.mSession == null) {
+    override fun storeInboundGroupSessions(sessions: MutableList<MXOlmInboundGroupSession2>) {
+        if (sessions.isEmpty()) {
             return
         }
 
-        var sessionIdentifier: String? = null
+        doRealmTransaction(realmConfiguration) {
+            sessions.forEach { session ->
+                var sessionIdentifier: String? = null
 
-        try {
-            sessionIdentifier = session.mSession.sessionIdentifier()
-        } catch (e: OlmException) {
-            Log.e(LOG_TAG, "## storeInboundGroupSession() : sessionIdentifier failed " + e.message, e)
-        }
-
-        if (sessionIdentifier != null) {
-            val key = OlmInboundGroupSessionEntity.createPrimaryKey(sessionIdentifier, session.mSenderKey)
-
-            // Release memory of previously known session, if it is not the same one
-            if (inboundGroupSessionToRelease[key] != session) {
-                inboundGroupSessionToRelease[key]?.mSession?.releaseSession()
-            }
-
-            inboundGroupSessionToRelease[key] = session
-
-            doRealmTransaction(realmConfiguration) {
-                val realmOlmInboundGroupSession = OlmInboundGroupSessionEntity().apply {
-                    primaryKey = key
-                    sessionId = sessionIdentifier
-                    senderKey = session.mSenderKey
-                    putInboundGroupSession(session)
+                try {
+                    sessionIdentifier = session.mSession.sessionIdentifier()
+                } catch (e: OlmException) {
+                    Log.e(LOG_TAG, "## storeInboundGroupSession() : sessionIdentifier failed " + e.message, e)
                 }
 
-                it.insertOrUpdate(realmOlmInboundGroupSession)
+                if (sessionIdentifier != null) {
+                    val key = OlmInboundGroupSessionEntity.createPrimaryKey(sessionIdentifier, session.mSenderKey)
+
+                    // Release memory of previously known session, if it is not the same one
+                    if (inboundGroupSessionToRelease[key] != session) {
+                        inboundGroupSessionToRelease[key]?.mSession?.releaseSession()
+                    }
+
+                    inboundGroupSessionToRelease[key] = session
+
+                    val realmOlmInboundGroupSession = OlmInboundGroupSessionEntity().apply {
+                        primaryKey = key
+                        sessionId = sessionIdentifier
+                        senderKey = session.mSenderKey
+                        putInboundGroupSession(session)
+                    }
+
+                    it.insertOrUpdate(realmOlmInboundGroupSession)
+                }
             }
         }
     }
@@ -490,14 +492,24 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
         }
     }
 
-    override fun markBackupDoneForInboundGroupSessionWithId(sessionId: String, senderKey: String) {
-        val key = OlmInboundGroupSessionEntity.createPrimaryKey(sessionId, senderKey)
+    override fun markBackupDoneForInboundGroupSessions(sessions: MutableList<MXOlmInboundGroupSession2>) {
+        if (sessions.isEmpty()) {
+            return
+        }
 
         doRealmTransaction(realmConfiguration) {
-            it.where<OlmInboundGroupSessionEntity>()
-                    .equalTo(OlmInboundGroupSessionEntityFields.PRIMARY_KEY, key)
-                    .findFirst()
-                    ?.backedUp = true
+            sessions.forEach { session ->
+                try {
+                    val key = OlmInboundGroupSessionEntity.createPrimaryKey(session.mSession.sessionIdentifier(), session.mSenderKey)
+
+                    it.where<OlmInboundGroupSessionEntity>()
+                            .equalTo(OlmInboundGroupSessionEntityFields.PRIMARY_KEY, key)
+                            .findFirst()
+                            ?.backedUp = true
+                } catch (e: OlmException) {
+                    Log.e(LOG_TAG, "OlmException", e)
+                }
+            }
         }
     }
 

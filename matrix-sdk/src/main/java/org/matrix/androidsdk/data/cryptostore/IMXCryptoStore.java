@@ -20,6 +20,7 @@ package org.matrix.androidsdk.data.cryptostore;
 import android.content.Context;
 import android.support.annotation.Nullable;
 
+import org.jetbrains.annotations.NotNull;
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
@@ -194,11 +195,11 @@ public interface IMXCryptoStore {
     String getLastUsedSessionId(String deviceKey);
 
     /**
-     * Store an inbound group session.
+     * Store inbound group sessions.
      *
-     * @param session the inbound group session and its context.
+     * @param sessions the inbound group sessions to store.
      */
-    void storeInboundGroupSession(MXOlmInboundGroupSession2 session);
+    void storeInboundGroupSessions(@NotNull List<MXOlmInboundGroupSession2> sessions);
 
     /**
      * Retrieve an inbound group session.
@@ -235,12 +236,11 @@ public interface IMXCryptoStore {
     void resetBackupMarkers();
 
     /**
-     * Mark an inbound group session as backed up on the user homeserver.
+     * Mark inbound group sessions as backed up on the user homeserver.
      *
-     * @param sessionId the session identifier.
-     * @param senderKey the base64-encoded curve25519 key of the sender.
+     * @param sessions the sessions
      */
-    void markBackupDoneForInboundGroupSessionWithId(String sessionId, String senderKey);
+    void markBackupDoneForInboundGroupSessions(@NotNull List<MXOlmInboundGroupSession2> sessions);
 
     /**
      * Retrieve inbound group sessions that are not yet backed up.

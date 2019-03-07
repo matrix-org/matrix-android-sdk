@@ -17,18 +17,36 @@ package org.matrix.androidsdk.rest.model.login;
 
 import android.text.TextUtils;
 
+import com.google.gson.annotations.SerializedName;
+
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.matrix.androidsdk.rest.model.WellKnown;
 
 /**
  * The user's credentials.
  */
 public class Credentials {
+    @SerializedName("user_id")
     public String userId;
-    public String homeServer;  // This is the server name and not a URI, e.g. "matrix.org"
+
+    // This is the server name and not a URI, e.g. "matrix.org". Spec says it's now deprecated
+    @Deprecated
+    @SerializedName("home_server")
+    public String homeServer;
+
+    @SerializedName("access_token")
     public String accessToken;
+
+    @SerializedName("refresh_token")
     public String refreshToken;
+
+    @SerializedName("device_id")
     public String deviceId;
+
+    // Optional data that may contain info to override home server and/or identity server
+    @SerializedName("well_known")
+    public WellKnown wellKnown;
 
     public JSONObject toJson() throws JSONException {
         JSONObject json = new JSONObject();

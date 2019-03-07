@@ -53,7 +53,7 @@ public class MediaMessage extends Message {
      */
     public boolean isThumbnailLocalContent() {
         String thumbUrl = getThumbnailUrl();
-        return (null != thumbUrl) && thumbUrl.startsWith("file://");
+        return (null != thumbUrl) && thumbUrl.startsWith(FILE_SCHEME);
     }
 
     /**
@@ -61,7 +61,7 @@ public class MediaMessage extends Message {
      */
     public boolean isLocalContent() {
         String url = getUrl();
-        return (null != url) && url.startsWith("file://");
+        return (null != url) && url.startsWith(FILE_SCHEME);
     }
 
     /**
@@ -80,7 +80,7 @@ public class MediaMessage extends Message {
     public void checkMediaUrls() {
         String thumbUrl = getThumbnailUrl();
 
-        if ((null != thumbUrl) && thumbUrl.startsWith("file://")) {
+        if ((null != thumbUrl) && thumbUrl.startsWith(FILE_SCHEME)) {
             try {
                 File file = new File(Uri.parse(thumbUrl).getPath());
 
@@ -94,7 +94,7 @@ public class MediaMessage extends Message {
 
         String url = getUrl();
 
-        if ((url != null) && url.startsWith("file://")) {
+        if ((url != null) && url.startsWith(FILE_SCHEME)) {
             try {
                 File file = new File(Uri.parse(url).getPath());
 

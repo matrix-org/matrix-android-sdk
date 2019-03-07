@@ -607,7 +607,7 @@ public class RoomMediaMessage implements Parcelable {
                             List uriPath = mediaUri.getPathSegments();
                             mFileName = (String) uriPath.get(uriPath.size() - 1);
                         }
-                    } else if (mediaUri.toString().startsWith("file://")) {
+                    } else if (mediaUri.toString().startsWith(Message.FILE_SCHEME)) {
                         mFileName = mediaUri.getLastPathSegment();
                     }
                 } catch (Exception e) {

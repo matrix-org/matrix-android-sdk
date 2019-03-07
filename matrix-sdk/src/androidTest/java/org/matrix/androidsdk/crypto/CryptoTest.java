@@ -2116,7 +2116,7 @@ public class CryptoTest {
                                 super.onSuccess(info);
                             }
                         });
-        lock1b.await();
+        mTestHelper.await(lock1b);
         Assert.assertTrue(results.containsKey("setDeviceVerification20"));
 
         ///
@@ -2498,13 +2498,16 @@ public class CryptoTest {
         // test with a wrong password
         CountDownLatch lock3 = new CountDownLatch(1);
         aliceSession2.getCrypto()
-                .importRoomKeys((byte[]) results.get("exportRoomKeys"), "wrong password", new TestApiCallback<ImportRoomKeysResult>(lock3, false) {
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        results.put("importRoomKeys_failed", "importRoomKeys_failed");
-                        super.onUnexpectedError(e);
-                    }
-                });
+                .importRoomKeys((byte[]) results.get("exportRoomKeys"),
+                        "wrong password",
+                        null,
+                        new TestApiCallback<ImportRoomKeysResult>(lock3, false) {
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                results.put("importRoomKeys_failed", "importRoomKeys_failed");
+                                super.onUnexpectedError(e);
+                            }
+                        });
         mTestHelper.await(lock3);
         Assert.assertTrue(results.containsKey("importRoomKeys_failed"));
 
@@ -2517,16 +2520,19 @@ public class CryptoTest {
         Assert.assertEquals(MXCryptoError.UNKNOWN_INBOUND_SESSION_ID_ERROR_CODE, event.getCryptoError().errcode);
 
         CountDownLatch lock4 = new CountDownLatch(1);
-        aliceSession2.getCrypto().importRoomKeys((byte[]) results.get("exportRoomKeys"), password, new TestApiCallback<ImportRoomKeysResult>(lock4) {
-            @Override
-            public void onSuccess(ImportRoomKeysResult info) {
-                Assert.assertEquals(1, info.getTotalNumberOfKeys());
-                Assert.assertEquals(1, info.getSuccessfullyNumberOfImportedKeys());
+        aliceSession2.getCrypto().importRoomKeys((byte[]) results.get("exportRoomKeys"),
+                password,
+                null,
+                new TestApiCallback<ImportRoomKeysResult>(lock4) {
+                    @Override
+                    public void onSuccess(ImportRoomKeysResult info) {
+                        Assert.assertEquals(1, info.getTotalNumberOfKeys());
+                        Assert.assertEquals(1, info.getSuccessfullyNumberOfImportedKeys());
 
-                results.put("importRoomKeys", "importRoomKeys");
-                super.onSuccess(info);
-            }
-        });
+                        results.put("importRoomKeys", "importRoomKeys");
+                        super.onSuccess(info);
+                    }
+                });
         mTestHelper.await(lock4);
         Assert.assertTrue(results.containsKey("importRoomKeys"));
 

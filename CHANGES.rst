@@ -1,3 +1,19 @@
+Changes to Matrix Android SDK in 0.9.18 (2019-03-07)
+=======================================================
+
+Features:
+ - .well-known support (vector-im/riot-android#2982)
+
+Improvements:
+ - Improve import of keys performance (vector-im/riot-android#2960)
+
+Bugfix:
+ - Failed to send a video captured by the native camera. Replace the file scheme "file://" with "file:/" used by some Android devices.
+ - Fix / Escape room v3 event ids in permalinks (vector-im/riot-android#2981)
+
+Others:
+ - Handle well-known data in the login response (vector-im/riot-android#3002)
+
 Changes to Matrix Android SDK in 0.9.17 (2019-02-21)
 =======================================================
 

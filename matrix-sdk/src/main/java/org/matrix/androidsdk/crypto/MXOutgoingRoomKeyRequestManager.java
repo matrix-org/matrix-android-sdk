@@ -154,6 +154,8 @@ public class MXOutgoingRoomKeyRequestManager {
             return;
         }
 
+        Log.d(LOG_TAG, "cancelRoomKeyRequest: requestId: " + req.mRequestId + " state: " + req.mState + " andResend: " + andResend);
+
         if (req.mState == OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING
                 || req.mState == OutgoingRoomKeyRequest.RequestState.CANCELLATION_PENDING_AND_WILL_RESEND) {
             // nothing to do here

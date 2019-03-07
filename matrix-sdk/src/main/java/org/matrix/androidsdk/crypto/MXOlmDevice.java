@@ -36,6 +36,8 @@ import org.matrix.olm.OlmSession;
 import org.matrix.olm.OlmUtility;
 
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -560,7 +562,7 @@ public class MXOlmDevice {
                 return false;
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "## addInboundGroupSession : sessionIdentifier') failed " + e.getMessage(), e);
+            Log.e(LOG_TAG, "## addInboundGroupSession : sessionIdentifier() failed " + e.getMessage(), e);
             return false;
         }
 
@@ -569,58 +571,65 @@ public class MXOlmDevice {
         session.mKeysClaimed = keysClaimed;
         session.mForwardingCurve25519KeyChain = forwardingCurve25519KeyChain;
 
-        mStore.storeInboundGroupSession(session);
+        mStore.storeInboundGroupSessions(Collections.singletonList(session));
 
         return true;
     }
 
     /**
-     * Import an inbound group session to the session store.
+     * Import an inbound group sessions to the session store.
      *
-     * @param megolmSessionData the megolm session data
-     * @return the imported session if the operation succeeds.
+     * @param megolmSessionsData the megolm sessions data
+     * @return the successfully imported sessions.
      */
     @Nullable
-    public MXOlmInboundGroupSession2 importInboundGroupSession(MegolmSessionData megolmSessionData) {
-        String sessionId = megolmSessionData.sessionId;
-        String senderKey = megolmSessionData.senderKey;
-        String roomId = megolmSessionData.roomId;
+    public List<MXOlmInboundGroupSession2> importInboundGroupSessions(List<MegolmSessionData> megolmSessionsData) {
+        List<MXOlmInboundGroupSession2> sessions = new ArrayList<>(megolmSessionsData.size());
 
-        if (null != getInboundGroupSession(sessionId, senderKey, roomId)) {
-            // If we already have this session, consider updating it
-            Log.e(LOG_TAG, "## importInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
+        for (MegolmSessionData megolmSessionData : megolmSessionsData) {
 
-            // For now we just ignore updates. TODO: implement something here
-            return null;
-        }
+            String sessionId = megolmSessionData.sessionId;
+            String senderKey = megolmSessionData.senderKey;
+            String roomId = megolmSessionData.roomId;
 
-        MXOlmInboundGroupSession2 session = null;
+            if (null != getInboundGroupSession(sessionId, senderKey, roomId)) {
+                // If we already have this session, consider updating it
+                Log.e(LOG_TAG, "## importInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
 
-        try {
-            session = new MXOlmInboundGroupSession2(megolmSessionData);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## importInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId, e);
-        }
-
-        // sanity check
-        if ((null == session) || (null == session.mSession)) {
-            Log.e(LOG_TAG, "## importInboundGroupSession : invalid session");
-            return null;
-        }
-
-        try {
-            if (!TextUtils.equals(session.mSession.sessionIdentifier(), sessionId)) {
-                Log.e(LOG_TAG, "## importInboundGroupSession : ERROR: Mismatched group session ID from senderKey: " + senderKey);
-                return null;
+                // For now we just ignore updates. TODO: implement something here
+                continue;
             }
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## importInboundGroupSession : sessionIdentifier') failed " + e.getMessage(), e);
-            return null;
+
+            MXOlmInboundGroupSession2 session = null;
+
+            try {
+                session = new MXOlmInboundGroupSession2(megolmSessionData);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## importInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId, e);
+            }
+
+            // sanity check
+            if ((null == session) || (null == session.mSession)) {
+                Log.e(LOG_TAG, "## importInboundGroupSession : invalid session");
+                continue;
+            }
+
+            try {
+                if (!TextUtils.equals(session.mSession.sessionIdentifier(), sessionId)) {
+                    Log.e(LOG_TAG, "## importInboundGroupSession : ERROR: Mismatched group session ID from senderKey: " + senderKey);
+                    continue;
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## importInboundGroupSession : sessionIdentifier() failed " + e.getMessage(), e);
+                continue;
+            }
+
+            sessions.add(session);
         }
 
-        mStore.storeInboundGroupSession(session);
+        mStore.storeInboundGroupSessions(sessions);
 
-        return session;
+        return sessions;
     }
 
     /**
@@ -684,7 +693,7 @@ public class MXOlmDevice {
                         mInboundGroupSessionMessageIndexes.get(timeline).put(messageIndexKey, true);
                     }
 
-                    mStore.storeInboundGroupSession(session);
+                    mStore.storeInboundGroupSessions(Collections.singletonList(session));
                     try {
                         JsonParser parser = new JsonParser();
                         result.mPayload = parser.parse(JsonUtils.convertFromUTF8(decryptResult.mDecryptedMessage));

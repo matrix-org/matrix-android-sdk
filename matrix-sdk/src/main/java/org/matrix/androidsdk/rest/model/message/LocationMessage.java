@@ -51,7 +51,7 @@ public class LocationMessage extends Message {
     }
 
     public boolean isLocalThumbnailContent() {
-        return (null != thumbnail_url) && (thumbnail_url.startsWith("file://"));
+        return (null != thumbnail_url) && (thumbnail_url.startsWith(FILE_SCHEME));
     }
 
     /**
@@ -60,7 +60,7 @@ public class LocationMessage extends Message {
      * They could have been deleted after a media cache cleaning.
      */
     public void checkMediaUrls() {
-        if ((thumbnail_url != null) && thumbnail_url.startsWith("file://")) {
+        if ((thumbnail_url != null) && thumbnail_url.startsWith(FILE_SCHEME)) {
             try {
                 File file = new File(Uri.parse(thumbnail_url).getPath());
 

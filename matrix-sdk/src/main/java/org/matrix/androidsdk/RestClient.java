@@ -24,18 +24,12 @@ import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
-import android.util.Pair;
 
-import com.facebook.stetho.okhttp3.StethoInterceptor;
 import com.google.gson.Gson;
 
-import org.matrix.androidsdk.interceptors.CurlLoggingInterceptor;
-import org.matrix.androidsdk.interceptors.FormattedJsonHttpLogger;
 import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
-import org.matrix.androidsdk.rest.client.MXRestExecutorService;
 import org.matrix.androidsdk.rest.model.login.Credentials;
-import org.matrix.androidsdk.ssl.CertUtil;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.PolymorphicRequestBodyConverter;
@@ -44,15 +38,10 @@ import org.matrix.androidsdk.util.UnsentEventsManager;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.X509TrustManager;
-
-import okhttp3.Dispatcher;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -71,7 +60,8 @@ public class RestClient<T> {
     /**
      * Prefix used in path of identity server API requests.
      */
-    public static final String URI_API_PREFIX_IDENTITY = "_matrix/identity/api/v1/";
+    public static final String URI_IDENTITY_PATH = "_matrix/identity/api/v1";
+    public static final String URI_API_PREFIX_IDENTITY = URI_IDENTITY_PATH + "/";
 
     /**
      * List the servers which should be used to define the base url.
@@ -83,8 +73,6 @@ public class RestClient<T> {
     }
 
     protected static final int CONNECTION_TIMEOUT_MS = 30000;
-    private static final int READ_TIMEOUT_MS = 60000;
-    private static final int WRITE_TIMEOUT_MS = 60000;
 
     private Credentials mCredentials;
 
@@ -142,7 +130,7 @@ public class RestClient<T> {
         mHsConfig = hsConfig;
         mCredentials = hsConfig.getCredentials();
 
-        Interceptor authentInterceptor = new Interceptor() {
+        Interceptor authenticationInterceptor = new Interceptor() {
 
             @Override
             public Response intercept(Chain chain) throws IOException {
@@ -164,39 +152,8 @@ public class RestClient<T> {
             }
         };
 
-        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder()
-                .connectTimeout(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                .addInterceptor(authentInterceptor);
-
-        if (BuildConfig.DEBUG) {
-            HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(new FormattedJsonHttpLogger());
-            loggingInterceptor.setLevel(BuildConfig.OKHTTP_LOGGING_LEVEL);
-
-            okHttpClientBuilder
-                    .addInterceptor(loggingInterceptor)
-                    .addNetworkInterceptor(new StethoInterceptor())
-                    .addInterceptor(new CurlLoggingInterceptor());
-        }
-
-
-        if (mUseMXExecutor) {
-            okHttpClientBuilder.dispatcher(new Dispatcher(new MXRestExecutorService()));
-        }
-
         final String endPoint = makeEndpoint(hsConfig, uriPrefix, endPointServer);
-
-        try {
-            Pair<SSLSocketFactory, X509TrustManager> pair = CertUtil.newPinnedSSLSocketFactory(hsConfig);
-            okHttpClientBuilder.sslSocketFactory(pair.first, pair.second);
-            okHttpClientBuilder.hostnameVerifier(CertUtil.newHostnameVerifier(hsConfig));
-            okHttpClientBuilder.connectionSpecs(CertUtil.newConnectionSpecs(hsConfig, endPoint));
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "## RestClient() setSslSocketFactory failed: " + e.getMessage(), e);
-        }
-
-        mOkHttpClient = okHttpClientBuilder.build();
+        mOkHttpClient = RestHttpClientFactoryProvider.Companion.getDefaultProvider().createHttpClient(hsConfig, endPoint, authenticationInterceptor);
 
         // Rest adapter for turning API interfaces into actual REST-calling objects
         Retrofit.Builder builder = new Retrofit.Builder()
@@ -324,12 +281,12 @@ public class RestClient<T> {
 
             builder
                     .connectTimeout((int) (CONNECTION_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS)
-                    .readTimeout((int) (READ_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS)
-                    .writeTimeout((int) (WRITE_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
+                    .readTimeout((int) (RestClientHttpClientFactory.READ_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS)
+                    .writeTimeout((int) (RestClientHttpClientFactory.WRITE_TIMEOUT_MS * factor), TimeUnit.MILLISECONDS);
 
             Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update setConnectTimeout to " + (CONNECTION_TIMEOUT_MS * factor) + " ms");
-            Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update setReadTimeout to " + (READ_TIMEOUT_MS * factor) + " ms");
-            Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update setWriteTimeout to " + (WRITE_TIMEOUT_MS * factor) + " ms");
+            Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update setReadTimeout to " + (RestClientHttpClientFactory.READ_TIMEOUT_MS * factor) + " ms");
+            Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update setWriteTimeout to " + (RestClientHttpClientFactory.WRITE_TIMEOUT_MS * factor) + " ms");
         } else {
             builder.connectTimeout(1, TimeUnit.MILLISECONDS);
             Log.d(LOG_TAG, "## refreshConnectionTimeout()  : update the requests timeout to 1 ms");
@@ -402,4 +359,5 @@ public class RestClient<T> {
     public void setCredentials(Credentials credentials) {
         mCredentials = credentials;
     }
+
 }
