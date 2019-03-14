@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Fix replies showing mxids instead of display names (vector-im/riot-android#2468)
 
 API Change:
  -
