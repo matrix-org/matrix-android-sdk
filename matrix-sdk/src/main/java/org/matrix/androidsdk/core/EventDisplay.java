@@ -53,6 +53,8 @@ public class EventDisplay {
 
     private static final String MESSAGE_IN_REPLY_TO_FIRST_PART = "<blockquote>";
     private static final String MESSAGE_IN_REPLY_TO_LAST_PART = "</a>";
+    private static final String MESSAGE_IN_REPLY_TO_HREF_TAG_END = "\">";
+
 
     // members
     protected final Context mContext;
@@ -179,7 +181,7 @@ public class EventDisplay {
                 text = jsonEventContent.has("body") ? jsonEventContent.get("body").getAsString() : null;
                 // check for html formatting
                 if (jsonEventContent.has("formatted_body") && jsonEventContent.has("format")) {
-                    text = getFormattedMessage(mContext, jsonEventContent, mHtmlToolbox);
+                    text = getFormattedMessage(mContext, jsonEventContent, roomState, mHtmlToolbox);
                 }
                 // avoid empty image name
                 if (TextUtils.equals(msgtype, Message.MSGTYPE_IMAGE) && TextUtils.isEmpty(text)) {
@@ -562,11 +564,13 @@ public class EventDisplay {
     /**
      * @param context          the context
      * @param jsonEventContent the current jsonEventContent
+     * @param roomState        the room state
      * @param htmlToolbox      an optional htmlToolbox to manage html images and tag
      * @return the formatted message as CharSequence
      */
     private CharSequence getFormattedMessage(@NonNull final Context context,
                                              @NonNull final JsonObject jsonEventContent,
+                                             @NonNull final RoomState roomState,
                                              @Nullable final HtmlToolbox htmlToolbox) {
         final String format = jsonEventContent.getAsJsonPrimitive("format").getAsString();
         CharSequence text = null;
@@ -581,16 +585,33 @@ public class EventDisplay {
                 if (relatesTo.isJsonObject()) {
                     if (relatesTo.getAsJsonObject().has("m.in_reply_to")) {
                         // Note: <mx-reply> tag has been removed by HtmlToolbox.convert()
-
                         // Replace <blockquote><a href=\"__permalink__\">In reply to</a>
                         // By <blockquote>['In reply to' from resources]
                         // To disable the link and to localize the "In reply to" string
                         if (htmlBody.startsWith(MESSAGE_IN_REPLY_TO_FIRST_PART)) {
                             final int index = htmlBody.indexOf(MESSAGE_IN_REPLY_TO_LAST_PART);
                             if (index != -1) {
+                                String bodyRest = htmlBody.substring(index + MESSAGE_IN_REPLY_TO_LAST_PART.length());
+
+                                // find indices of displayName/mxid
+                                int indexMxidStart = bodyRest.indexOf(MESSAGE_IN_REPLY_TO_HREF_TAG_END);
+                                int indexMxidStop = bodyRest.indexOf(MESSAGE_IN_REPLY_TO_LAST_PART);
+
+                                if (indexMxidStart != 1 && indexMxidStop != -1) {
+                                    indexMxidStart = indexMxidStart + MESSAGE_IN_REPLY_TO_HREF_TAG_END.length();
+                                    // extract potential mxid (could also be display name)
+                                    String mxid = bodyRest.substring(indexMxidStart, indexMxidStop);
+                                    // convert mxid to display name
+                                    String userDisplayName = roomState.getMemberName(mxid);
+                                    // reconstruct message
+                                    if (!userDisplayName.equals(mxid)) {
+                                        bodyRest = bodyRest.substring(0, indexMxidStart) + userDisplayName + bodyRest.substring(indexMxidStop);
+                                    }
+                                }
+
                                 htmlBody = MESSAGE_IN_REPLY_TO_FIRST_PART
                                         + context.getString(R.string.message_reply_to_prefix)
-                                        + htmlBody.substring(index + MESSAGE_IN_REPLY_TO_LAST_PART.length());
+                                        + bodyRest;
                             }
                         }
                     }
