@@ -47,7 +47,9 @@ class MockOkHttpInterceptor : Interceptor {
 
         rules.forEach { rule ->
             if (originalRequest.url().toString().contains(rule.match)) {
-                return rule.process(originalRequest)
+                rule.process(originalRequest )?.let {
+                    return it
+                }
             }
         }
 
@@ -56,7 +58,7 @@ class MockOkHttpInterceptor : Interceptor {
 
 
     abstract class Rule(val match: String) {
-        abstract fun process(originalRequest: Request): Response
+        abstract fun process(originalRequest: Request): Response?
     }
 
     /**
@@ -66,7 +68,7 @@ class MockOkHttpInterceptor : Interceptor {
                      private val code: Int = HttpsURLConnection.HTTP_OK,
                      private val body: String = "{}") : Rule(match) {
 
-        override fun process(originalRequest: Request): Response {
+        override fun process(originalRequest: Request): Response? {
             return Response.Builder()
                     .protocol(Protocol.HTTP_1_1)
                     .request(originalRequest)
