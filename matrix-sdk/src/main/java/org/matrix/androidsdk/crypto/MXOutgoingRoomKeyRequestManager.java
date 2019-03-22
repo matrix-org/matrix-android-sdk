@@ -28,7 +28,6 @@ import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyShareCancellation;
 import org.matrix.androidsdk.rest.model.crypto.RoomKeyShareRequest;
-import org.matrix.androidsdk.rest.model.crypto.SendToDeviceObject;
 import org.matrix.androidsdk.util.Log;
 
 import java.util.Arrays;
@@ -358,11 +357,11 @@ public class MXOutgoingRoomKeyRequestManager {
      * @param transactionId the transaction id
      * @param callback      the asynchronous callback.
      */
-    private void sendMessageToDevices(final SendToDeviceObject message,
+    private void sendMessageToDevices(final Object message,
                                       List<Map<String, String>> recipients,
                                       String transactionId,
                                       final ApiCallback<Void> callback) {
-        MXUsersDevicesMap<SendToDeviceObject> contentMap = new MXUsersDevicesMap<>();
+        MXUsersDevicesMap<Object> contentMap = new MXUsersDevicesMap<>();
 
         for (Map<String, String> recipient : recipients) {
             contentMap.setObject(message, recipient.get("userId"), recipient.get("deviceId"));
