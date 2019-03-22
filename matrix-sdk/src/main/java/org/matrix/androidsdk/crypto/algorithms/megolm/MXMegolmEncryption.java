@@ -450,7 +450,7 @@ public class MXMegolmEncryption implements IMXEncrypting {
                     @Override
                     public void run() {
                         Log.d(LOG_TAG, "## shareUserDevicesKey() : ensureOlmSessionsForDevices succeeds after " + (System.currentTimeMillis() - t0) + " ms");
-                        MXUsersDevicesMap<EncryptedMessage> contentMap = new MXUsersDevicesMap<>();
+                        MXUsersDevicesMap<Object> contentMap = new MXUsersDevicesMap<>();
 
                         boolean haveTargets = false;
                         List<String> userIds = results.getUserIds();

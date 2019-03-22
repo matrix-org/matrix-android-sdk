@@ -406,7 +406,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
                             payloadJson.put("content", inboundGroupSession.exportKeys());
 
                             EncryptedMessage encodedPayload = mSession.getCrypto().encryptMessage(payloadJson, Arrays.asList(deviceInfo));
-                            MXUsersDevicesMap<EncryptedMessage> sendToDeviceMap = new MXUsersDevicesMap<>();
+                            MXUsersDevicesMap<Object> sendToDeviceMap = new MXUsersDevicesMap<>();
                             sendToDeviceMap.setObject(encodedPayload, userId, deviceId);
 
                             Log.d(LOG_TAG, "## shareKeysWithDevice() : sending to " + userId + ":" + deviceId);

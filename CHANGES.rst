@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Fix regression on ToDevice requests, sent with empty object
 
 API Change:
  -
