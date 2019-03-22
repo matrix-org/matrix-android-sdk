@@ -21,7 +21,10 @@
     <!-- libjingle is designed for API >= 15 but the app should work from API >= 11 -->
     <!--uses-sdk tools:overrideLibrary="io.pristine.libjingle"/-->
 
-    <application android:supportsRtl="true">
+    <!-- When targeting API 28, clear text traffic is disabled by default. Enable it, because some homeservers need it -->
+    <application
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="true">
         <receiver android:name=".sync.EventsThread$SyncDelayReceiver" />
     </application>
 </manifest>

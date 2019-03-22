@@ -20,7 +20,7 @@ Others:
  -
 
 Build:
- -
+ - Upgrade kotlin, library dependencies, targetSdk and gradle version
 
 Test:
  -
