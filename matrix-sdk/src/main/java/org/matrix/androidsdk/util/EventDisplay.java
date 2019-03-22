@@ -258,7 +258,7 @@ public class EventDisplay {
                 }
 
                 if (!TextUtils.isEmpty(topic)) {
-                    text = mContext.getString(R.string.notice_topic_changed, userDisplayName, topic);
+                    text = mContext.getString(R.string.notice_room_topic_changed, userDisplayName, topic);
                 } else {
                     text = mContext.getString(R.string.notice_room_topic_removed, userDisplayName);
                 }

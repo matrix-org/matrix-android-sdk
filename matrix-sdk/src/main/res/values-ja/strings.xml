@@ -19,7 +19,7 @@
     <string name="notice_display_name_set">%1$sが表示名を%2$sに設定しました</string>
     <string name="notice_display_name_changed_from">%1$sが表示名を%2$sから%3$sに変更しました</string>
     <string name="notice_display_name_removed">%1$sが表示名 (%2$s) を削除しました</string>
-    <string name="notice_topic_changed">%1$sがテーマを%2$sに変更しました</string>
+    <string name="notice_room_topic_changed">%1$sがテーマを%2$sに変更しました</string>
     <string name="notice_room_name_changed">%1$sが部屋名を%2$sに変更しました</string>
     <string name="notice_placed_video_call">%sがビデオ通話を開始しました。</string>
     <string name="notice_placed_voice_call">%sが音声通話を開始しました。</string>
