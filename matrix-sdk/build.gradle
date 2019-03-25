@@ -44,24 +44,23 @@ android {
     }
 
     android.libraryVariants.all { variant ->
-        task("${variant.name}Docs", type: Javadoc) {
-            source = variant.javaCompiler.source
+        task("generate${variant.name.capitalize()}Javadoc", type: Javadoc) {
+            source = android.sourceSets.main.java.srcDirs
             classpath = files(((Object) android.bootClasspath.join(File.pathSeparator)))
             // Comment this line else we get a gradle error:
             // Cannot create variant 'android-lint' after configuration ':matrix-sdk:debugRuntimeElements' has been resolved
             // Javadoc is still well generated without this line
             // classpath += files(variant.javaCompiler.classpath.files)
 
-            destinationDir = file("../docs/javadoc/")
-            delete "../docs/"
-
-            options.windowTitle("Matrix Android SDK")
-            options.docTitle("Matrix Android SDK")
-            options.header("<b>Matrix Android SDK</b>")
-            options.bottom("&copy; 2017 Vector Creations Ltd All rights reserved.")
+            options.windowTitle("Matrix Android SDK ${defaultConfig.versionName}")
+            options.docTitle("Matrix Android SDK ${defaultConfig.versionName}<br/><i>Please note that Kotlin files are not part of the Javadoc</i>")
+            options.header("<b>Matrix Android SDK ${defaultConfig.versionName}</b><br/><i>Please note that Kotlin files are not part of the Javadoc</i>")
+            options.bottom("&copy; 2019 New Vector Ltd All rights reserved.")
 
             exclude '**/BuildConfig.java'
             exclude '**/R.java'
+            // Exclude all kotlin files from javadoc file (it does not work and make the task fails).
+            excludes = ['**/*.kt']
             failOnError false
         }
     }

@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 
-echo "Delete /docs..."
-rm -rf ./docs
-
 echo "Generate Javadoc..."
-./gradlew releaseDocs
+./gradlew generateReleaseJavadoc --stacktrace
 
 echo "Compress..."
-cd ./docs
-tar -zcvf matrix-sdk-javadoc.tar.gz ./javadoc/
-cd ..
+cd ./matrix-sdk/build/docs/
+tar -zcvf ../../matrix-sdk-javadoc.tar.gz ./javadoc/
+cd -
 
 echo "Success!"
