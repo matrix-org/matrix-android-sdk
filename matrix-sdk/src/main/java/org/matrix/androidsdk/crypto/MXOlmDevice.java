@@ -552,7 +552,9 @@ public class MXOlmDevice {
 
             //If our existing session is better we keep it
             if (newKnownFirstIndex != null && existingFirstKnown <= newKnownFirstIndex) {
-                session.mSession.releaseSession();
+                if (session.mSession != null) {
+                    session.mSession.releaseSession();
+                }
                 return false;
             }
         }
