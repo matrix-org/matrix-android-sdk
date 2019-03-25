@@ -540,15 +540,24 @@ public class MXOlmDevice {
                                           List<String> forwardingCurve25519KeyChain,
                                           Map<String, String> keysClaimed,
                                           boolean exportFormat) {
-        if (null != getInboundGroupSession(sessionId, senderKey, roomId)) {
+        MXOlmInboundGroupSession2 existingInboundSession = getInboundGroupSession(sessionId, senderKey, roomId);
+        MXOlmInboundGroupSession2 session = new MXOlmInboundGroupSession2(sessionKey, exportFormat);
+
+        if (null != existingInboundSession) {
             // If we already have this session, consider updating it
             Log.e(LOG_TAG, "## addInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
 
-            // For now we just ignore updates. TODO: implement something here
-            return false;
-        }
+            Long existingFirstKnown = existingInboundSession.getFirstKnownIndex();
+            Long newKnownFirstIndex = session.getFirstKnownIndex();
 
-        MXOlmInboundGroupSession2 session = new MXOlmInboundGroupSession2(sessionKey, exportFormat);
+            //If our existing session is better we keep it
+            if (newKnownFirstIndex != null && existingFirstKnown <= newKnownFirstIndex) {
+                if (session.mSession != null) {
+                    session.mSession.releaseSession();
+                }
+                return false;
+            }
+        }
 
         // sanity check
         if (null == session.mSession) {
@@ -559,9 +568,11 @@ public class MXOlmDevice {
         try {
             if (!TextUtils.equals(session.mSession.sessionIdentifier(), sessionId)) {
                 Log.e(LOG_TAG, "## addInboundGroupSession : ERROR: Mismatched group session ID from senderKey: " + senderKey);
+                session.mSession.releaseSession();
                 return false;
             }
         } catch (Exception e) {
+            session.mSession.releaseSession();
             Log.e(LOG_TAG, "## addInboundGroupSession : sessionIdentifier() failed " + e.getMessage(), e);
             return false;
         }
@@ -592,14 +603,6 @@ public class MXOlmDevice {
             String senderKey = megolmSessionData.senderKey;
             String roomId = megolmSessionData.roomId;
 
-            if (null != getInboundGroupSession(sessionId, senderKey, roomId)) {
-                // If we already have this session, consider updating it
-                Log.e(LOG_TAG, "## importInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
-
-                // For now we just ignore updates. TODO: implement something here
-                continue;
-            }
-
             MXOlmInboundGroupSession2 session = null;
 
             try {
@@ -617,11 +620,26 @@ public class MXOlmDevice {
             try {
                 if (!TextUtils.equals(session.mSession.sessionIdentifier(), sessionId)) {
                     Log.e(LOG_TAG, "## importInboundGroupSession : ERROR: Mismatched group session ID from senderKey: " + senderKey);
+                    if (session.mSession != null) session.mSession.releaseSession();
                     continue;
                 }
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## importInboundGroupSession : sessionIdentifier() failed " + e.getMessage(), e);
+                session.mSession.releaseSession();
                 continue;
+            }
+
+            MXOlmInboundGroupSession2 existingOlmSession = getInboundGroupSession(sessionId, senderKey, roomId);
+            if (null != existingOlmSession) {
+                // If we already have this session, consider updating it
+                Log.e(LOG_TAG, "## importInboundGroupSession() : Update for megolm session " + senderKey + "/" + sessionId);
+
+                // For now we just ignore updates. TODO: implement something here
+                if (existingOlmSession.getFirstKnownIndex() <= session.getFirstKnownIndex()) {
+                    //Ignore this, keep existing
+                    session.mSession.releaseSession();
+                    continue;
+                }
             }
 
             sessions.add(session);

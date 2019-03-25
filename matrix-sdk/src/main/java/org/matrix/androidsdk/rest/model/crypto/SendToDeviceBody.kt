@@ -18,6 +18,7 @@ package org.matrix.androidsdk.rest.model.crypto
 
 class SendToDeviceBody {
 
+    // `Any` should implement SendToDeviceObject, but we cannot use interface here because of Gson serialization
     @JvmField
-    var messages: Map<String, Map<String, SendToDeviceObject>>? = null
+    var messages: Map<String, Map<String, Any>>? = null
 }

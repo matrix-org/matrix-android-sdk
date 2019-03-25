@@ -31,7 +31,6 @@ import org.matrix.androidsdk.rest.model.crypto.KeysClaimResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
 import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.rest.model.crypto.SendToDeviceBody;
-import org.matrix.androidsdk.rest.model.crypto.SendToDeviceObject;
 import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.sync.DevicesListResponse;
 import org.matrix.androidsdk.util.JsonUtils;
@@ -197,7 +196,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * @param callback   the asynchronous callback.
      */
     public void sendToDevice(final String eventType,
-                             final MXUsersDevicesMap<? extends SendToDeviceObject> contentMap,
+                             final MXUsersDevicesMap<Object> contentMap,
                              final ApiCallback<Void> callback) {
         sendToDevice(eventType, contentMap, (new Random()).nextInt(Integer.MAX_VALUE) + "", callback);
     }
@@ -211,7 +210,7 @@ public class CryptoRestClient extends RestClient<CryptoApi> {
      * @param callback      the asynchronous callback.
      */
     public void sendToDevice(final String eventType,
-                             final MXUsersDevicesMap<? extends SendToDeviceObject> contentMap,
+                             final MXUsersDevicesMap<Object> contentMap,
                              final String transactionId,
                              final ApiCallback<Void> callback) {
         final String description = "sendToDevice " + eventType;

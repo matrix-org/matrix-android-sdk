@@ -17,7 +17,7 @@
     <string name="notice_display_name_set">%1$s megváltoztatták a megjelenő nevüket erre: %2$s</string>
     <string name="notice_display_name_changed_from">%1$s megváltoztatták a megjelenő nevüket erről %2$s erre %3$s</string>
     <string name="notice_display_name_removed">%1$s eltávolították a megjelenő nevüket (%2$s)</string>
-    <string name="notice_topic_changed">%1$s megváltoztatta a témát erre: %2$s</string>
+    <string name="notice_room_topic_changed">%1$s megváltoztatta a témát erre: %2$s</string>
     <string name="notice_room_name_changed">%1$s megváltoztatta a szoba nevét erre: %2$s</string>
     <string name="notice_placed_video_call">%s videóhívást kezdeményezett.</string>
     <string name="notice_placed_voice_call">%s hanghívást kezdeményezett.</string>
@@ -39,7 +39,7 @@
     <string name="notice_room_name_removed">%1$s eltávolította a szoba nevét</string>
     <string name="notice_room_topic_removed">%1$s eltávolította a szoba témáját</string>
     <string name="notice_event_redacted">"szerkesztett %1$s "</string>
-    <string name="notice_event_redacted_by">" %1$s által"</string>
+    <string name="notice_event_redacted_by">%1$s által</string>
     <string name="notice_event_redacted_reason">[ok: %1$s]</string>
     <string name="notice_profile_change_redacted">%1$s megváltoztatták a profiljukat %2$s</string>
     <string name="notice_room_third_party_invite">"%1$s meghívót küldött %2$s -nak/-nek  hogy csatlakozzon a szobához"</string>

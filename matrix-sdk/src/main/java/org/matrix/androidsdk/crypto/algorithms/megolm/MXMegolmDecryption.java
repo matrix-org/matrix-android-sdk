@@ -290,20 +290,22 @@ public class MXMegolmDecryption implements IMXDecrypting {
             keysClaimed = roomKeyEvent.getKeysClaimed();
         }
 
-        mOlmDevice.addInboundGroupSession(sessionId, sessionKey, roomId, senderKey, forwarding_curve25519_key_chain, keysClaimed, exportFormat);
+        boolean added = mOlmDevice.addInboundGroupSession(sessionId, sessionKey, roomId, senderKey, forwarding_curve25519_key_chain, keysClaimed, exportFormat);
 
-        mSession.getCrypto().getKeysBackup().maybeBackupKeys();
+        if (added) {
+            mSession.getCrypto().getKeysBackup().maybeBackupKeys();
 
-        RoomKeyRequestBody content = new RoomKeyRequestBody();
+            RoomKeyRequestBody content = new RoomKeyRequestBody();
 
-        content.algorithm = roomKeyContent.algorithm;
-        content.roomId = roomKeyContent.room_id;
-        content.sessionId = roomKeyContent.session_id;
-        content.senderKey = senderKey;
+            content.algorithm = roomKeyContent.algorithm;
+            content.roomId = roomKeyContent.room_id;
+            content.sessionId = roomKeyContent.session_id;
+            content.senderKey = senderKey;
 
-        mSession.getCrypto().cancelRoomKeyRequest(content);
+            mSession.getCrypto().cancelRoomKeyRequest(content);
 
-        onNewSession(senderKey, sessionId);
+            onNewSession(senderKey, sessionId);
+        }
     }
 
     /**
@@ -406,7 +408,7 @@ public class MXMegolmDecryption implements IMXDecrypting {
                             payloadJson.put("content", inboundGroupSession.exportKeys());
 
                             EncryptedMessage encodedPayload = mSession.getCrypto().encryptMessage(payloadJson, Arrays.asList(deviceInfo));
-                            MXUsersDevicesMap<EncryptedMessage> sendToDeviceMap = new MXUsersDevicesMap<>();
+                            MXUsersDevicesMap<Object> sendToDeviceMap = new MXUsersDevicesMap<>();
                             sendToDeviceMap.setObject(encodedPayload, userId, deviceId);
 
                             Log.d(LOG_TAG, "## shareKeysWithDevice() : sending to " + userId + ":" + deviceId);

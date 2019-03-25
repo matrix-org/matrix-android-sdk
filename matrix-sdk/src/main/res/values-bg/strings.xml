@@ -18,7 +18,7 @@
     <string name="notice_display_name_set">%1$s си сложи име %2$s</string>
     <string name="notice_display_name_changed_from">%1$s смени своето име от %2$s на %3$s</string>
     <string name="notice_display_name_removed">%1$s премахна своето име (%2$s)</string>
-    <string name="notice_topic_changed">%1$s смени темата на: %2$s</string>
+    <string name="notice_room_topic_changed">%1$s смени темата на: %2$s</string>
     <string name="notice_room_name_changed">%1$s смени името на стаята на: %2$s</string>
     <string name="notice_placed_video_call">%s започна видео разговор.</string>
     <string name="notice_placed_voice_call">%s започна гласов разговор.</string>
@@ -39,9 +39,9 @@
     <string name="notice_avatar_changed_too">(профилната снимка също беше сменена)</string>
     <string name="notice_room_name_removed">%1$s премахна името на стаята</string>
     <string name="notice_room_topic_removed">%1$s премахна темата на стаята</string>
-    <string name="notice_event_redacted">"изтрито %1$s "</string>
-    <string name="notice_event_redacted_by">" от %1$s"</string>
-    <string name="notice_event_redacted_reason">" [причина: %1$s]"</string>
+    <string name="notice_event_redacted">премахнато %1$s</string>
+    <string name="notice_event_redacted_by">от %1$s</string>
+    <string name="notice_event_redacted_reason">[причина: %1$s]</string>
     <string name="notice_profile_change_redacted">%1$s обнови своя профил %2$s</string>
     <string name="notice_room_third_party_invite">%1$s изпрати покана на %2$s да се присъедини към стаята</string>
     <string name="notice_room_third_party_registered_invite">%1$s прие поканата за %2$s</string>

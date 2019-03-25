@@ -10,12 +10,12 @@ buildscript {
     }
 
     dependencies {
-        classpath "io.realm:realm-gradle-plugin:5.8.0"
+        classpath "io.realm:realm-gradle-plugin:5.9.0"
     }
 }
 
 android {
-    compileSdkVersion 27
+    compileSdkVersion 28
 
     packagingOptions {
         exclude 'LICENSE.txt'
@@ -26,9 +26,9 @@ android {
 
     defaultConfig {
         minSdkVersion 16
-        targetSdkVersion 26
-        versionCode 918
-        versionName "0.9.18"
+        targetSdkVersion 28
+        versionCode 919
+        versionName "0.9.19"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
@@ -44,24 +44,23 @@ android {
     }
 
     android.libraryVariants.all { variant ->
-        task("${variant.name}Docs", type: Javadoc) {
-            source = variant.javaCompiler.source
+        task("generate${variant.name.capitalize()}Javadoc", type: Javadoc) {
+            source = android.sourceSets.main.java.srcDirs
             classpath = files(((Object) android.bootClasspath.join(File.pathSeparator)))
             // Comment this line else we get a gradle error:
             // Cannot create variant 'android-lint' after configuration ':matrix-sdk:debugRuntimeElements' has been resolved
             // Javadoc is still well generated without this line
             // classpath += files(variant.javaCompiler.classpath.files)
 
-            destinationDir = file("../docs/javadoc/")
-            delete "../docs/"
-
-            options.windowTitle("Matrix Android SDK")
-            options.docTitle("Matrix Android SDK")
-            options.header("<b>Matrix Android SDK</b>")
-            options.bottom("&copy; 2017 Vector Creations Ltd All rights reserved.")
+            options.windowTitle("Matrix Android SDK ${defaultConfig.versionName}")
+            options.docTitle("Matrix Android SDK ${defaultConfig.versionName}<br/><i>Please note that Kotlin files are not part of the Javadoc</i>")
+            options.header("<b>Matrix Android SDK ${defaultConfig.versionName}</b><br/><i>Please note that Kotlin files are not part of the Javadoc</i>")
+            options.bottom("&copy; 2019 New Vector Ltd All rights reserved.")
 
             exclude '**/BuildConfig.java'
             exclude '**/R.java'
+            // Exclude all kotlin files from javadoc file (it does not work and make the task fails).
+            excludes = ['**/*.kt']
             failOnError false
         }
     }
@@ -164,13 +163,13 @@ dependencies {
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
-    implementation 'com.android.support:appcompat-v7:27.1.1'
-    implementation 'com.android.support:preference-v7:27.1.1'
+    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'com.android.support:preference-v7:28.0.0'
 
     implementation 'com.squareup.retrofit2:retrofit:2.4.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
-    implementation 'com.google.code.gson:gson:2.8.2'
-    implementation 'com.squareup.okhttp3:okhttp:3.10.0'
+    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'com.squareup.okhttp3:okhttp:3.11.0'
     implementation 'com.squareup.okhttp3:logging-interceptor:3.10.0'
     implementation 'com.facebook.stetho:stetho:1.5.0'
     implementation 'com.facebook.stetho:stetho-okhttp3:1.5.0'
@@ -186,15 +185,15 @@ dependencies {
     // Test
     testImplementation 'com.android.support.test:runner:1.0.2'
     testImplementation 'com.android.support.test:rules:1.0.2'
-    testImplementation 'org.mockito:mockito-core:2.7.22'
+    testImplementation 'org.mockito:mockito-core:2.23.0'
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.hamcrest:hamcrest-library:1.3'
     testImplementation 'org.apache.maven:maven-ant-tasks:2.1.3' // fixes issue on linux/mac
-    testImplementation "org.robolectric:robolectric:3.8"
+    testImplementation "org.robolectric:robolectric:4.0.2"
 
     // Robolectric
     androidTestImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support:support-annotations:27.1.1'
+    androidTestImplementation 'com.android.support:support-annotations:28.0.0'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test:rules:1.0.2'
 }
