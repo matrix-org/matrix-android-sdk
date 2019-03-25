@@ -1,29 +1,14 @@
-Changes to Matrix Android SDK in 0.9.19 (2019-XX-XX)
+Changes to Matrix Android SDK in 0.9.19 (2019-03-25)
 =======================================================
 
-Features:
- -
-
 Improvements:
- -
+ - Fix partially shared session (#446)
 
 Bugfix:
  - Fix regression on ToDevice requests, sent with empty object
 
-API Change:
- -
-
-Translations:
- -
-
-Others:
- -
-
 Build:
  - Upgrade kotlin, library dependencies, targetSdk and gradle version
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.18 (2019-03-07)
 =======================================================
