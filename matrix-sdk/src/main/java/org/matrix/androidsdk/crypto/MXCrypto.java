@@ -40,6 +40,7 @@ import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.crypto.keysbackup.KeysBackup;
+import org.matrix.androidsdk.crypto.verification.ShortCodeVerificationManager;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
@@ -194,6 +195,7 @@ public class MXCrypto {
     // The key backup manager.
     private final KeysBackup mKeysBackup;
 
+    private final ShortCodeVerificationManager mShortCodeVerificationManager;
     /**
      * Constructor
      *
@@ -288,6 +290,7 @@ public class MXCrypto {
         mReceivedRoomKeyRequests.addAll(mCryptoStore.getPendingIncomingRoomKeyRequests());
 
         mKeysBackup = new KeysBackup(this, mSession);
+        mShortCodeVerificationManager = new ShortCodeVerificationManager(mSession);
     }
 
     /**
@@ -616,6 +619,10 @@ public class MXCrypto {
      */
     public KeysBackup getKeysBackup() {
         return mKeysBackup;
+    }
+
+    public ShortCodeVerificationManager getShortCodeVerificationManager() {
+        return mShortCodeVerificationManager;
     }
 
     /**
