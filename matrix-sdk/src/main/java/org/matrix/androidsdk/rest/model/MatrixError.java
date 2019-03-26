@@ -48,6 +48,7 @@ public class MatrixError implements java.io.Serializable {
     // Error code returned by the server when no account matches the given 3pid
     public static final String THREEPID_NOT_FOUND = "M_THREEPID_NOT_FOUND";
     public static final String THREEPID_IN_USE = "M_THREEPID_IN_USE";
+    public static final String THREEPID_DENIED = "M_THREEPID_DENIED";
     public static final String SERVER_NOT_TRUSTED = "M_SERVER_NOT_TRUSTED";
     public static final String TOO_LARGE = "M_TOO_LARGE";
     public static final String M_CONSENT_NOT_GIVEN = "M_CONSENT_NOT_GIVEN";
