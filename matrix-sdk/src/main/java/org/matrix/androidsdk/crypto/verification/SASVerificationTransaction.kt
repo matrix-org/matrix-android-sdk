@@ -30,13 +30,12 @@ import org.matrix.androidsdk.util.JsonUtils
 import org.matrix.androidsdk.util.Log
 import org.matrix.olm.OlmSAS
 import org.matrix.olm.OlmUtility
-import java.lang.Exception
 import kotlin.properties.Delegates
 
 /**
  * Represents an ongoing interactive key verification between two devices.
  */
-class SASVerificationTransaction(transactionId: String, otherUserID: String, val autoAccept : Boolean = true) : VerificationTransaction(transactionId, otherUserID) {
+class SASVerificationTransaction(transactionId: String, otherUserID: String, val autoAccept: Boolean = true) : VerificationTransaction(transactionId, otherUserID) {
 
     companion object {
         val LOG_TAG = SASVerificationTransaction::javaClass.name
@@ -250,14 +249,14 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, val
         this.startReq = startReq
         state = SASVerificationTxState.OnStarted
         this.otherDevice = startReq.fromDevice
-        if(autoAccept) {
+        if (autoAccept) {
             performAccept(session)
         }
 
     }
 
-    private fun performAccept( session: MXSession) {
-        if( state != SASVerificationTxState.OnStarted) {
+    fun performAccept(session: MXSession) {
+        if (state != SASVerificationTxState.OnStarted) {
             Log.e(LOG_TAG, "## Cannot perform accept from state $state")
             return
         }
@@ -294,7 +293,7 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, val
                         cancel(session, CancelCode.User)
                     }
                 } else {
-    //                    val otherKey = info.identityKey()
+                    //                    val otherKey = info.identityKey()
                     //need to jump back to correct thread
                     val accept = KeyVerificationAccept.new(
                             tid = transactionId,
