@@ -36,7 +36,7 @@ import kotlin.properties.Delegates
 /**
  * Represents an ongoing interactive key verification between two devices.
  */
-class SASVerificationTransaction(transactionId: String, otherUserID: String) : VerificationTransaction(transactionId, otherUserID) {
+class SASVerificationTransaction(transactionId: String, otherUserID: String, val autoAccept : Boolean = true) : VerificationTransaction(transactionId, otherUserID) {
 
     companion object {
         val LOG_TAG = SASVerificationTransaction::javaClass.name
@@ -230,7 +230,7 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String) : V
 
     override fun acceptToDeviceEvent(session: MXSession, senderId: String, event: SendToDeviceObject) {
         when (event) {
-            is KeyVerificationStart -> onVerificationRequest(session, senderId, event)
+            is KeyVerificationStart -> onVerificationRequest(session, event)
             is KeyVerificationAccept -> onVerificationAccept(session, event)
             is KeyVerificationKey -> onKeyVerificationKey(session, senderId, event)
             else -> {
@@ -241,7 +241,7 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String) : V
 
     //privates
 
-    private fun onVerificationRequest(session: MXSession, userId: String, startReq: KeyVerificationStart) {
+    private fun onVerificationRequest(session: MXSession, startReq: KeyVerificationStart) {
         if (state != SASVerificationTxState.None) {
             Log.e(LOG_TAG, "## received verification request from invalid state")
             //should I cancel??
@@ -250,13 +250,24 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String) : V
         this.startReq = startReq
         state = SASVerificationTxState.OnStarted
         this.otherDevice = startReq.fromDevice
+        if(autoAccept) {
+            performAccept(session)
+        }
+
+    }
+
+    private fun performAccept( session: MXSession) {
+        if( state != SASVerificationTxState.OnStarted) {
+            Log.e(LOG_TAG, "## Cannot perform accept from state $state")
+            return
+        }
 
         // Select a key agreement protocol, a hash algorithm, a message authentication code,
         // and short authentication string methods out of the lists given in requester's message.
-        val agreedProtocol = startReq.key_agreement_protocols?.firstOrNull { KNOWN_AGREEMENT_PROTOCOLS.contains(it) }
-        val agreedHash = startReq.hashes?.firstOrNull { KNOWN_HASHES.contains(it) }
-        val agreedMac = startReq.message_authentication_codes?.firstOrNull { KNOWN_MAC.contains(it) }
-        val agreedShortCode = startReq.short_authentication_string?.filter { KNOWN_SHORT_CODES.contains(it) }
+        val agreedProtocol = startReq!!.key_agreement_protocols?.firstOrNull { KNOWN_AGREEMENT_PROTOCOLS.contains(it) }
+        val agreedHash = startReq!!.hashes?.firstOrNull { KNOWN_HASHES.contains(it) }
+        val agreedMac = startReq!!.message_authentication_codes?.firstOrNull { KNOWN_MAC.contains(it) }
+        val agreedShortCode = startReq!!.short_authentication_string?.filter { KNOWN_SHORT_CODES.contains(it) }
 
         //No common key sharing/hashing/hmac/SAS methods.
         //If a device is unable to complete the verification because the devices are unable to find a common key sharing,
@@ -272,7 +283,7 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String) : V
         }
 
         //Bob’s device ensures that it has a copy of Alice’s device key.
-        session.crypto!!.getDeviceInfo(userId, otherDevice, object : SimpleApiCallback<MXDeviceInfo>() {
+        session.crypto!!.getDeviceInfo(this.otherUserID, otherDevice, object : SimpleApiCallback<MXDeviceInfo>() {
             override fun onSuccess(info: MXDeviceInfo?) {
                 if (info?.identityKey() == null) {
                     Log.e(LOG_TAG, "## Failed to find device key ")
@@ -283,7 +294,7 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String) : V
                         cancel(session, CancelCode.User)
                     }
                 } else {
-//                    val otherKey = info.identityKey()
+    //                    val otherKey = info.identityKey()
                     //need to jump back to correct thread
                     val accept = KeyVerificationAccept.new(
                             tid = transactionId,

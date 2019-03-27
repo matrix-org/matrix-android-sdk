@@ -196,6 +196,7 @@ public class MXCrypto {
     private final KeysBackup mKeysBackup;
 
     private final ShortCodeVerificationManager mShortCodeVerificationManager;
+
     /**
      * Constructor
      *
@@ -290,7 +291,9 @@ public class MXCrypto {
         mReceivedRoomKeyRequests.addAll(mCryptoStore.getPendingIncomingRoomKeyRequests());
 
         mKeysBackup = new KeysBackup(this, mSession);
-        mShortCodeVerificationManager = new ShortCodeVerificationManager(mSession);
+        ShortCodeVerificationManager shortCodeVerificationManager = new ShortCodeVerificationManager(mSession);
+        shortCodeVerificationManager.setAutoAcceptIncomingRequests(false);
+        mShortCodeVerificationManager = shortCodeVerificationManager;
     }
 
     /**

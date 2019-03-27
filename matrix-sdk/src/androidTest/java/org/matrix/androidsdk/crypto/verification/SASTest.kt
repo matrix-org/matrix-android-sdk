@@ -54,9 +54,12 @@ class SASTest {
         val aliceSession = cryptoTestData.firstSession
         val bobSession = cryptoTestData.secondSession
 
-        val aliceSasMgr = aliceSession.crypto!!.shortCodeVerificationManager
-
-        val bobSasMgr = bobSession!!.crypto!!.shortCodeVerificationManager
+        val aliceSasMgr = aliceSession.crypto!!.shortCodeVerificationManager.apply {
+            autoAcceptIncomingRequests = true
+        }
+        val bobSasMgr = bobSession!!.crypto!!.shortCodeVerificationManager.apply {
+            autoAcceptIncomingRequests = true
+        }
 
         bobSession.dataHandler.addListener(object : MXEventListener() {
             override fun onToDeviceEvent(event: Event?) {
@@ -145,8 +148,12 @@ class SASTest {
         val bobSession = cryptoTestData.secondSession
 
 
-        val aliceSasMgr = aliceSession.crypto!!.shortCodeVerificationManager
-        val bobSasMgr = bobSession!!.crypto!!.shortCodeVerificationManager
+        val aliceSasMgr = aliceSession.crypto!!.shortCodeVerificationManager.apply {
+            autoAcceptIncomingRequests = true
+        }
+        val bobSasMgr = bobSession!!.crypto!!.shortCodeVerificationManager.apply {
+            autoAcceptIncomingRequests = true
+        }
 
         val bobTxCreatedLatch = CountDownLatch(1)
         val bobListener = object : ShortCodeVerificationManager.ManagerListener {
@@ -382,7 +389,9 @@ class SASTest {
         val bobSession = cryptoTestData.secondSession
 
 
-        val aliceSasMgr = aliceSession.crypto!!.shortCodeVerificationManager
+        val aliceSasMgr = aliceSession.crypto!!.shortCodeVerificationManager.apply {
+            autoAcceptIncomingRequests = true
+        }
 
         val aliceCreatedLatch = CountDownLatch(2)
         val aliceCancelledLatch = CountDownLatch(2)
@@ -426,8 +435,12 @@ class SASTest {
         val aliceSession = cryptoTestData.firstSession
         val bobSession = cryptoTestData.secondSession
 
-        val aliceSasMgr = aliceSession.crypto!!.shortCodeVerificationManager
-        val bobSasMgr = bobSession!!.crypto!!.shortCodeVerificationManager
+        val aliceSasMgr = aliceSession.crypto!!.shortCodeVerificationManager.apply {
+            autoAcceptIncomingRequests = true
+        }
+        val bobSasMgr = bobSession!!.crypto!!.shortCodeVerificationManager.apply {
+            autoAcceptIncomingRequests = true
+        }
 
         var accepted: KeyVerificationAccept? = null
         var startReq: KeyVerificationStart? = null
@@ -478,8 +491,12 @@ class SASTest {
         val aliceSession = cryptoTestData.firstSession
         val bobSession = cryptoTestData.secondSession
 
-        val aliceSasMgr = aliceSession.crypto!!.shortCodeVerificationManager
-        val bobSasMgr = bobSession!!.crypto!!.shortCodeVerificationManager
+        val aliceSasMgr = aliceSession.crypto!!.shortCodeVerificationManager.apply {
+            autoAcceptIncomingRequests = true
+        }
+        val bobSasMgr = bobSession!!.crypto!!.shortCodeVerificationManager.apply {
+            autoAcceptIncomingRequests = true
+        }
 
 
         val aliceSASLatch = CountDownLatch(1)

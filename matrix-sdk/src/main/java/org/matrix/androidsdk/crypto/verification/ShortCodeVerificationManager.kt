@@ -49,6 +49,8 @@ class ShortCodeVerificationManager(val session: MXSession) : VerificationTransac
 
     private val uiHandler = Handler(Looper.getMainLooper())
 
+    var autoAcceptIncomingRequests = false
+
     // map [sender : [transaction]]
     private val txMap = HashMap<String, HashMap<String, VerificationTransaction>>()
 
@@ -142,7 +144,7 @@ class ShortCodeVerificationManager(val session: MXSession) : VerificationTransac
         } else {
             //Ok we can create
             if (KeyVerificationStart.VERIF_METHOD_SAS == startReq.method) {
-                val tx = SASVerificationTransaction(startReq.transactionID!!, otherUserId)
+                val tx = SASVerificationTransaction(startReq.transactionID!!, otherUserId, autoAcceptIncomingRequests)
                 addTransaction(tx)
                 tx.acceptToDeviceEvent(session, otherUserId, startReq)
             } else {
