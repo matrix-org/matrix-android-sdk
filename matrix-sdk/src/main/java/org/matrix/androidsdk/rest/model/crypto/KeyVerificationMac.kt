@@ -20,7 +20,7 @@ import com.google.gson.annotations.SerializedName
 /**
  * Sent by both devices to send their ephemeral Curve25519 public key the other device
  */
-class KeyVerificationMac {
+class KeyVerificationMac : SendToDeviceObject {
 
     /**
      * the ID of the transaction that the message is part of
@@ -32,6 +32,7 @@ class KeyVerificationMac {
     /**
      * A map of key ID to the MAC of the key, as an unpadded base64 string, calculated using the MAC key
      */
+    @JvmField
     var mac: Map<String, String>? = null
 
     /**
@@ -39,6 +40,7 @@ class KeyVerificationMac {
      *  as an unpadded base64 string, calculated using the MAC key.
      *  For example, if the mac property gives MACs for the keys ed25519:ABCDEFG and ed25519:HIJKLMN, then this property will give the MAC of the string “ed25519:ABCDEFG,ed25519:HIJKLMN”.
      */
+    @JvmField
     var keys: String? = null
 
     fun isValid(): Boolean {

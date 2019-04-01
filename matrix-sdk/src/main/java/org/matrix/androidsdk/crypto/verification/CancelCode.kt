@@ -31,8 +31,9 @@ enum class CancelCode(val value: String, val humanReadable: String) {
     // (the device received an unexpected message)
     UnexpectedMessage("m.unexpected_message", "the device received an unexpected message"),
     // (an invalid message was received)
-    InvalidMessage("m.invalid_message", "an invalid message was received")
-
+    InvalidMessage("m.invalid_message", "an invalid message was received"),
+    MismatchedKeys("m.key_mismatch", "Key mismatch"),
+    UserMismatchError("m.user_error", "User mismatch")
 }
 
 fun safeValueOf(code: String?): CancelCode {

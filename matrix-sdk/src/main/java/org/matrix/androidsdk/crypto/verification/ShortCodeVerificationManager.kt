@@ -24,10 +24,7 @@ import org.matrix.androidsdk.listeners.MXEventListener
 import org.matrix.androidsdk.rest.callback.ApiCallback
 import org.matrix.androidsdk.rest.model.Event
 import org.matrix.androidsdk.rest.model.MatrixError
-import org.matrix.androidsdk.rest.model.crypto.KeyVerificationAccept
-import org.matrix.androidsdk.rest.model.crypto.KeyVerificationCancel
-import org.matrix.androidsdk.rest.model.crypto.KeyVerificationKey
-import org.matrix.androidsdk.rest.model.crypto.KeyVerificationStart
+import org.matrix.androidsdk.rest.model.crypto.*
 import org.matrix.androidsdk.util.JsonUtils
 import org.matrix.androidsdk.util.Log
 import java.lang.Exception
@@ -70,6 +67,12 @@ class ShortCodeVerificationManager(val session: MXSession) : VerificationTransac
                     }
                     Event.EVENT_TYPE_KEY_VERIFICATION_KEY -> {
                         onKeyReceived(event)
+                    }
+                    Event.EVENT_TYPE_KEY_VERIFICATION_MAC -> {
+                        onMacReceived(event)
+                    }
+                    else -> {
+                        //ignore
                     }
                 }
             }
@@ -144,7 +147,7 @@ class ShortCodeVerificationManager(val session: MXSession) : VerificationTransac
         } else {
             //Ok we can create
             if (KeyVerificationStart.VERIF_METHOD_SAS == startReq.method) {
-                val tx = SASVerificationTransaction(startReq.transactionID!!, otherUserId, autoAcceptIncomingRequests)
+                val tx = SASVerificationTransaction(startReq.transactionID!!, otherUserId, isIncoming = true, autoAccept = autoAcceptIncomingRequests)
                 addTransaction(tx)
                 tx.acceptToDeviceEvent(session, otherUserId, startReq)
             } else {
@@ -221,6 +224,28 @@ class ShortCodeVerificationManager(val session: MXSession) : VerificationTransac
 
     }
 
+    private fun onMacReceived(event: Event) {
+        val macReq = JsonUtils.getBasicGson()
+                .fromJson(event.content, KeyVerificationMac::class.java)
+        if (!macReq.isValid()) {
+            //ignore
+            Log.e(LOG_TAG, "## Received invalid key request")
+            return
+        }
+        val otherUserId = event.sender!!
+        val existing = getExistingTransaction(otherUserId, macReq.transactionID!!)
+        if (existing == null) {
+            Log.e(LOG_TAG, "## Received invalid accept request")
+            return
+        }
+        if (existing is SASVerificationTransaction) {
+            existing.acceptToDeviceEvent(session, otherUserId, macReq)
+        } else {
+            //not other types known for now
+        }
+
+    }
+
     fun getExistingTransaction(otherUser: String, tid: String): VerificationTransaction? {
         synchronized(lock = txMap) {
             return txMap[otherUser]?.get(tid)
@@ -262,7 +287,7 @@ class ShortCodeVerificationManager(val session: MXSession) : VerificationTransac
         val txID = createUniqueIDForTransaction(userId, deviceID)
         //should check if already one (and cancel it)
         if (KeyVerificationStart.VERIF_METHOD_SAS == method) {
-            val tx = SASVerificationTransaction(txID, userId)
+            val tx = SASVerificationTransaction(txID, userId, isIncoming = false)
             tx.otherDevice = deviceID
             addTransaction(tx)
             session.crypto?.encryptingThreadHandler?.post {
@@ -297,7 +322,6 @@ class ShortCodeVerificationManager(val session: MXSession) : VerificationTransac
         if (tx is SASVerificationTransaction && tx.state == SASVerificationTransaction.SASVerificationTxState.Cancelled) {
             //remove
             removeTransaction(tx.otherUserID, tx.transactionId)
-
         }
     }
 
