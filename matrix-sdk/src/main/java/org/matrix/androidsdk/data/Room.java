@@ -2957,6 +2957,6 @@ public class Room {
 
     @Override
     public String toString() {
-        return getRoomId() + getRoomDisplayName(getStore().getContext()) + " " + super.toString();
+        return getRoomId() + " " + getRoomDisplayName(getStore().getContext()) + " " + super.toString();
     }
 }

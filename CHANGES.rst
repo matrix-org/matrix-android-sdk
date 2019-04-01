@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - Upgrade `react-native-webrtc` library to version `1.67.1-jitsi-9`, using Jitsi repository (vector-im/riot-android#2412)
 
 Bugfix:
  -
