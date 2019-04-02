@@ -18,14 +18,11 @@ package org.matrix.androidsdk.crypto.verification
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.rest.model.crypto.SendToDeviceObject
 
-abstract class VerificationTransaction(val transactionId: String, val otherUserID : String, val isIncoming: Boolean) {
+abstract class VerificationTransaction(val transactionId: String, val otherUserID: String, var otherDevice: String? = null, val isIncoming: Boolean) {
 
     interface Listener {
         fun transactionUpdated(tx: VerificationTransaction)
     }
-
-    //var fromDevice: String? = null
-    var otherDevice: String? = null
 
 
     protected var listeners = ArrayList<Listener>()

@@ -16,17 +16,14 @@
 package org.matrix.androidsdk.crypto.verification
 
 import android.content.Context
-import android.util.Base64
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXKey
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap
 import org.matrix.androidsdk.rest.callback.ApiCallback
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback
 import org.matrix.androidsdk.rest.model.Event
 import org.matrix.androidsdk.rest.model.MatrixError
 import org.matrix.androidsdk.rest.model.crypto.*
-import org.matrix.androidsdk.util.JsonUtils
 import org.matrix.androidsdk.util.Log
 import org.matrix.olm.OlmSAS
 import org.matrix.olm.OlmUtility
@@ -35,7 +32,12 @@ import kotlin.properties.Delegates
 /**
  * Represents an ongoing interactive key verification between two devices.
  */
-class SASVerificationTransaction(transactionId: String, otherUserID: String, isIncoming: Boolean, val autoAccept: Boolean = true) : VerificationTransaction(transactionId, otherUserID, isIncoming) {
+abstract class SASVerificationTransaction(transactionId: String,
+                                          otherUserID: String,
+                                          otherDevice: String?,
+                                          isIncoming: Boolean,
+                                          val autoAccept: Boolean = true) :
+        VerificationTransaction(transactionId, otherUserID, otherDevice, isIncoming) {
 
     companion object {
         val LOG_TAG = SASVerificationTransaction::javaClass.name
@@ -47,7 +49,7 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, isI
         //ordered by preferred order
         val KNOWN_MAC = listOf("hmac-sha256")
 
-        val KNOWN_SHORT_CODES = listOf(KeyVerificationStart.SAS_MODE_EMOJI, KeyVerificationStart.SAS_MODE_DECIMAL)
+        val KNOWN_SHORT_CODES = listOf(/*KeyVerificationStart.SAS_MODE_EMOJI,*/ KeyVerificationStart.SAS_MODE_DECIMAL)
 
     }
 
@@ -75,10 +77,12 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, isI
 
         SendingMac,
         MacSent,
+        Verifying,
         Verified,
 
         //Global: The verification has been cancelled (by me or other), see cancelReason for details
-        Cancelled
+        Cancelled,
+        OnCancelled
     }
 
     var state by Delegates.observable(SASVerificationTxState.None) { _, _, new ->
@@ -90,7 +94,7 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, isI
                 Log.e(LOG_TAG, "## Error while notifying listeners", e)
             }
         }
-        if (new == SASVerificationTxState.Cancelled) {
+        if (new == SASVerificationTxState.Cancelled || new == SASVerificationTxState.OnCancelled) {
             releaseSAS()
         }
     }
@@ -123,60 +127,13 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, isI
         olmSas = null
     }
 
-    public fun start(session: MXSession) {
-
-        if (state != SASVerificationTxState.None) {
-            Log.e(LOG_TAG, "## start verification from invalid state")
-            //should I cancel??
-            throw IllegalStateException("Interactive Key verification already started")
-        }
-
-        val startMessage = KeyVerificationStart()
-        startMessage.fromDevice = session.crypto?.myDevice?.deviceId
-        startMessage.method = KeyVerificationStart.VERIF_METHOD_SAS
-        startMessage.transactionID = transactionId
-        startMessage.key_agreement_protocols = KNOWN_AGREEMENT_PROTOCOLS
-        startMessage.hashes = KNOWN_HASHES
-        startMessage.message_authentication_codes = KNOWN_MAC
-        startMessage.short_authentication_string = KNOWN_SHORT_CODES
-
-        startReq = startMessage
-        val contentMap = MXUsersDevicesMap<Any>()
-        contentMap.setObject(startMessage, otherUserID, otherDevice)
-        state = SASVerificationTxState.SendingStart
-        session.cryptoRestClient.sendToDevice(Event.EVENT_TYPE_KEY_VERIFICATION_START, contentMap, transactionId, object : ApiCallback<Void> {
-            override fun onSuccess(info: Void?) {
-                state = SASVerificationTxState.Started
-                Log.d(LOG_TAG, "## SAS verification [$transactionId] started ")
-            }
-
-            override fun onUnexpectedError(e: Exception?) {
-                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed to start.")
-                cancelledReason = CancelCode.User
-                state = SASVerificationTxState.Cancelled
-            }
-
-            override fun onNetworkError(e: Exception?) {
-                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed to start.")
-                cancelledReason = CancelCode.User
-                state = SASVerificationTxState.Cancelled
-            }
-
-            override fun onMatrixError(e: MatrixError?) {
-                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed to start.")
-                cancelledReason = CancelCode.User
-                state = SASVerificationTxState.Cancelled
-            }
-        })
-    }
 
     /**
      * To be called by the client when the user has verified that
      * both short codes do match
      */
     fun userHasVerifiedShortCode(session: MXSession) {
-        //could be a race when my key took long to be sent so state is keysent and not short code ready
-        if (state != SASVerificationTxState.ShortCodeReady && state != SASVerificationTxState.KeySent) {
+        if (state != SASVerificationTxState.ShortCodeReady) {
             //ignore and cancel?
             Log.e(LOG_TAG, "## Accepted short code from invalid state $state")
             cancel(session, CancelCode.UnexpectedMessage)
@@ -235,34 +192,23 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, isI
         )
         myMac = macMsg
         state = SASVerificationTxState.SendingMac
-        sendToOther(Event.EVENT_TYPE_KEY_VERIFICATION_MAC, macMsg, session, SASVerificationTxState.MacSent, CancelCode.User)
+        sendToOther(Event.EVENT_TYPE_KEY_VERIFICATION_MAC, macMsg, session, SASVerificationTxState.MacSent, CancelCode.User) {
+            if (state == SASVerificationTxState.SendingMac) {
+                //It is possible that we receive the next event before this one :/, in this case we should keep state
+                state = SASVerificationTxState.MacSent
+            }
+        }
 
         //Do I already have their Mac?
         if (theirMac != null) {
             verifyMacs(session)
         } //if not wait for it
 
-        //const keyId = `ed25519:${this._baseApis.deviceId}`;
-        //        const mac = {};
-        //        const baseInfo = "MATRIX_KEY_VERIFICATION_MAC"
-        //              + this._baseApis.getUserId() + this._baseApis.deviceId
-        //              + this.userId + this.deviceId
-        //              + this.transactionId;
-        //
-        //        mac[keyId] = olmSAS.calculate_mac(
-        //            this._baseApis.getDeviceEd25519Key(),
-        //            baseInfo + keyId,
-        //        );
-        //        const keys = olmSAS.calculate_mac(
-        //            keyId,
-        //            baseInfo + "KEY_IDS",
-        //        );
-        //this._sendToDevice("m.key.verification.mac", { mac, keys });
     }
 
     override fun acceptToDeviceEvent(session: MXSession, senderId: String, event: SendToDeviceObject) {
         when (event) {
-            is KeyVerificationStart -> onVerificationRequest(session, event)
+            is KeyVerificationStart -> onVerificationStart(session, event)
             is KeyVerificationAccept -> onVerificationAccept(session, event)
             is KeyVerificationKey -> onKeyVerificationKey(session, senderId, event)
             is KeyVerificationMac -> onKeyVerificationMac(session, event)
@@ -272,219 +218,16 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, isI
         }
     }
 
-    //privates
+    abstract fun onVerificationStart(session: MXSession, startReq: KeyVerificationStart)
 
-    private fun onVerificationRequest(session: MXSession, startReq: KeyVerificationStart) {
-        if (state != SASVerificationTxState.None) {
-            Log.e(LOG_TAG, "## received verification request from invalid state")
-            //should I cancel??
-            throw IllegalStateException("Interactive Key verification already started")
-        }
-        this.startReq = startReq
-        state = SASVerificationTxState.OnStarted
-        this.otherDevice = startReq.fromDevice
-        if (autoAccept) {
-            performAccept(session)
-        }
+    abstract fun onVerificationAccept(session: MXSession, accept: KeyVerificationAccept)
 
-    }
+    abstract fun onKeyVerificationKey(session: MXSession, userId: String, vKey: KeyVerificationKey)
 
-    fun performAccept(session: MXSession) {
-        if (state != SASVerificationTxState.OnStarted) {
-            Log.e(LOG_TAG, "## Cannot perform accept from state $state")
-            return
-        }
+    abstract fun onKeyVerificationMac(session: MXSession, vKey: KeyVerificationMac)
 
-        // Select a key agreement protocol, a hash algorithm, a message authentication code,
-        // and short authentication string methods out of the lists given in requester's message.
-        val agreedProtocol = startReq!!.key_agreement_protocols?.firstOrNull { KNOWN_AGREEMENT_PROTOCOLS.contains(it) }
-        val agreedHash = startReq!!.hashes?.firstOrNull { KNOWN_HASHES.contains(it) }
-        val agreedMac = startReq!!.message_authentication_codes?.firstOrNull { KNOWN_MAC.contains(it) }
-        val agreedShortCode = startReq!!.short_authentication_string?.filter { KNOWN_SHORT_CODES.contains(it) }
-
-        //No common key sharing/hashing/hmac/SAS methods.
-        //If a device is unable to complete the verification because the devices are unable to find a common key sharing,
-        // hashing, hmac, or SAS method, then it should send a m.key.verification.cancel message
-        if (
-                listOf(agreedProtocol, agreedHash, agreedMac).any { it.isNullOrBlank() }
-                || agreedShortCode?.size == 0
-        ) {
-            //Failed to find agreement
-            Log.e(LOG_TAG, "## Failed to find agreement ")
-            cancel(session, CancelCode.UnknownMethod)
-            return
-        }
-
-        //Bob’s device ensures that it has a copy of Alice’s device key.
-        session.crypto!!.getDeviceInfo(this.otherUserID, otherDevice, object : SimpleApiCallback<MXDeviceInfo>() {
-            override fun onSuccess(info: MXDeviceInfo?) {
-                if (info?.identityKey() == null) {
-                    Log.e(LOG_TAG, "## Failed to find device key ")
-                    //TODO not sure if this could really happen :/
-                    //would be probably better to download the keys
-                    //for now I cancel
-                    session.crypto?.decryptingThreadHandler?.post {
-                        cancel(session, CancelCode.User)
-                    }
-                } else {
-                    //                    val otherKey = info.identityKey()
-                    //need to jump back to correct thread
-                    val accept = KeyVerificationAccept.new(
-                            tid = transactionId,
-                            key_agreement_protocol = agreedProtocol!!,
-                            hash = agreedHash!!,
-                            message_authentication_code = agreedMac!!,
-                            short_authentication_string = agreedShortCode!!,
-                            commitment = Base64.encodeToString("yo i don't commit FUUU".toByteArray(), Base64.DEFAULT)
-                    )
-                    session.crypto?.decryptingThreadHandler?.post {
-                        doAccept(session, accept)
-                    }
-                }
-            }
-        })
-    }
-
-
-    private fun onVerificationAccept(session: MXSession, accept: KeyVerificationAccept) {
-        if (state != SASVerificationTxState.Started) {
-            Log.e(LOG_TAG, "## received accept request from invalid state $state")
-            cancel(session, CancelCode.UnexpectedMessage)
-            return
-        }
-        //Check that the agreement is correct
-        if (
-                !KNOWN_AGREEMENT_PROTOCOLS.contains(accept.key_agreement_protocol)
-                || !KNOWN_HASHES.contains(accept.hash)
-                || !KNOWN_MAC.contains(accept.message_authentication_code)
-                || accept.short_authentication_string!!.intersect(KNOWN_SHORT_CODES).isEmpty()
-
-        ) {
-            Log.e(LOG_TAG, "## received accet request from invalid state")
-            cancel(session, CancelCode.UnknownMethod)
-            return
-        }
-
-        //Upon receipt of the m.key.verification.accept message from Bob’s device,
-        // Alice’s device stores the commitment value for later use.
-        accepted = accept
-        state = SASVerificationTxState.OnAccepted
-
-        //  Alice’s device creates an ephemeral Curve25519 key pair (dA,QA),
-        // and replies with a to_device message with type set to “m.key.verification.key”, sending Alice’s public key QA
-        val pubKey = getSAS().publicKey
-
-        val keyToDevice = KeyVerificationKey.new(transactionId, pubKey)
-        //we need to send this to other device now
-        state = SASVerificationTxState.SendingKey
-        sendToOther(Event.EVENT_TYPE_KEY_VERIFICATION_KEY, keyToDevice, session, SASVerificationTxState.KeySent, CancelCode.User)
-    }
-
-    private fun onKeyVerificationKey(session: MXSession, userId: String, vKey: KeyVerificationKey) {
-        if (state != SASVerificationTxState.OnStarted && state != SASVerificationTxState.KeySent && state != SASVerificationTxState.Accepted) {
-            Log.e(LOG_TAG, "## received key from invalid state $state")
-            cancel(session, CancelCode.UnexpectedMessage)
-            return
-        }
-
-        otherKey = vKey.key
-        if (state == SASVerificationTxState.Accepted) {
-            // Upon receipt of the m.key.verification.key message from Alice’s device,
-            // Bob’s device replies with a to_device message with type set to m.key.verification.key,
-            // sending Bob’s public key QB
-            val pubKey = getSAS().publicKey
-
-            val keyToDevice = KeyVerificationKey.new(transactionId, pubKey)
-            //we need to send this to other device now
-            state = SASVerificationTxState.SendingKey
-            sendToOther(Event.EVENT_TYPE_KEY_VERIFICATION_KEY, keyToDevice, session, SASVerificationTxState.KeySent, CancelCode.User)
-
-            // Alice’s and Bob’s devices perform an Elliptic-curve Diffie-Hellman
-            // (calculate the point (x,y)=dAQB=dBQA and use x as the result of the ECDH),
-            // using the result as the shared secret.
-
-            getSAS().setTheirPublicKey(otherKey)
-            //(Note: In all of the following HKDF is as defined in RFC 5869, and uses the previously agreed-on hash function as the hash function,
-            // the shared secret as the input keying material, no salt, and with the input parameter set to the concatenation of:
-            // - the string “MATRIX_KEY_VERIFICATION_SAS”,
-            // - the Matrix ID of the user who sent the m.key.verification.start message,
-            // - the device ID of the device that sent the m.key.verification.start message,
-            // - the Matrix ID of the user who sent the m.key.verification.accept message,
-            // - he device ID of the device that sent the m.key.verification.accept message
-            // - the transaction ID.
-            val sasInfo = "MATRIX_KEY_VERIFICATION_SAS" +
-                    "$otherUserID$otherDevice" +
-                    "${session.myUserId}${session.crypto!!.myDevice.deviceId}" +
-                    "$transactionId"
-            //decimal: generate five bytes by using HKDF.
-            //emoji: generate six bytes by using HKDF.
-            shortCodeBytes = getSAS().generateShortCode(sasInfo, 6)
-
-
-            Log.e(LOG_TAG, "************  BOB CODE ${getDecimalCodeRepresentation(shortCodeBytes!!)}")
-            Log.e(LOG_TAG, "************  BOB EMOJI CODE ${getShortCodeRepresentation(KeyVerificationStart.SAS_MODE_EMOJI)}")
-
-            state = SASVerificationTxState.ShortCodeReady
-
-
-        } else if (state == SASVerificationTxState.KeySent) {
-            // Upon receipt of the m.key.verification.key message from Bob’s device,
-            // Alice’s device checks that the commitment property from the Bob’s m.key.verification.accept
-            // message is the same as the expected value based on the value of the key property received
-            // in Bob’s m.key.verification.key and the content of Alice’s m.key.verification.start message.
-
-            //check commitment
-            val concat = vKey.key + JsonUtils.canonicalize(JsonUtils.getBasicGson().toJsonTree(startReq!!)).toString()
-            val otherCommitment = hashUsingAgreedHashMethod(concat) ?: ""
-
-            if (accepted!!.commitment.equals(otherCommitment)) {
-                getSAS().setTheirPublicKey(otherKey)
-                //(Note: In all of the following HKDF is as defined in RFC 5869, and uses the previously agreed-on hash function as the hash function,
-                // the shared secret as the input keying material, no salt, and with the input parameter set to the concatenation of:
-                // - the string “MATRIX_KEY_VERIFICATION_SAS”,
-                // - the Matrix ID of the user who sent the m.key.verification.start message,
-                // - the device ID of the device that sent the m.key.verification.start message,
-                // - the Matrix ID of the user who sent the m.key.verification.accept message,
-                // - he device ID of the device that sent the m.key.verification.accept message
-                // - the transaction ID.
-                val sasInfo = "MATRIX_KEY_VERIFICATION_SAS" +
-                        "${session.myUserId}${session.crypto!!.myDevice.deviceId}" +
-                        "$otherUserID$otherDevice" +
-                        "$transactionId"
-                //decimal: generate five bytes by using HKDF.
-                //emoji: generate six bytes by using HKDF.
-                shortCodeBytes = getSAS().generateShortCode(sasInfo, 6)
-                Log.e(LOG_TAG, "************  ALICE CODE ${getDecimalCodeRepresentation(shortCodeBytes!!)}")
-                Log.e(LOG_TAG, "************  ALICE EMOJI CODE ${getShortCodeRepresentation(KeyVerificationStart.SAS_MODE_EMOJI)}")
-                state = SASVerificationTxState.ShortCodeReady
-            } else {
-                //bad commitement
-                cancel(session, CancelCode.MismatchedCommitment)
-            }
-        }
-    }
-
-
-    private fun onKeyVerificationMac(session: MXSession, vKey: KeyVerificationMac) {
-        //Check for state?
-        if (shortCodeBytes == null) {
-            //unexpected
-            Log.e(LOG_TAG, "## received mac from invalid state $state")
-            cancel(session, CancelCode.UnexpectedMessage)
-            return
-        }
-        theirMac = vKey
-
-        //Do I have my Mac?
-        if (myMac != null) {
-            //I can check
-            verifyMacs(session)
-        }
-        //Wait for ShortCode Accepted
-
-    }
-
-    private fun verifyMacs(session: MXSession) {
+    protected fun verifyMacs(session: MXSession) {
+        state = SASVerificationTxState.Verifying
         //Alice and Bob’ devices calculate the HMAC of their own device keys and a comma-separated,
         // sorted list of the key IDs that they wish the other user to verify,
         //the shared secret as the input keying material, no salt, and with the input parameter set to the concatenation of:
@@ -497,13 +240,13 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, isI
         // - the key ID of the key being MAC-ed, or the string “KEY_IDS” if the item being MAC-ed is the list of key IDs.
 
 
-        session.crypto!!.getDeviceInfo(otherUserID,otherDevice, object : ApiCallback<MXDeviceInfo> {
+        session.crypto!!.getDeviceInfo(otherUserID, otherDevice, object : ApiCallback<MXDeviceInfo> {
             override fun onSuccess(info: MXDeviceInfo) {
                 val otherDeviceKey = info.fingerprint()
                 session.crypto!!.decryptingThreadHandler.post {
 
                     //mmmm could have been canceled by other meanwhile?
-                    if (state == SASVerificationTxState.Cancelled) {
+                    if (state == SASVerificationTxState.OnCancelled || state == SASVerificationTxState.Cancelled) {
                         //ignore
                         return@post
                     }
@@ -551,7 +294,7 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, isI
                     session.crypto!!.setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED,
                             otherDevice,
                             otherUserID,
-                            object: ApiCallback<Void> {
+                            object : ApiCallback<Void> {
 
 
                                 override fun onSuccess(info: Void?) {
@@ -576,17 +319,17 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, isI
             }
 
             override fun onUnexpectedError(e: java.lang.Exception?) {
-                cancel(session,CancelCode.UnexpectedMessage)
+                cancel(session, CancelCode.UnexpectedMessage)
                 Log.e(LOG_TAG, "## SAS verification failed to get info for device $otherDevice ")
             }
 
             override fun onNetworkError(e: java.lang.Exception?) {
-                cancel(session,CancelCode.UnexpectedMessage)
+                cancel(session, CancelCode.UnexpectedMessage)
                 Log.e(LOG_TAG, "## SAS verification failed to get info for device $otherDevice ")
             }
 
             override fun onMatrixError(e: MatrixError?) {
-                cancel(session,CancelCode.UnexpectedMessage)
+                cancel(session, CancelCode.UnexpectedMessage)
                 Log.e(LOG_TAG, "## SAS verification failed to get info for device $otherDevice ")
             }
 
@@ -594,36 +337,34 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, isI
 
     }
 
-    private fun doAccept(session: MXSession, accept: KeyVerificationAccept) {
-        this.accepted = accept
-
-        //The hash commitment is the hash (using the selected hash algorithm) of the unpadded base64 representation of QB,
-        // concatenated with the canonical JSON representation of the content of the m.key.verification.start message
-        val concat = getSAS().publicKey + JsonUtils.canonicalize(JsonUtils.getBasicGson().toJsonTree(startReq!!)).toString()
-        accept.commitment = hashUsingAgreedHashMethod(concat) ?: ""
-        //we need to send this to other device now
-        state = SASVerificationTxState.SendingAccept
-        sendToOther(Event.EVENT_TYPE_KEY_VERIFICATION_ACCEPT, accept, session, SASVerificationTxState.Accepted, CancelCode.User)
-    }
 
     override fun cancel(session: MXSession, code: CancelCode) {
         cancelledReason = code
         state = SASVerificationTxState.Cancelled
-        ShortCodeVerificationManager.cancelTransaction(session,
+        VerificationManager.cancelTransaction(session,
                 this.transactionId,
                 this.otherUserID,
                 this.otherDevice ?: "",
                 code)
     }
 
-    private fun sendToOther(type: String, keyToDevice: Any, session: MXSession, nextState: SASVerificationTxState, onErrorReason: CancelCode) {
+    protected fun sendToOther(type: String,
+                              keyToDevice: Any,
+                              session: MXSession,
+                              nextState: SASVerificationTxState,
+                              onErrorReason: CancelCode,
+                              onDone: (() -> Unit)?) {
         val contentMap = MXUsersDevicesMap<Any>()
         contentMap.setObject(keyToDevice, otherUserID, otherDevice)
 
         session.cryptoRestClient.sendToDevice(type, contentMap, transactionId, object : ApiCallback<Void> {
             override fun onSuccess(info: Void?) {
-                state = nextState
-                Log.d(LOG_TAG, "## SAS verification [$transactionId] pub key sent ")
+                Log.d(LOG_TAG, "## SAS verification [$transactionId] toDevice type '$type' success.")
+                if (onDone != null) {
+                    onDone()
+                } else {
+                    state = nextState
+                }
             }
 
             override fun onUnexpectedError(e: Exception?) {
@@ -658,7 +399,15 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, isI
         }
     }
 
-    private fun hashUsingAgreedHashMethod(toHash: String): String? {
+    fun supportsEmoji(): Boolean {
+        return this.accepted?.short_authentication_string?.contains(KeyVerificationStart.SAS_MODE_EMOJI) == true
+    }
+
+    fun supportsDecimal(): Boolean {
+        return this.accepted?.short_authentication_string?.contains(KeyVerificationStart.SAS_MODE_DECIMAL) == true
+    }
+
+    protected fun hashUsingAgreedHashMethod(toHash: String): String? {
         if ("sha256".toLowerCase() == accepted?.hash?.toLowerCase()) {
             val olmUtil = OlmUtility()
             val hashBytes = olmUtil.sha256(toHash)
@@ -681,18 +430,18 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, isI
      * or with the three numbers on separate lines.
      */
     public fun getDecimalCodeRepresentation(byteArray: ByteArray): String? {
-        val b0 = byteArray[0].toInt()
-        val b1 = byteArray[1].toInt()
-        val b2 = byteArray[2].toInt()
-        val b3 = byteArray[3].toInt()
-        val b4 = byteArray[4].toInt()
+        val b0 = byteArray[0].toInt().and(0xff) //need unsigned byte
+        val b1 = byteArray[1].toInt().and(0xff) //need unsigned byte
+        val b2 = byteArray[2].toInt().and(0xff) //need unsigned byte
+        val b3 = byteArray[3].toInt().and(0xff) //need unsigned byte
+        val b4 = byteArray[4].toInt().and(0xff) //need unsigned byte
         //(B0 << 5 | B1 >> 3) + 1000
         val first = (b0.shl(5) or b1.shr(3)) + 1000
         //((B1 & 0x7) << 10 | B2 << 2 | B3 >> 6) + 1000
-        val second = ((b1 and 0x7).shl(5) or b2.shl(2) or b3.shr(6)) + 1000
+        val second = ((b1 and 0x7).shl(10) or b2.shl(2) or b3.shr(6)) + 1000
         //((B3 & 0x3f) << 7 | B4 >> 1) + 1000
         val third = ((b3 and 0x3f).shl(7) or b4.shr(1)) + 1000
-        return "$first-$second-$third"
+        return "$first $second $third"
     }
 
 
@@ -703,12 +452,12 @@ class SASVerificationTransaction(transactionId: String, otherUserID: String, isI
      * to that number 7 emoji are selected from a list of 64 emoji (see Appendix A)
      */
     fun getEmojiCodeRepresentation(byteArray: ByteArray, context: Context?): List<VerificationEmoji.EmojiRepresentation>? {
-        val b0 = byteArray[0].toInt()
-        val b1 = byteArray[1].toInt()
-        val b2 = byteArray[2].toInt()
-        val b3 = byteArray[3].toInt()
-        val b4 = byteArray[4].toInt()
-        val b5 = byteArray[5].toInt()
+        val b0 = byteArray[0].toInt().and(0xff)
+        val b1 = byteArray[1].toInt().and(0xff)
+        val b2 = byteArray[2].toInt().and(0xff)
+        val b3 = byteArray[3].toInt().and(0xff)
+        val b4 = byteArray[4].toInt().and(0xff)
+        val b5 = byteArray[5].toInt().and(0xff)
         return listOf(
                 VerificationEmoji.getEmojiForCode((b0 and 0xFC).shr(2), context)!!,
                 VerificationEmoji.getEmojiForCode((b0 and 0x3).shl(4) or (b1 and 0xF0).shr(4), context)!!,

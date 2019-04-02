@@ -27,7 +27,6 @@ import org.matrix.androidsdk.rest.model.MatrixError
 import org.matrix.androidsdk.rest.model.crypto.*
 import org.matrix.androidsdk.util.JsonUtils
 import org.matrix.androidsdk.util.Log
-import java.lang.Exception
 import java.util.*
 import kotlin.collections.HashMap
 
@@ -37,7 +36,7 @@ import kotlin.collections.HashMap
  * that is still maintaining a good level of security (alternative to the 43-character strings compare method).
  *
  */
-class ShortCodeVerificationManager(val session: MXSession) : VerificationTransaction.Listener {
+class VerificationManager(val session: MXSession) : VerificationTransaction.Listener {
 
     interface ManagerListener {
         fun transactionCreated(tx: VerificationTransaction)
@@ -125,9 +124,14 @@ class ShortCodeVerificationManager(val session: MXSession) : VerificationTransac
         val otherUserId = event.sender!!
         if (!startReq.isValid()) {
             Log.e(SASVerificationTransaction.LOG_TAG, "## received invalid verification request")
-            startReq.transactionID?.let {
-                cancelTransaction(session, it, otherUserId, startReq?.fromDevice
-                        ?: event.senderKey(), CancelCode.UnknownMethod)
+            if (startReq.transactionID != null) {
+                cancelTransaction(
+                        session,
+                        startReq.transactionID!!,
+                        otherUserId,
+                        startReq?.fromDevice ?: event.senderKey(),
+                        CancelCode.UnknownMethod
+                )
             }
             return
         }
@@ -147,7 +151,7 @@ class ShortCodeVerificationManager(val session: MXSession) : VerificationTransac
         } else {
             //Ok we can create
             if (KeyVerificationStart.VERIF_METHOD_SAS == startReq.method) {
-                val tx = SASVerificationTransaction(startReq.transactionID!!, otherUserId, isIncoming = true, autoAccept = autoAcceptIncomingRequests)
+                val tx = IncomingSASVerificationTransaction(startReq.transactionID!!, otherUserId, autoAccept = autoAcceptIncomingRequests)
                 addTransaction(tx)
                 tx.acceptToDeviceEvent(session, otherUserId, startReq)
             } else {
@@ -173,7 +177,7 @@ class ShortCodeVerificationManager(val session: MXSession) : VerificationTransac
         }
         if (existing is SASVerificationTransaction) {
             existing.cancelledReason = safeValueOf(cancelReq.code)
-            existing.state = SASVerificationTransaction.SASVerificationTxState.Cancelled
+            existing.state = SASVerificationTransaction.SASVerificationTxState.OnCancelled
         }
     }
 
@@ -287,8 +291,7 @@ class ShortCodeVerificationManager(val session: MXSession) : VerificationTransac
         val txID = createUniqueIDForTransaction(userId, deviceID)
         //should check if already one (and cancel it)
         if (KeyVerificationStart.VERIF_METHOD_SAS == method) {
-            val tx = SASVerificationTransaction(txID, userId, isIncoming = false)
-            tx.otherDevice = deviceID
+            val tx = OutgoingSASVerificationRequest(txID, userId, deviceID)
             addTransaction(tx)
             session.crypto?.encryptingThreadHandler?.post {
                 tx.start(session)
@@ -319,14 +322,18 @@ class ShortCodeVerificationManager(val session: MXSession) : VerificationTransac
 
     override fun transactionUpdated(tx: VerificationTransaction) {
         dispatchTxUpdated(tx)
-        if (tx is SASVerificationTransaction && tx.state == SASVerificationTransaction.SASVerificationTxState.Cancelled) {
+        if (tx is SASVerificationTransaction
+                &&
+                (tx.state == SASVerificationTransaction.SASVerificationTxState.Cancelled
+                        || tx.state == SASVerificationTransaction.SASVerificationTxState.OnCancelled)
+        ) {
             //remove
-            removeTransaction(tx.otherUserID, tx.transactionId)
+            this.removeTransaction(tx.otherUserID, tx.transactionId)
         }
     }
 
     companion object {
-        val LOG_TAG = ShortCodeVerificationManager::class.java.name!!
+        val LOG_TAG = VerificationManager::class.java.name!!
 
         fun cancelTransaction(session: MXSession, transactionId: String, userId: String, userDevice: String, code: CancelCode) {
             val cancelMessage = KeyVerificationCancel.new(transactionId, code)

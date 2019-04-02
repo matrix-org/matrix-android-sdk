@@ -68,7 +68,7 @@ class SASTest {
         })
 
         val bobTxCreatedLatch = CountDownLatch(1)
-        var bobListener: ShortCodeVerificationManager.ManagerListener = object : ShortCodeVerificationManager.ManagerListener {
+        var bobListener: VerificationManager.ManagerListener = object : VerificationManager.ManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {
                 bobTxCreatedLatch.countDown()
             }
@@ -105,7 +105,7 @@ class SASTest {
         //Let's cancel from alice side
         val cancelLatch = CountDownLatch(1)
 
-        bobListener = object : ShortCodeVerificationManager.ManagerListener {
+        bobListener = object : VerificationManager.ManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {}
 
             override fun transactionUpdated(tx: VerificationTransaction) {
@@ -156,7 +156,7 @@ class SASTest {
         }
 
         val bobTxCreatedLatch = CountDownLatch(1)
-        val bobListener = object : ShortCodeVerificationManager.ManagerListener {
+        val bobListener = object : VerificationManager.ManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {
                 bobTxCreatedLatch.countDown()
             }
@@ -193,7 +193,7 @@ class SASTest {
         //Let's cancel from alice side
         val cancelLatch = CountDownLatch(1)
 
-        val aliceListener = object : ShortCodeVerificationManager.ManagerListener {
+        val aliceListener = object : VerificationManager.ManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {}
 
             override fun transactionUpdated(tx: VerificationTransaction) {
@@ -396,7 +396,7 @@ class SASTest {
         val aliceCreatedLatch = CountDownLatch(2)
         val aliceCancelledLatch = CountDownLatch(2)
         val createdTx = ArrayList<SASVerificationTransaction>()
-        val aliceListener = object : ShortCodeVerificationManager.ManagerListener {
+        val aliceListener = object : VerificationManager.ManagerListener {
 
             override fun transactionCreated(tx: VerificationTransaction) {
                 createdTx.add(tx as SASVerificationTransaction)
@@ -445,7 +445,7 @@ class SASTest {
         var accepted: KeyVerificationAccept? = null
         var startReq: KeyVerificationStart? = null
         val aliceAcceptedLatch = CountDownLatch(1)
-        val aliceListener = object : ShortCodeVerificationManager.ManagerListener {
+        val aliceListener = object : VerificationManager.ManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {
                 startReq = (tx as SASVerificationTransaction).startReq
             }
@@ -500,7 +500,7 @@ class SASTest {
 
 
         val aliceSASLatch = CountDownLatch(1)
-        val aliceListener = object : ShortCodeVerificationManager.ManagerListener {
+        val aliceListener = object : VerificationManager.ManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {
             }
 
@@ -514,7 +514,7 @@ class SASTest {
         aliceSasMgr.addListener(aliceListener)
 
         val bobSASLatch = CountDownLatch(1)
-        val bobListener = object : ShortCodeVerificationManager.ManagerListener {
+        val bobListener = object : VerificationManager.ManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {
 
             }
