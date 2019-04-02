@@ -49,7 +49,7 @@ abstract class SASVerificationTransaction(transactionId: String,
         //ordered by preferred order
         val KNOWN_MAC = listOf("hmac-sha256")
 
-        val KNOWN_SHORT_CODES = listOf(/*KeyVerificationStart.SAS_MODE_EMOJI,*/ KeyVerificationStart.SAS_MODE_DECIMAL)
+        val KNOWN_SHORT_CODES = listOf(KeyVerificationStart.SAS_MODE_EMOJI, KeyVerificationStart.SAS_MODE_DECIMAL)
 
     }
 
