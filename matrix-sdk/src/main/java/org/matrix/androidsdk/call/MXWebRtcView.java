@@ -17,7 +17,6 @@ import org.webrtc.RendererCommon;
 import org.webrtc.RendererCommon.RendererEvents;
 import org.webrtc.RendererCommon.ScalingType;
 import org.webrtc.SurfaceViewRenderer;
-import org.webrtc.VideoRenderer;
 import org.webrtc.VideoTrack;
 
 import java.lang.reflect.Method;
@@ -152,12 +151,6 @@ public class MXWebRtcView extends ViewGroup {
      * actually renders {@link #videoTrack} on behalf of this instance.
      */
     private final SurfaceViewRenderer surfaceViewRenderer;
-
-    /**
-     * The {@code VideoRenderer}, if any, which renders {@link #videoTrack} on
-     * this {@code View}.
-     */
-    private VideoRenderer videoRenderer;
 
     /**
      * The {@code VideoTrack}, if any, rendered by this {@code MXWebRTCView}.
@@ -349,10 +342,8 @@ public class MXWebRtcView extends ViewGroup {
      * resources (if rendering is in progress).
      */
     private void removeRendererFromVideoTrack() {
-        if (videoRenderer != null) {
-            videoTrack.removeRenderer(videoRenderer);
-            videoRenderer.dispose();
-            videoRenderer = null;
+        if (surfaceViewRenderer != null) {
+            videoTrack.removeSink(surfaceViewRenderer);
 
             getSurfaceViewRenderer().release();
 
@@ -498,8 +489,7 @@ public class MXWebRtcView extends ViewGroup {
      * all preconditions for the start of rendering are met.
      */
     private void tryAddRendererToVideoTrack() {
-        if (videoRenderer == null
-                && videoTrack != null
+        if (videoTrack != null
                 && ViewCompat.isAttachedToWindow(this)) {
             EglBase.Context sharedContext = EglUtils.getRootEglBaseContext();
 
@@ -513,8 +503,7 @@ public class MXWebRtcView extends ViewGroup {
             SurfaceViewRenderer surfaceViewRenderer = getSurfaceViewRenderer();
             surfaceViewRenderer.init(sharedContext, rendererEvents);
 
-            videoRenderer = new VideoRenderer(surfaceViewRenderer);
-            videoTrack.addRenderer(videoRenderer);
+            videoTrack.addSink(surfaceViewRenderer);
         }
     }
 }

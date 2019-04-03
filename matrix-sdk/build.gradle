@@ -179,8 +179,10 @@ dependencies {
     // Database
     kapt 'dk.ilios:realmfieldnameshelper:1.1.1'
 
-    // replace the compile 'io.pristine:libjingle:9690@aar'
-    implementation(name: 'react-native-webrtc', ext: 'aar')
+    // WebRTC
+    // react-native-webrtc uses v0.57, which is not found, so force using the version 0.57.8 of react-native
+    implementation('com.facebook.react:react-native:0.57.8')
+    implementation('com.facebook.react:react-native-webrtc:1.67.1-jitsi-9')
 
     // Test
     testImplementation 'com.android.support.test:runner:1.0.2'
