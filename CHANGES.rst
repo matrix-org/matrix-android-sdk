@@ -1,3 +1,13 @@
+Changes to Matrix Android SDK in 0.9.20 (2019-04-01)
+=======================================================
+
+Improvements:
+ - Upgrade `react-native-webrtc` library to version `1.67.1-jitsi-9`, using Jitsi repository (vector-im/riot-android#2412)
+ - Upgrade `react-native-webrtc` library to version `1.69.0-jitsi-799011`, using Jitsi repository (vector-im/riot-android#3096)
+
+Others:
+ - Fix wording issue for redacted events (vector-im/riot-android#3033)
+
 Changes to Matrix Android SDK in 0.9.19 (2019-03-25)
 =======================================================
 

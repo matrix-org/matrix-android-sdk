@@ -1240,7 +1240,7 @@ public class Room {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "handleReceiptEvent : failed" + e.getMessage(), e);
+            Log.e(LOG_TAG, "handleReceiptEvent : failed: " + e.getMessage(), e);
         }
 
         return senderIDs;
@@ -2957,6 +2957,6 @@ public class Room {
 
     @Override
     public String toString() {
-        return getRoomId() + getRoomDisplayName(getStore().getContext()) + " " + super.toString();
+        return getRoomId() + " " + getRoomDisplayName(getStore().getContext()) + " " + super.toString();
     }
 }

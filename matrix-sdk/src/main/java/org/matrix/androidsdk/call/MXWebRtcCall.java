@@ -232,12 +232,17 @@ public class MXWebRtcCall extends MXCall {
     private static void initializeAndroidGlobals(Context context) {
         if (!mIsInitialized) {
             try {
+                /*
                 mIsInitialized = PeerConnectionFactory.initializeAndroidGlobals(
                         context,
                         true, // enable audio initializing
                         true, // enable video initializing
                         true  // enable hardware acceleration
                 );
+                */
+                PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(context).createInitializationOptions());
+
+                mIsInitialized = true;
 
                 PeerConnectionFactory.initializeFieldTrials(null);
 
@@ -1078,7 +1083,7 @@ public class MXWebRtcCall extends MXCall {
                         if (null == mPeerConnectionFactory) {
                             Log.d(LOG_TAG, "## initCallUI(): video call and no mPeerConnectionFactory");
 
-                            mPeerConnectionFactory = new PeerConnectionFactory(null);
+                            mPeerConnectionFactory = PeerConnectionFactory.builder().createPeerConnectionFactory();
 
                             // Initialize EGL contexts required for HW acceleration.
                             EglBase.Context eglContext = EglUtils.getRootEglBaseContext();
@@ -1143,7 +1148,7 @@ public class MXWebRtcCall extends MXCall {
                 @Override
                 public void run() {
                     if (null == mPeerConnectionFactory) {
-                        mPeerConnectionFactory = new PeerConnectionFactory();
+                        mPeerConnectionFactory = PeerConnectionFactory.builder().createPeerConnectionFactory();
                         createAudioTrack();
                         createLocalStream();
 

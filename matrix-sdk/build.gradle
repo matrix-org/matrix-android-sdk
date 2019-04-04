@@ -27,8 +27,8 @@ android {
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 28
-        versionCode 919
-        versionName "0.9.19"
+        versionCode 920
+        versionName "0.9.20"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
@@ -179,8 +179,10 @@ dependencies {
     // Database
     kapt 'dk.ilios:realmfieldnameshelper:1.1.1'
 
-    // replace the compile 'io.pristine:libjingle:9690@aar'
-    implementation(name: 'react-native-webrtc', ext: 'aar')
+    // WebRTC
+    // react-native-webrtc uses v0.59, which is not found, so force using the version 0.59.2 of react-native
+    implementation('com.facebook.react:react-native:0.59.2')
+    implementation('com.facebook.react:react-native-webrtc:1.69.0-jitsi-799011')
 
     // Test
     testImplementation 'com.android.support.test:runner:1.0.2'
