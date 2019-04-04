@@ -45,8 +45,6 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
 
     private val uiHandler = Handler(Looper.getMainLooper())
 
-    var autoAcceptIncomingRequests = false
-
     // map [sender : [transaction]]
     private val txMap = HashMap<String, HashMap<String, VerificationTransaction>>()
 
@@ -151,7 +149,7 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
         } else {
             //Ok we can create
             if (KeyVerificationStart.VERIF_METHOD_SAS == startReq.method) {
-                val tx = IncomingSASVerificationTransaction(startReq.transactionID!!, otherUserId, autoAccept = autoAcceptIncomingRequests)
+                val tx = IncomingSASVerificationTransaction(startReq.transactionID!!, otherUserId)
                 addTransaction(tx)
                 tx.acceptToDeviceEvent(session, otherUserId, startReq)
             } else {

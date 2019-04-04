@@ -18,17 +18,15 @@ package org.matrix.androidsdk.crypto.verification
 import android.util.Base64
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
+import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback
 import org.matrix.androidsdk.rest.model.Event
-import org.matrix.androidsdk.rest.model.crypto.KeyVerificationAccept
-import org.matrix.androidsdk.rest.model.crypto.KeyVerificationKey
-import org.matrix.androidsdk.rest.model.crypto.KeyVerificationMac
-import org.matrix.androidsdk.rest.model.crypto.KeyVerificationStart
+import org.matrix.androidsdk.rest.model.crypto.*
 import org.matrix.androidsdk.util.JsonUtils
 import org.matrix.androidsdk.util.Log
 
-class IncomingSASVerificationTransaction(transactionId: String, otherUserID: String, autoAccept: Boolean = true)
-    : SASVerificationTransaction(transactionId, otherUserID, null, autoAccept) {
+class IncomingSASVerificationTransaction(transactionId: String, otherUserID: String)
+    : SASVerificationTransaction(transactionId, otherUserID, null, true) {
 
     enum class State {
         UNKNOWN,
@@ -73,9 +71,14 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
         this.startReq = startReq
         state = SASVerificationTxState.OnStarted
         this.otherDevice = startReq.fromDevice
-        if (autoAccept) {
-            performAccept(session)
-        }
+
+        //force device key download!!
+        session.crypto?.deviceList?.downloadKeys(listOf(this.otherUserID), true, object: SimpleApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
+            override fun onSuccess(info: MXUsersDevicesMap<MXDeviceInfo>?) {
+               //nop
+            }
+        })
+
     }
 
 
@@ -110,7 +113,7 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
             override fun onSuccess(info: MXDeviceInfo?) {
                 if (info?.fingerprint() == null) {
                     Log.e(LOG_TAG, "## Failed to find device key ")
-                    //TODO not sure if this could really happen :/
+                    //TODO force download keys!!
                     //would be probably better to download the keys
                     //for now I cancel
                     session.crypto?.decryptingThreadHandler?.post {

@@ -35,19 +35,21 @@ import kotlin.properties.Delegates
 abstract class SASVerificationTransaction(transactionId: String,
                                           otherUserID: String,
                                           otherDevice: String?,
-                                          isIncoming: Boolean,
-                                          val autoAccept: Boolean = true) :
+                                          isIncoming: Boolean) :
         VerificationTransaction(transactionId, otherUserID, otherDevice, isIncoming) {
 
     companion object {
         val LOG_TAG = SASVerificationTransaction::javaClass.name
+
+        val SAS_MAC_SHA256_LONGKDF = "hmac-sha256"
+        val SAS_MAC_SHA256 = "hmac-sha256-tbd"
 
         //ordered by preferred order
         val KNOWN_AGREEMENT_PROTOCOLS = listOf(MXKey.KEY_CURVE_25519_TYPE)
         //ordered by preferred order
         val KNOWN_HASHES = listOf("sha256")
         //ordered by preferred order
-        val KNOWN_MAC = listOf("hmac-sha256")
+        val KNOWN_MAC = listOf(SAS_MAC_SHA256, SAS_MAC_SHA256_LONGKDF)
 
         val KNOWN_SHORT_CODES = listOf(KeyVerificationStart.SAS_MODE_EMOJI, KeyVerificationStart.SAS_MODE_DECIMAL)
 
@@ -173,22 +175,19 @@ abstract class SASVerificationTransaction(transactionId: String,
                 transactionId
 
         val keyId = "ed25519:${session.crypto!!.myDevice.deviceId}"
-        val macBytes = getSAS().calculateMac(session.crypto!!.myDevice.fingerprint(), baseInfo + keyId)
-        val keysBytes = getSAS().calculateMac(keyId, baseInfo + "KEY_IDS")
+        val macString = macUsingAgreedMethod(session.crypto!!.myDevice.fingerprint(), baseInfo + keyId)
+        val keyStrings = macUsingAgreedMethod(keyId, baseInfo + "KEY_IDS")
 
-        if (macBytes == null || keysBytes == null) {
+        if (macString?.length == 0 || keyStrings?.length == 0) {
             //Should not happen
             Log.e(LOG_TAG, "## SAS verification [$transactionId] failed to send KeyMac, empty key hashes.")
             cancel(session, CancelCode.UnexpectedMessage)
             return
         }
 
-        val macString = String(macBytes, Charsets.UTF_8)
-        val keyStrings = String(keysBytes, Charsets.UTF_8)
-
         val macMsg = KeyVerificationMac.new(transactionId,
-                mapOf(Pair(keyId, macString)),
-                keyStrings
+                mapOf(Pair(keyId, macString!!)),
+                keyStrings!!
         )
         myMac = macMsg
         state = SASVerificationTxState.SendingMac
@@ -258,26 +257,14 @@ abstract class SASVerificationTransaction(transactionId: String,
 
                     val keyId = "ed25519:${otherDevice}"
 
-                    val macBytes = getSAS().calculateMac(otherDeviceKey, baseInfo + keyId)
-
-                    val keysBytes = getSAS().calculateMac(keyId, baseInfo + "KEY_IDS")
-                    if (macBytes == null || keysBytes == null) {
+                    val macString = macUsingAgreedMethod(otherDeviceKey, baseInfo + keyId)
+                    val keyStrings = macUsingAgreedMethod(keyId, baseInfo + "KEY_IDS")
+                    if (macString?.length == 0 || keyStrings?.length == 0) {
                         //Should not happen
                         Log.e(LOG_TAG, "## SAS verification [$transactionId] failed to send KeyMac, empty key hashes.")
                         cancel(session, CancelCode.UnexpectedMessage)
                         return@post
                     }
-
-                    val macString = String(macBytes, Charsets.UTF_8)
-                    val keyStrings = String(keysBytes, Charsets.UTF_8)
-//
-//        val keyId = "ed25519:${otherDevice}"
-//        //baseInfo = "MATRIX_KEY_VERIFICATION_MAC" + this.userId + this.deviceId + this._baseApis.getUserId() + this._baseApis.deviceId + this.transactionId;
-//
-//
-//        val macKey = getSAS().calculateMac(session.crypto!!.myDevice.identityKey(), baseInfo + keyId)
-//        val keysMac = hashUsingAgreedHashMethod(
-//                String(getSAS().calculateMac(keyId, baseInfo + "KEY_IDS"), Charsets.UTF_8))
                     //Check
                     if (theirMac!!.keys != keyStrings) {
                         //WRONG!
@@ -417,6 +404,15 @@ abstract class SASVerificationTransaction(transactionId: String,
         return null
     }
 
+    protected fun macUsingAgreedMethod(message: String, info: String): String? {
+        if (SAS_MAC_SHA256_LONGKDF.toLowerCase() == accepted?.message_authentication_code?.toLowerCase()) {
+            return String(getSAS().calculateMacLongKdf(message, info), Charsets.UTF_8)
+        } else if (SAS_MAC_SHA256.toLowerCase() == accepted?.hash?.toLowerCase()) {
+            return String(getSAS().calculateMac(message, info), Charsets.UTF_8)
+        }
+        return null
+    }
+
     /**
      * decimal: generate five bytes by using HKDF.
      * Take the first 13 bits and convert it to a decimal number (which will be a number between 0 and 8191 inclusive),
@@ -429,7 +425,7 @@ abstract class SASVerificationTransaction(transactionId: String,
      * The three 4-digit numbers are displayed to the user either with dashes (or another appropriate separator) separating the three numbers,
      * or with the three numbers on separate lines.
      */
-    public fun getDecimalCodeRepresentation(byteArray: ByteArray): String? {
+    fun getDecimalCodeRepresentation(byteArray: ByteArray): String? {
         val b0 = byteArray[0].toInt().and(0xff) //need unsigned byte
         val b1 = byteArray[1].toInt().and(0xff) //need unsigned byte
         val b2 = byteArray[2].toInt().and(0xff) //need unsigned byte

@@ -291,9 +291,7 @@ public class MXCrypto {
         mReceivedRoomKeyRequests.addAll(mCryptoStore.getPendingIncomingRoomKeyRequests());
 
         mKeysBackup = new KeysBackup(this, mSession);
-        VerificationManager shortCodeVerificationManager = new VerificationManager(mSession);
-        shortCodeVerificationManager.setAutoAcceptIncomingRequests(false);
-        mShortCodeVerificationManager = shortCodeVerificationManager;
+        mShortCodeVerificationManager = new VerificationManager(mSession);
     }
 
     /**
