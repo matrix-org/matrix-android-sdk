@@ -1240,7 +1240,7 @@ public class Room {
                 }
             }
         } catch (Exception e) {
-            Log.e(LOG_TAG, "handleReceiptEvent : failed" + e.getMessage(), e);
+            Log.e(LOG_TAG, "handleReceiptEvent : failed: " + e.getMessage(), e);
         }
 
         return senderIDs;
