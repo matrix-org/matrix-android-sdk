@@ -17,7 +17,7 @@ Translations:
  -
 
 Others:
- -
+ - Fix wording issue for redacted events (vector-im/riot-android#3033)
 
 Build:
  -

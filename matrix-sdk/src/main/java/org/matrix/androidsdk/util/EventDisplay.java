@@ -314,39 +314,52 @@ public class EventDisplay {
      * @param roomState the room state
      * @return the redacted event text
      */
+    @Nullable
     public static String getRedactionMessage(Context context, Event event, RoomState roomState) {
         // test if the redacted event must be displayed.
         if (!mDisplayRedactedEvents) {
             return null;
         }
 
-        // Check first whether the event has been redacted
-        String redactedInfo = null;
+        String result = null;
 
-        if (event.isRedacted() && (null != roomState)) {
+        // Check first whether the event has been redacted
+        if (event != null
+                && event.isRedacted()
+                && event.unsigned != null
+                && event.unsigned.redacted_because != null
+                && roomState != null) {
             RedactedBecause redactedBecause = event.unsigned.redacted_because;
+
             String redactedBy = redactedBecause.sender;
             String redactedReason = null;
 
-            if (null != redactedBecause.content) {
+            if (redactedBecause.content != null) {
                 redactedReason = redactedBecause.content.reason;
             }
 
-            if (!TextUtils.isEmpty(redactedReason)) {
-                if (!TextUtils.isEmpty(redactedBy)) {
-                    redactedBy = context.getString(R.string.notice_event_redacted_by, redactedBy)
-                            + context.getString(R.string.notice_event_redacted_reason, redactedReason);
+            if (TextUtils.isEmpty(redactedBy)) {
+                // No by
+                if (TextUtils.isEmpty(redactedReason)) {
+                    // no reason
+                    result = context.getString(R.string.notice_event_redacted);
                 } else {
-                    redactedBy = context.getString(R.string.notice_event_redacted_reason, redactedReason);
+                    // reason
+                    result = context.getString(R.string.notice_event_redacted_with_reason, redactedReason);
                 }
-            } else if (!TextUtils.isEmpty(redactedBy)) {
-                redactedBy = context.getString(R.string.notice_event_redacted_by, redactedBy);
+            } else {
+                // by
+                if (TextUtils.isEmpty(redactedReason)) {
+                    // no reason
+                    result = context.getString(R.string.notice_event_redacted_by, redactedBy);
+                } else {
+                    // by and reason
+                    result = context.getString(R.string.notice_event_redacted_by_with_reason, redactedBy, redactedReason);
+                }
             }
-
-            redactedInfo = context.getString(R.string.notice_event_redacted, redactedBy);
         }
 
-        return redactedInfo;
+        return result;
     }
 
     /**
