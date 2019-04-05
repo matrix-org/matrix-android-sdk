@@ -2,7 +2,7 @@ Changes to Matrix Android SDK in 0.9.22 (2019-XX-XX)
 =======================================================
 
 Features:
- -
+ - E2E: SAS Verification
 
 Improvements:
  -
