@@ -51,7 +51,7 @@ object VerificationEmoji {
                     ?: "")
             20 -> return EmojiRepresentation("🌙", context?.getString(R.string.verification_emoji_moon)
                     ?: "")
-            21 -> return EmojiRepresentation("☁", context?.getString(R.string.verification_emoji_cloud)
+            21 -> return EmojiRepresentation("☁️", context?.getString(R.string.verification_emoji_cloud)
                     ?: "")
             22 -> return EmojiRepresentation("🔥", context?.getString(R.string.verification_emoji_fire)
                     ?: "")
@@ -67,9 +67,9 @@ object VerificationEmoji {
                     ?: "")
             28 -> return EmojiRepresentation("🎂", context?.getString(R.string.verification_emoji_cake)
                     ?: "")
-            29 -> return EmojiRepresentation("❤", context?.getString(R.string.verification_emoji_heart)
+            29 -> return EmojiRepresentation("❤️", context?.getString(R.string.verification_emoji_heart)
                     ?: "")
-            30 -> return EmojiRepresentation("☺", context?.getString(R.string.verification_emoji_smiley)
+            30 -> return EmojiRepresentation("\uD83D\uDE00", context?.getString(R.string.verification_emoji_smiley)
                     ?: "")
             31 -> return EmojiRepresentation("🤖", context?.getString(R.string.verification_emoji_robot)
                     ?: "")
@@ -83,7 +83,7 @@ object VerificationEmoji {
                     ?: "")
             36 -> return EmojiRepresentation("👍", context?.getString(R.string.verification_emoji_thumbsup)
                     ?: "")
-            37 -> return EmojiRepresentation("☂", context?.getString(R.string.verification_emoji_umbrella)
+            37 -> return EmojiRepresentation("☂️", context?.getString(R.string.verification_emoji_umbrella)
                     ?: "")
             38 -> return EmojiRepresentation("⌛", context?.getString(R.string.verification_emoji_hourglass)
                     ?: "")
@@ -95,19 +95,19 @@ object VerificationEmoji {
                     ?: "")
             42 -> return EmojiRepresentation("📕", context?.getString(R.string.verification_emoji_book)
                     ?: "")
-            43 -> return EmojiRepresentation("✏", context?.getString(R.string.verification_emoji_pencil)
+            43 -> return EmojiRepresentation("✏️", context?.getString(R.string.verification_emoji_pencil)
                     ?: "")
             44 -> return EmojiRepresentation("📎", context?.getString(R.string.verification_emoji_paperclip)
                     ?: "")
-            45 -> return EmojiRepresentation("✂", context?.getString(R.string.verification_emoji_scissors)
+            45 -> return EmojiRepresentation("✂️", context?.getString(R.string.verification_emoji_scissors)
                     ?: "")
-            46 -> return EmojiRepresentation("🔒", context?.getString(R.string.verification_emoji_lock)
+            46 -> return EmojiRepresentation("\uD83D\uDD12", context?.getString(R.string.verification_emoji_lock)
                     ?: "")
             47 -> return EmojiRepresentation("🔑", context?.getString(R.string.verification_emoji_key)
                     ?: "")
             48 -> return EmojiRepresentation("🔨", context?.getString(R.string.verification_emoji_hammer)
                     ?: "")
-            49 -> return EmojiRepresentation("☎", context?.getString(R.string.verification_emoji_telephone)
+            49 -> return EmojiRepresentation("☎️", context?.getString(R.string.verification_emoji_telephone)
                     ?: "")
             50 -> return EmojiRepresentation("🏁", context?.getString(R.string.verification_emoji_flag)
                     ?: "")
@@ -115,7 +115,7 @@ object VerificationEmoji {
                     ?: "")
             52 -> return EmojiRepresentation("🚲", context?.getString(R.string.verification_emoji_bicycle)
                     ?: "")
-            53 -> return EmojiRepresentation("✈", context?.getString(R.string.verification_emoji_airplane)
+            53 -> return EmojiRepresentation("✈️", context?.getString(R.string.verification_emoji_airplane)
                     ?: "")
             54 -> return EmojiRepresentation("🚀", context?.getString(R.string.verification_emoji_rocket)
                     ?: "")
@@ -131,7 +131,7 @@ object VerificationEmoji {
                     ?: "")
             60 -> return EmojiRepresentation("⚓", context?.getString(R.string.verification_emoji_anchor)
                     ?: "")
-            61 -> return EmojiRepresentation("🎧", context?.getString(R.string.verification_emoji_headphone)
+            61 -> return EmojiRepresentation("\uD83C\uDFA7", context?.getString(R.string.verification_emoji_headphone)
                     ?: "")
             62 -> return EmojiRepresentation("📁", context?.getString(R.string.verification_emoji_folder)
                     ?: "")
@@ -141,72 +141,5 @@ object VerificationEmoji {
         }
 
     }
-
-    /**
-     * 🐶 Dog
-    🐱 Cat
-    🦁 Lion
-    🐎 Horse
-    🦄 Unicorn
-    🐷 Pig
-    🐘 Elephant
-    🐰 Rabbit
-    🐼 Panda
-    🐓 Rooster
-    🐧 Penguin
-    🐢 Turtle
-    🐟 Fish
-    🐙 Octopus
-    🦋 Butterfly
-    🌷 Flower
-    🌳 Tree
-    🌵 Cactus
-    🍄 Mushroom
-    🌏 Globe
-    🌙 Moon
-    ☁ Cloud
-    🔥 Fire
-    🍌 Banana
-    🍎 Apple
-    🍓 Strawberry
-    🌽 Corn
-    🍕 Pizza
-    🎂 Cake
-    ❤ Heart
-    ☺ Smiley
-    🤖 Robot
-    🎩 Hat
-    👓 Glasses
-    🔧 Wrench
-    🎅 Santa
-    👍 Thumbs Up
-    ☂ Umbrella
-    ⌛ Hourglass
-    ⏰ Clock
-    🎁 Gift
-    💡 Light Bulb
-    📕 Book
-    ✏ Pencil
-    📎 Paperclip
-    ✂ Scissors
-    🔒 Lock
-    🔑 Key
-    🔨 Hammer
-    ☎ Telephone
-    🏁 Flag
-    🚂 Train
-    🚲 Bicycle
-    ✈ Airplane
-    🚀 Rocket
-    🏆 Trophy
-    ⚽ Ball
-    🎸 Guitar
-    🎺 Trumpet
-    🔔 Bell
-    ⚓ Anchor
-    🎧 Headphone
-    📁 Folder
-    📌 Pin
-     */
 
 }

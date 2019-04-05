@@ -446,9 +446,7 @@ class SASTest {
 
         val aliceAcceptedLatch = CountDownLatch(1)
         val aliceListener = object : VerificationManager.ManagerListener {
-            override fun transactionCreated(tx: VerificationTransaction) {
-                startReq = (tx as SASVerificationTransaction).startReq
-            }
+            override fun transactionCreated(tx: VerificationTransaction) {}
 
             override fun transactionUpdated(tx: VerificationTransaction) {
                 if ((tx as SASVerificationTransaction).state === SASVerificationTransaction.SASVerificationTxState.OnAccepted) {

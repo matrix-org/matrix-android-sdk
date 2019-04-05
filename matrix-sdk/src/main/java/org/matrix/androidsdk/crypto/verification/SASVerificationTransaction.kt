@@ -41,8 +41,8 @@ abstract class SASVerificationTransaction(transactionId: String,
     companion object {
         val LOG_TAG = SASVerificationTransaction::javaClass.name
 
-        val SAS_MAC_SHA256_LONGKDF = "hmac-sha256"
-        val SAS_MAC_SHA256 = "hmac-sha256-tbd"
+        const val SAS_MAC_SHA256_LONGKDF = "hmac-sha256"
+        const val SAS_MAC_SHA256 = "hkdf-hmac-sha256"
 
         //ordered by preferred order
         val KNOWN_AGREEMENT_PROTOCOLS = listOf(MXKey.KEY_CURVE_25519_TYPE)
@@ -51,7 +51,11 @@ abstract class SASVerificationTransaction(transactionId: String,
         //ordered by preferred order
         val KNOWN_MAC = listOf(SAS_MAC_SHA256, SAS_MAC_SHA256_LONGKDF)
 
-        val KNOWN_SHORT_CODES = listOf(KeyVerificationStart.SAS_MODE_EMOJI, KeyVerificationStart.SAS_MODE_DECIMAL)
+        val KNOWN_SHORT_CODES =
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                listOf(KeyVerificationStart.SAS_MODE_EMOJI, KeyVerificationStart.SAS_MODE_DECIMAL)
+//                else
+//                    listOf(KeyVerificationStart.SAS_MODE_DECIMAL)
 
     }
 
@@ -154,21 +158,6 @@ abstract class SASVerificationTransaction(transactionId: String,
         // - the transaction ID, and
         // - the key ID of the key being MAC-ed, or the string “KEY_IDS” if the item being MAC-ed is the list of key IDs.
 
-//        const keyId = `ed25519:${this._baseApis.deviceId}`;
-//        const mac = {};
-//        const baseInfo = "MATRIX_KEY_VERIFICATION_MAC"
-//        + this._baseApis.getUserId() + this._baseApis.deviceId
-//        + this.userId + this.deviceId
-//        + this.transactionId;
-//
-//        mac[keyId] = olmSAS.calculate_mac(
-//                this._baseApis.getDeviceEd25519Key(),
-//                baseInfo + keyId,
-//                );
-//        const keys = olmSAS.calculate_mac(
-//                keyId,
-//        baseInfo + "KEY_IDS",
-//        );
         val baseInfo = "MATRIX_KEY_VERIFICATION_MAC" +
                 session.myUserId + session.crypto!!.myDevice.deviceId +
                 otherUserID + otherDevice +
@@ -290,15 +279,15 @@ abstract class SASVerificationTransaction(transactionId: String,
                                 }
 
                                 override fun onUnexpectedError(e: java.lang.Exception?) {
-                                    Log.d(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
+                                    Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
                                 }
 
                                 override fun onNetworkError(e: java.lang.Exception?) {
-                                    Log.d(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
+                                    Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
                                 }
 
                                 override fun onMatrixError(e: MatrixError?) {
-                                    Log.d(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
+                                    Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
                                 }
 
                             })
@@ -355,17 +344,17 @@ abstract class SASVerificationTransaction(transactionId: String,
             }
 
             override fun onUnexpectedError(e: Exception?) {
-                Log.d(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
+                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
                 cancel(session, onErrorReason)
             }
 
             override fun onNetworkError(e: Exception?) {
-                Log.d(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
+                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
                 cancel(session, onErrorReason)
             }
 
             override fun onMatrixError(e: MatrixError?) {
-                Log.d(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
+                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
                 cancel(session, onErrorReason)
             }
         })
@@ -375,14 +364,16 @@ abstract class SASVerificationTransaction(transactionId: String,
         if (shortCodeBytes == null) {
             return null
         }
-        if (KeyVerificationStart.SAS_MODE_DECIMAL == short_authentication_string) {
-            if (shortCodeBytes!!.size < 5) return null
-            return getDecimalCodeRepresentation(shortCodeBytes!!)
-        } else if (KeyVerificationStart.SAS_MODE_EMOJI == short_authentication_string) {
-            if (shortCodeBytes!!.size < 6) return null
-            return getEmojiCodeRepresentation(shortCodeBytes!!, null)?.joinToString(" ") { it.emoji }
-        } else {
-            return null
+        when (short_authentication_string) {
+            KeyVerificationStart.SAS_MODE_DECIMAL -> {
+                if (shortCodeBytes!!.size < 5) return null
+                return getDecimalCodeRepresentation(shortCodeBytes!!)
+            }
+            KeyVerificationStart.SAS_MODE_EMOJI -> {
+                if (shortCodeBytes!!.size < 6) return null
+                return getEmojiCodeRepresentation(shortCodeBytes!!, null)?.joinToString(" ") { it.emoji }
+            }
+            else -> return null
         }
     }
 
