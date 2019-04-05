@@ -58,6 +58,7 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
                 SASVerificationTxState.MacSent,
                 SASVerificationTxState.Verifying -> State.WAIT_FOR_VERIFICATION
                 SASVerificationTxState.Verified -> State.VERIFIED
+                SASVerificationTxState.OnCancelled -> State.CANCELLED_BY_ME
                 SASVerificationTxState.Cancelled -> State.CANCELLED_BY_OTHER
                 else -> {
                     State.UNKNOWN
