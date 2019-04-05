@@ -18,6 +18,9 @@ package org.matrix.androidsdk.crypto.verification
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.rest.model.crypto.SendToDeviceObject
 
+/**
+ * Generic interactive key verification transaction
+ */
 abstract class VerificationTransaction(val transactionId: String, val otherUserID: String, var otherDevice: String? = null, val isIncoming: Boolean) {
 
     interface Listener {

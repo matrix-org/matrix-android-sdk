@@ -30,7 +30,7 @@ import org.matrix.olm.OlmUtility
 import kotlin.properties.Delegates
 
 /**
- * Represents an ongoing interactive key verification between two devices.
+ * Represents an ongoing short code interactive key verification between two devices.
  */
 abstract class SASVerificationTransaction(transactionId: String,
                                           otherUserID: String,
@@ -244,7 +244,7 @@ abstract class SASVerificationTransaction(transactionId: String,
                             session.myUserId + session.crypto!!.myDevice.deviceId +
                             transactionId
 
-                    val keyId = "ed25519:${otherDevice}"
+                    val keyId = "ed25519:$otherDevice"
 
                     val macString = macUsingAgreedMethod(otherDeviceKey, baseInfo + keyId)
                     val keyStrings = macUsingAgreedMethod(keyId, baseInfo + "KEY_IDS")

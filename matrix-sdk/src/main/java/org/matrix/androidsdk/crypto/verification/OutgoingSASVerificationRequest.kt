@@ -185,7 +185,7 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
             val sasInfo = "MATRIX_KEY_VERIFICATION_SAS" +
                     "${session.myUserId}${session.crypto!!.myDevice.deviceId}" +
                     "$otherUserID$otherDevice" +
-                    "$transactionId"
+                    transactionId
             //decimal: generate five bytes by using HKDF.
             //emoji: generate six bytes by using HKDF.
             shortCodeBytes = getSAS().generateShortCode(sasInfo, 6)
