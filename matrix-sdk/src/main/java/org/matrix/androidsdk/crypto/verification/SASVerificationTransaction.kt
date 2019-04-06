@@ -16,6 +16,7 @@
 package org.matrix.androidsdk.crypto.verification
 
 import android.content.Context
+import android.os.Build
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXKey
@@ -51,11 +52,12 @@ abstract class SASVerificationTransaction(transactionId: String,
         //ordered by preferred order
         val KNOWN_MAC = listOf(SAS_MAC_SHA256, SAS_MAC_SHA256_LONGKDF)
 
+        //older devices have limited support of emoji, so reply with decimal
         val KNOWN_SHORT_CODES =
-//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-                listOf(KeyVerificationStart.SAS_MODE_EMOJI, KeyVerificationStart.SAS_MODE_DECIMAL)
-//                else
-//                    listOf(KeyVerificationStart.SAS_MODE_DECIMAL)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                    listOf(KeyVerificationStart.SAS_MODE_EMOJI, KeyVerificationStart.SAS_MODE_DECIMAL)
+                else
+                    listOf(KeyVerificationStart.SAS_MODE_DECIMAL)
 
     }
 
@@ -167,17 +169,14 @@ abstract class SASVerificationTransaction(transactionId: String,
         val macString = macUsingAgreedMethod(session.crypto!!.myDevice.fingerprint(), baseInfo + keyId)
         val keyStrings = macUsingAgreedMethod(keyId, baseInfo + "KEY_IDS")
 
-        if (macString?.length == 0 || keyStrings?.length == 0) {
+        if (macString.isNullOrBlank() || keyStrings.isNullOrBlank()) {
             //Should not happen
             Log.e(LOG_TAG, "## SAS verification [$transactionId] failed to send KeyMac, empty key hashes.")
             cancel(session, CancelCode.UnexpectedMessage)
             return
         }
 
-        val macMsg = KeyVerificationMac.new(transactionId,
-                mapOf(Pair(keyId, macString!!)),
-                keyStrings!!
-        )
+        val macMsg = KeyVerificationMac.new(transactionId, mapOf(keyId to macString), keyStrings)
         myMac = macMsg
         state = SASVerificationTxState.SendingMac
         sendToOther(Event.EVENT_TYPE_KEY_VERIFICATION_MAC, macMsg, session, SASVerificationTxState.MacSent, CancelCode.User) {
@@ -279,11 +278,11 @@ abstract class SASVerificationTransaction(transactionId: String,
                                 }
 
                                 override fun onUnexpectedError(e: java.lang.Exception?) {
-                                    Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
+                                    Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state", e)
                                 }
 
                                 override fun onNetworkError(e: java.lang.Exception?) {
-                                    Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
+                                    Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state", e)
                                 }
 
                                 override fun onMatrixError(e: MatrixError?) {
@@ -398,7 +397,7 @@ abstract class SASVerificationTransaction(transactionId: String,
     protected fun macUsingAgreedMethod(message: String, info: String): String? {
         if (SAS_MAC_SHA256_LONGKDF.toLowerCase() == accepted?.message_authentication_code?.toLowerCase()) {
             return String(getSAS().calculateMacLongKdf(message, info), Charsets.UTF_8)
-        } else if (SAS_MAC_SHA256.toLowerCase() == accepted?.hash?.toLowerCase()) {
+        } else if (SAS_MAC_SHA256.toLowerCase() == accepted?.message_authentication_code?.toLowerCase()) {
             return String(getSAS().calculateMac(message, info), Charsets.UTF_8)
         }
         return null
