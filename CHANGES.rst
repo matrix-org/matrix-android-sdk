@@ -17,7 +17,7 @@ Translations:
  -
 
 Others:
- -
+ - Add the possibility to configure room name for empty rooms
 
 Build:
  -

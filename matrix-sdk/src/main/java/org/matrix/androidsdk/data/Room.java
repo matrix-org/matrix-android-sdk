@@ -559,6 +559,15 @@ public class Room {
         return mRoomDisplayNameResolver.resolve(context);
     }
 
+    /**
+     * @param context       the application context.
+     * @param emptyRoomName default name to use if the room is empty
+     * @return the computed room display name
+     */
+    public String getRoomDisplayName(Context context, String emptyRoomName) {
+        return mRoomDisplayNameResolver.resolve(context, emptyRoomName);
+    }
+
     public String getTopic() {
         return getState().topic;
     }
