@@ -19,6 +19,7 @@ package org.matrix.androidsdk.crypto.verification
 import android.os.Handler
 import android.os.Looper
 import org.matrix.androidsdk.MXSession
+import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap
 import org.matrix.androidsdk.listeners.MXEventListener
 import org.matrix.androidsdk.rest.callback.ApiCallback
@@ -41,6 +42,7 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
     interface ManagerListener {
         fun transactionCreated(tx: VerificationTransaction)
         fun transactionUpdated(tx: VerificationTransaction)
+        fun markedAsManuallyVerified(userId: String, deviceID: String)
     }
 
     private val uiHandler = Handler(Looper.getMainLooper())
@@ -111,9 +113,41 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
                 } catch (e: Throwable) {
                     Log.e(LOG_TAG, "## Error while notifying listeners", e)
                 }
-
             }
         }
+    }
+
+    fun markedLocallyAsManuallyVerified(userId: String, deviceID: String) {
+        session.crypto!!.setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED,
+                deviceID,
+                userId,
+                object : ApiCallback<Void> {
+                    override fun onSuccess(info: Void?) {
+                        listeners.forEach {
+                            uiHandler.post {
+                                try {
+                                    it.markedAsManuallyVerified(userId, deviceID)
+                                } catch (e: Throwable) {
+                                    Log.e(LOG_TAG, "## Error while notifying listeners", e)
+                                }
+                            }
+                        }
+                    }
+
+                    override fun onUnexpectedError(e: java.lang.Exception?) {
+                        Log.e(SASVerificationTransaction.LOG_TAG, "## Manual verification failed in state", e)
+                    }
+
+                    override fun onNetworkError(e: java.lang.Exception?) {
+                        Log.e(SASVerificationTransaction.LOG_TAG, "## Manual verification failed in state", e)
+                    }
+
+                    override fun onMatrixError(e: MatrixError?) {
+                        Log.e(SASVerificationTransaction.LOG_TAG, "## Manual verification failed in state " + e?.mReason)
+                    }
+
+                })
+
     }
 
     private fun onStartRequestReceived(event: Event) {
