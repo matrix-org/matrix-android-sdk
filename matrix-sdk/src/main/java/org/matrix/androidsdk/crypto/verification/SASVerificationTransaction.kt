@@ -396,9 +396,9 @@ abstract class SASVerificationTransaction(transactionId: String,
 
     protected fun macUsingAgreedMethod(message: String, info: String): String? {
         if (SAS_MAC_SHA256_LONGKDF.toLowerCase() == accepted?.message_authentication_code?.toLowerCase()) {
-            return String(getSAS().calculateMacLongKdf(message, info), Charsets.UTF_8)
+            return getSAS().calculateMacLongKdf(message, info)
         } else if (SAS_MAC_SHA256.toLowerCase() == accepted?.message_authentication_code?.toLowerCase()) {
-            return String(getSAS().calculateMac(message, info), Charsets.UTF_8)
+            return getSAS().calculateMac(message, info)
         }
         return null
     }
