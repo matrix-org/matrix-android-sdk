@@ -68,7 +68,7 @@
     <string name="room_displayname_empty_room">Tyhjä huone</string>
 
 
-<string name="summary_user_sent_sticker">%1$s lähetti tarran.</string>
+    <string name="summary_user_sent_sticker">%1$s lähetti tarran.</string>
 
     <string name="message_reply_to_prefix">Vastauksena käyttäjälle</string>
 
@@ -78,12 +78,12 @@
     <string name="reply_to_a_file">lähetti tiedoston.</string>
 
     <plurals name="room_displayname_three_and_more_members">
-	<item quantity="one">%1$s ja yksi muu</item>
-	<item quantity="other">%1$s ja %2$d muuta</item>
-</plurals>
+        <item quantity="one">%1$s ja yksi muu</item>
+        <item quantity="other">%1$s ja %2$d muuta</item>
+    </plurals>
 
     <string name="notice_event_redacted">Viesti poistettu</string>
     <string name="notice_event_redacted_by">%1$s poisti viestin</string>
     <string name="notice_event_redacted_with_reason">Viesti poistettu [syy: %1$s]</string>
     <string name="notice_event_redacted_by_with_reason">%1$s poisti viestin [syy: %2$s]</string>
-    </resources>
+</resources>
