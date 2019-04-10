@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Fix crash on MXWebRtcView, reported by the PlayStore
 
 API Change:
  -

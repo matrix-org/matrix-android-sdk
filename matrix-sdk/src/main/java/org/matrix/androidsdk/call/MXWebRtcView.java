@@ -215,6 +215,8 @@ public class MXWebRtcView extends ViewGroup {
             // window. Additionally, a memory leak was solved in a similar way
             // on iOS.
             tryAddRendererToVideoTrack();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "onAttachedToWindow", e);
         } finally {
             super.onAttachedToWindow();
         }
@@ -232,6 +234,8 @@ public class MXWebRtcView extends ViewGroup {
             // window. Additionally, a memory leak was solved in a similar way
             // on iOS.
             removeRendererFromVideoTrack();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "onAttachedToWindow", e);
         } finally {
             super.onDetachedFromWindow();
         }
@@ -343,7 +347,9 @@ public class MXWebRtcView extends ViewGroup {
      */
     private void removeRendererFromVideoTrack() {
         if (surfaceViewRenderer != null) {
-            videoTrack.removeSink(surfaceViewRenderer);
+            if (videoTrack != null) {
+                videoTrack.removeSink(surfaceViewRenderer);
+            }
 
             getSurfaceViewRenderer().release();
 
