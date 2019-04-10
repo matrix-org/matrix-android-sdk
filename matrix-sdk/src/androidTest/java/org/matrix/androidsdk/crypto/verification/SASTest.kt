@@ -69,11 +69,10 @@ class SASTest {
         val bobTxCreatedLatch = CountDownLatch(1)
         var bobListener: VerificationManager.ManagerListener = object : VerificationManager.ManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {
-                bobTxCreatedLatch.countDown()
             }
 
             override fun transactionUpdated(tx: VerificationTransaction) {
-
+                bobTxCreatedLatch.countDown()
             }
 
             override fun markedAsManuallyVerified(userId: String, deviceID: String) {}
