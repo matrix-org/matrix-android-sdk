@@ -63,6 +63,7 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
         }
 
     override fun onVerificationStart(session: MXSession, startReq: KeyVerificationStart) {
+        Log.d(LOG_TAG, "## SAS received verification request from state $state")
         if (state != SASVerificationTxState.None) {
             Log.e(LOG_TAG, "## received verification request from invalid state")
             //should I cancel??
@@ -141,6 +142,7 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
 
     private fun doAccept(session: MXSession, accept: KeyVerificationAccept) {
         this.accepted = accept
+        Log.d(LOG_TAG, "## SAS accept request id:$transactionId")
 
         //The hash commitment is the hash (using the selected hash algorithm) of the unpadded base64 representation of QB,
         // concatenated with the canonical JSON representation of the content of the m.key.verification.start message
@@ -158,10 +160,12 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
 
 
     override fun onVerificationAccept(session: MXSession, accept: KeyVerificationAccept) {
+        Log.d(LOG_TAG, "## SAS invalid message for incoming request id:$transactionId")
         cancel(session, CancelCode.UnexpectedMessage)
     }
 
     override fun onKeyVerificationKey(session: MXSession, userId: String, vKey: KeyVerificationKey) {
+        Log.d(LOG_TAG, "## SAS received key for request id:$transactionId")
         if (state != SASVerificationTxState.SendingAccept && state != SASVerificationTxState.Accepted) {
             Log.e(LOG_TAG, "## received key from invalid state $state")
             cancel(session, CancelCode.UnexpectedMessage)
@@ -214,6 +218,7 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
     }
 
     override fun onKeyVerificationMac(session: MXSession, vKey: KeyVerificationMac) {
+        Log.d(LOG_TAG, "## SAS received mac for request id:$transactionId")
         //Check for state?
         if (
                 state != SASVerificationTxState.SendingKey &&

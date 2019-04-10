@@ -141,6 +141,7 @@ abstract class SASVerificationTransaction(transactionId: String,
      * both short codes do match
      */
     fun userHasVerifiedShortCode(session: MXSession) {
+        Log.d(LOG_TAG, "## SAS short code verified by user for id:$transactionId")
         if (state != SASVerificationTxState.ShortCodeReady) {
             //ignore and cancel?
             Log.e(LOG_TAG, "## Accepted short code from invalid state $state")
@@ -214,6 +215,7 @@ abstract class SASVerificationTransaction(transactionId: String,
     abstract fun onKeyVerificationMac(session: MXSession, vKey: KeyVerificationMac)
 
     protected fun verifyMacs(session: MXSession) {
+        Log.d(LOG_TAG, "## SAS verifying macs for id:$transactionId")
         state = SASVerificationTxState.Verifying
         //Alice and Bob’ devices calculate the HMAC of their own device keys and a comma-separated,
         // sorted list of the key IDs that they wish the other user to verify,
@@ -235,6 +237,7 @@ abstract class SASVerificationTransaction(transactionId: String,
                     //mmmm could have been canceled by other meanwhile?
                     if (state == SASVerificationTxState.OnCancelled || state == SASVerificationTxState.Cancelled) {
                         //ignore
+                        Log.d(LOG_TAG, "## SAS request cancelled id:$transactionId")
                         return@post
                     }
 
@@ -274,6 +277,7 @@ abstract class SASVerificationTransaction(transactionId: String,
 
                                 override fun onSuccess(info: Void?) {
                                     //We good
+                                    Log.d(LOG_TAG, "## SAS verification complete and device status updated for id:$transactionId")
                                     state = SASVerificationTxState.Verified
                                 }
 

@@ -67,6 +67,7 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
         }
 
     override fun onVerificationStart(session: MXSession, startReq: KeyVerificationStart) {
+        Log.e(LOG_TAG, "## onVerificationStart - unexpected id:$transactionId")
         cancel(session, CancelCode.UnexpectedMessage)
     }
 
@@ -118,6 +119,7 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
     }
 
     override fun onVerificationAccept(session: MXSession, accept: KeyVerificationAccept) {
+        Log.d(LOG_TAG, "## onVerificationAccept id:$transactionId")
         if (state != SASVerificationTxState.Started) {
             Log.e(LOG_TAG, "## received accept request from invalid state $state")
             cancel(session, CancelCode.UnexpectedMessage)
@@ -157,6 +159,7 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
     }
 
     override fun onKeyVerificationKey(session: MXSession, userId: String, vKey: KeyVerificationKey) {
+        Log.d(LOG_TAG, "## onKeyVerificationKey id:$transactionId")
         if (state != SASVerificationTxState.SendingKey && state != SASVerificationTxState.KeySent) {
             Log.e(LOG_TAG, "## received key from invalid state $state")
             cancel(session, CancelCode.UnexpectedMessage)
@@ -200,6 +203,7 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
     }
 
     override fun onKeyVerificationMac(session: MXSession, vKey: KeyVerificationMac) {
+        Log.d(LOG_TAG, "## onKeyVerificationMac id:$transactionId")
         if (
                 state != SASVerificationTxState.OnKeyReceived &&
                 state != SASVerificationTxState.ShortCodeReady &&

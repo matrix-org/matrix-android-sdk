@@ -167,14 +167,18 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
             }
             return
         }
+        Log.d(SASVerificationTransaction.LOG_TAG, "## SAS onStartRequestReceived ${startReq.transactionID!!}")
         val tid = startReq.transactionID!!
         val existing = getExistingTransaction(otherUserId, tid)
         val existingTxs = getExistingTransactionsForUser(otherUserId)
         if (existing != null) {
             //should cancel both!
+            Log.d(SASVerificationTransaction.LOG_TAG, "## SAS onStartRequestReceived - Request exist with same if ${startReq.transactionID!!}")
             existing.cancel(session, CancelCode.UnexpectedMessage)
             cancelTransaction(session, tid, otherUserId, startReq.fromDevice!!, CancelCode.UnexpectedMessage)
         } else if (existingTxs?.isEmpty() == false) {
+            Log.d(SASVerificationTransaction.LOG_TAG,
+                    "## SAS onStartRequestReceived - There is already a transaction with this user ${startReq.transactionID!!}")
             //Multiple keyshares between two devices: any two devices may only have at most one key verification in flight at a time.
             existingTxs.forEach {
                 it.cancel(session, CancelCode.UnexpectedMessage)
@@ -183,10 +187,12 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
         } else {
             //Ok we can create
             if (KeyVerificationStart.VERIF_METHOD_SAS == startReq.method) {
+                Log.d(SASVerificationTransaction.LOG_TAG, "## SAS onStartRequestReceived - request accepted ${startReq.transactionID!!}")
                 val tx = IncomingSASVerificationTransaction(startReq.transactionID!!, otherUserId)
                 addTransaction(tx)
                 tx.acceptToDeviceEvent(session, otherUserId, startReq)
             } else {
+                Log.e(SASVerificationTransaction.LOG_TAG, "## SAS onStartRequestReceived - unknown method ${startReq.method}")
                 cancelTransaction(session, tid, otherUserId, startReq.fromDevice
                         ?: event.senderKey(), CancelCode.UnknownMethod)
             }
@@ -194,6 +200,7 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
     }
 
     private fun onCancelReceived(event: Event) {
+        Log.d(LOG_TAG, "## SAS onCancelReceived")
         val cancelReq = JsonUtils.getBasicGson()
                 .fromJson(event.content, KeyVerificationCancel::class.java)
         if (!cancelReq.isValid()) {
@@ -202,6 +209,8 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
             return
         }
         val otherUserId = event.sender!!
+
+        Log.d(LOG_TAG, "## SAS onCancelReceived otherUser:$otherUserId reason:${cancelReq.reason}")
         val existing = getExistingTransaction(otherUserId, cancelReq.transactionID!!)
         if (existing == null) {
             Log.e(LOG_TAG, "## Received invalid cancel request")
