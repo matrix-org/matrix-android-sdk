@@ -17,6 +17,8 @@
 package org.matrix.androidsdk.data.room;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.R;
@@ -50,7 +52,20 @@ public class RoomDisplayNameResolver {
      * @param context
      * @return the room display name
      */
+    @NonNull
     public String resolve(Context context) {
+        return resolve(context, context.getString(R.string.room_displayname_empty_room));
+    }
+
+    /**
+     * Compute the room display name
+     *
+     * @param context
+     * @param emptyRoomName default name to use if the room is empty
+     * @return the room display name, can be null only if emptyRoomName is null
+     */
+    @Nullable
+    public String resolve(Context context, @Nullable String emptyRoomName) {
         try {
             // this algorithm is the one defined in
             // https://github.com/matrix-org/matrix-js-sdk/blob/develop/lib/models/room.js#L617
@@ -123,7 +138,7 @@ public class RoomDisplayNameResolver {
                 }
             } else {
                 if (nbOfOtherMembers == 0) {
-                    displayName = context.getString(R.string.room_displayname_empty_room);
+                    displayName = emptyRoomName;
                 } else if (nbOfOtherMembers == 1) {
                     RoomMember member = othersActiveMembers.get(0);
                     displayName = roomState.getMemberName(member.getUserId());

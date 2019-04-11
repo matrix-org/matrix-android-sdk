@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<resources>
+    <string name="summary_message">%1$s: %2$s</string>
+    <string name="summary_user_sent_image">%1$s একটি চিত্র পাঠিয়েছে।</string>
+    <string name="summary_user_sent_sticker">%1$s একটি স্টিকার পাঠিয়েছে।</string>
+
+    <string name="notice_room_invite_no_invitee">%s এর আমন্ত্রণ</string>
+    <string name="notice_room_invite">%1$s %2$s কে আমন্ত্রিত করেছেন</string>
+    <string name="notice_room_invite_you">%1$s আপনাকে আমন্ত্রণ জানিয়েছে</string>
+    <string name="notice_room_join">%1$s যোগ দিয়েছেন</string>
+    <string name="notice_room_leave">%1$s ছেড়ে দিয়েছেন</string>
+    <string name="notice_room_reject">%1$s আমন্ত্রণ বাতিল করেছেন</string>
+    <string name="notice_room_kick">%1$s %2$s কে কিক করেছেন</string>
+    <string name="notice_room_unban">%1$s %2$s কে নিষেধমুক্ত করেছেন</string>
+    <string name="notice_room_ban">%1$s %2$s কে নিষিদ্ধ করেছেন</string>
+    <string name="notice_room_withdraw">%1$s %2$s এর আমন্ত্রণ প্রত্যাহার করেছে</string>
+    <string name="notice_avatar_url_changed">%1$s তাদের অবতার পরিবর্তন করেছে</string>
+    <string name="notice_display_name_set">%1$s তাদের প্রদর্শন নাম %2$s তে সেট করেছেন</string>
+    <string name="notice_display_name_changed_from">%1$s তাদের প্রদর্শনের নাম %2$s থেকে %3$s তে পরিবর্তন করেছে</string>
+    <string name="notice_display_name_removed">%1$s তাদের প্রদর্শনের নাম সরিয়ে দিয়েছেন (%2$s)</string>
+    <string name="notice_room_topic_changed">%1$s বিষয়টি এতে পরিবর্তন করেছেন: %2$s</string>
+    <string name="notice_room_name_changed">%1$s রুমের নাম পরিবর্তন করেছে: %2$s</string>
+    <string name="notice_placed_video_call">%s একটি ভিডিও কল স্থাপন করেছে।</string>
+    <string name="notice_placed_voice_call">%s একটি ভয়েস কল স্থাপন করেছে।</string>
+    <string name="notice_answered_call">%s কল এর উত্তর দিয়েছে।</string>
+    <string name="notice_ended_call">%s কল শেষ করেছে।</string>
+    <string name="notice_made_future_room_visibility">%1$s ভবিষ্যতের কক্ষ ইতিহাস %2$s তে দৃশ্যমান করেছেন</string>
+    <string name="notice_room_visibility_invited">সব রুমের সদস্য, যখন থেকে ওরা আমন্ত্রিত হয়েছে।</string>
+    <string name="notice_room_visibility_joined">সব রুমের সদস্য, যখন থেকে ওরা যোগদান দিয়েছেন।</string>
+    <string name="notice_room_visibility_shared">সব রুমের সদস্য।</string>
+    <string name="notice_room_visibility_world_readable">যে কেউ।</string>
+    <string name="notice_room_visibility_unknown">অজ্ঞাত (%s)।</string>
+    <string name="notice_end_to_end">%1$s শেষ-থেকে-শেষ এনক্রিপশন চালু করেছেন (%2$s)</string>
+
+    <string name="notice_requested_voip_conference">%1$s একটি VoIP সম্মেলনের অনুরোধ করেছে</string>
+    <string name="notice_voip_started">VoIP সম্মেলন শুরু</string>
+    <string name="notice_voip_finished">VoIP সম্মেলন সমাপ্ত</string>
+
+    <string name="notice_avatar_changed_too">(অবতারও বদলে দেয়া হয়েছিল)</string>
+    <string name="notice_room_name_removed">%1$s রুমের নাম সরিয়ে দিয়েছে</string>
+    <string name="notice_room_topic_removed">%1$s রুম বিষয়টিকে মুছে দিয়েছেন</string>
+    <string name="notice_event_redacted">বার্তা মুছে ফেলা হয়েছে</string>
+    <string name="notice_event_redacted_by">বার্তা %1$s দ্বারা সরানো হয়েছে</string>
+    <string name="notice_event_redacted_with_reason">বার্তা সরানো হয়েছে [কারণ: %1$s]</string>
+    <string name="notice_event_redacted_by_with_reason">বার্তাটি কে %1$s সরিয়ে দিয়েছেন [কারণ: %2$s]</string>
+    <string name="notice_profile_change_redacted">%1$s তাদের প্রোফাইল আপডেট করেছে %2$s</string>
+    <string name="notice_room_third_party_invite">%1$s রুমের সাথে যোগ দিতে %2$s কে একটি আমন্ত্রণ পাঠিয়েছেন</string>
+    <string name="notice_room_third_party_registered_invite">%1$s %2$s এর জন্য আমন্ত্রণ গ্রহণ করেছেন</string>
+
+    <string name="notice_crypto_unable_to_decrypt">** ডিক্রিপ্ট করতে অক্ষম: %s **</string>
+    <string name="notice_crypto_error_unkwown_inbound_session_id">প্রেরকের ডিভাইসটি আমাদের এই বার্তাটির জন্য কুঞ্জিগুলি পাঠায়নি।</string>
+
+    <string name="message_reply_to_prefix">উত্তরে</string>
+
+    <string name="could_not_redact">মুছে ফেলতে অক্ষম</string>
+    <string name="unable_to_send_message">বার্তা পাঠাতে অক্ষম</string>
+
+    <string name="message_failed_to_upload">ফটো আপলোড করতে অক্ষম</string>
+
+    <string name="network_error">নেটওয়ার্ক এর ত্রুটি</string>
+    <string name="matrix_error">ম্যাট্রিক্স এর ত্রুটি</string>
+
+    <string name="room_error_join_failed_empty_room">এটি একটি খালি রুম পুনরায় যোগদান করা সম্ভব নয়।</string>
+
+    <string name="encrypted_message">এনক্রিপ্ট করা বার্তা</string>
+
+    <string name="medium_email">ইমেইল ঠিকানা</string>
+    <string name="medium_phone_number">ফোন নম্বর</string>
+
+    <string name="reply_to_an_image">একটি ছবি পাঠিয়েছে।</string>
+    <string name="reply_to_a_video">একটি ভিডিও পাঠিয়েছে।</string>
+    <string name="reply_to_an_audio_file">একটি অডিও ফাইল পাঠিয়েছে।</string>
+    <string name="reply_to_a_file">একটি ফাইল পাঠিয়েছে।</string>
+
+    <string name="room_displayname_invite_from">%s থেকে আমন্ত্রণ</string>
+    <string name="room_displayname_room_invite">রুমের আমন্ত্রণ</string>
+
+    <string name="room_displayname_two_members">%1$s এবং %2$s</string>
+
+    <plurals name="room_displayname_three_and_more_members">
+        <item quantity="one">%1$s এবং ১ জন অন্যান্য</item>
+        <item quantity="other">%1$s এবং %2$d জন অন্যান্য</item>
+    </plurals>
+
+    <string name="room_displayname_empty_room">খালি রুম</string>
+
+</resources>

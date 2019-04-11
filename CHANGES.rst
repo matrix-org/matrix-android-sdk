@@ -1,3 +1,12 @@
+Changes to Matrix Android SDK in 0.9.21 (2019-04-11)
+=======================================================
+
+Bugfix:
+ - Fix crash on MXWebRtcView, reported by the PlayStore
+
+Others:
+ - Add the possibility to configure room name for empty rooms
+
 Changes to Matrix Android SDK in 0.9.20 (2019-04-01)
 =======================================================
 

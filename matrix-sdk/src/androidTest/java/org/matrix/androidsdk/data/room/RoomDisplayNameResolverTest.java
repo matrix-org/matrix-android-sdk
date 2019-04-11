@@ -51,6 +51,24 @@ public class RoomDisplayNameResolverTest {
     }
 
     @Test
+    public void RoomName_getRoomDisplayName_noLL_emptyRoom_default() {
+        RoomName_getRoomDisplayName_emptyRoom_default(false);
+    }
+
+    @Test
+    public void RoomName_getRoomDisplayName_LL_emptyRoom_default() {
+        RoomName_getRoomDisplayName_emptyRoom(true);
+    }
+
+    private void RoomName_getRoomDisplayName_emptyRoom_default(boolean withLazyLoading) {
+        Context context = InstrumentationRegistry.getContext();
+        Room room = mRoomTestHelper.createRoom(context, withLazyLoading, 0, false);
+
+        Assert.assertEquals("Default!", room.getRoomDisplayName(context, "Default!"));
+        Assert.assertEquals(null, room.getRoomDisplayName(context, null));
+    }
+
+    @Test
     public void RoomName_getRoomDisplayName_noLL_roomName() {
         RoomName_getRoomDisplayName_roomName(false);
     }
