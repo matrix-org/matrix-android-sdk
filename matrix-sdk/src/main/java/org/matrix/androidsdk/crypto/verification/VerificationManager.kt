@@ -411,7 +411,8 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
         if (tx is SASVerificationTransaction
                 &&
                 (tx.state == SASVerificationTransaction.SASVerificationTxState.Cancelled
-                        || tx.state == SASVerificationTransaction.SASVerificationTxState.OnCancelled)
+                        || tx.state == SASVerificationTransaction.SASVerificationTxState.OnCancelled
+                        || tx.state == SASVerificationTransaction.SASVerificationTxState.Verified)
         ) {
             //remove
             this.removeTransaction(tx.otherUserID, tx.transactionId)

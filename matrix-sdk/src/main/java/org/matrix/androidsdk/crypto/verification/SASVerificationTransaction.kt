@@ -102,7 +102,9 @@ abstract class SASVerificationTransaction(transactionId: String,
                 Log.e(LOG_TAG, "## Error while notifying listeners", e)
             }
         }
-        if (new == SASVerificationTxState.Cancelled || new == SASVerificationTxState.OnCancelled) {
+        if (new == SASVerificationTxState.Cancelled
+                || new == SASVerificationTxState.OnCancelled
+                || new == SASVerificationTxState.Verified) {
             releaseSAS()
         }
     }
