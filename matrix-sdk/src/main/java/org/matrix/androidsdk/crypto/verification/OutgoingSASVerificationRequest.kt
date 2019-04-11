@@ -17,9 +17,7 @@ package org.matrix.androidsdk.crypto.verification
 
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap
-import org.matrix.androidsdk.rest.callback.ApiCallback
 import org.matrix.androidsdk.rest.model.Event
-import org.matrix.androidsdk.rest.model.MatrixError
 import org.matrix.androidsdk.rest.model.crypto.KeyVerificationAccept
 import org.matrix.androidsdk.rest.model.crypto.KeyVerificationKey
 import org.matrix.androidsdk.rest.model.crypto.KeyVerificationMac
@@ -92,30 +90,16 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
         val contentMap = MXUsersDevicesMap<Any>()
         contentMap.setObject(startMessage, otherUserID, otherDevice)
         state = SASVerificationTxState.SendingStart
-        session.cryptoRestClient.sendToDevice(Event.EVENT_TYPE_KEY_VERIFICATION_START, contentMap, transactionId, object : ApiCallback<Void> {
-            override fun onSuccess(info: Void?) {
-                state = SASVerificationTxState.Started
-                Log.d(LOG_TAG, "## SAS verification [$transactionId] started ")
-            }
 
-            override fun onUnexpectedError(e: Exception?) {
-                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed to start.")
-                cancelledReason = CancelCode.User
-                state = SASVerificationTxState.Cancelled
-            }
+        sendToOther(
+                Event.EVENT_TYPE_KEY_VERIFICATION_START,
+                startMessage,
+                session,
+                SASVerificationTxState.Started,
+                CancelCode.User,
+                null
+        )
 
-            override fun onNetworkError(e: Exception?) {
-                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed to start.")
-                cancelledReason = CancelCode.User
-                state = SASVerificationTxState.Cancelled
-            }
-
-            override fun onMatrixError(e: MatrixError?) {
-                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed to start.")
-                cancelledReason = CancelCode.User
-                state = SASVerificationTxState.Cancelled
-            }
-        })
     }
 
     override fun onVerificationAccept(session: MXSession, accept: KeyVerificationAccept) {
@@ -193,8 +177,6 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
             //decimal: generate five bytes by using HKDF.
             //emoji: generate six bytes by using HKDF.
             shortCodeBytes = getSAS().generateShortCode(sasInfo, 6)
-//            Log.e(LOG_TAG, "************  ALICE CODE ${getDecimalCodeRepresentation(shortCodeBytes!!)}")
-//            Log.e(LOG_TAG, "************  ALICE EMOJI CODE ${getShortCodeRepresentation(KeyVerificationStart.SAS_MODE_EMOJI)}")
             state = SASVerificationTxState.ShortCodeReady
         } else {
             //bad commitement

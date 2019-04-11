@@ -18,10 +18,12 @@ package org.matrix.androidsdk.crypto.verification
 import android.util.Base64
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
-import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap
 import org.matrix.androidsdk.rest.callback.SimpleApiCallback
 import org.matrix.androidsdk.rest.model.Event
-import org.matrix.androidsdk.rest.model.crypto.*
+import org.matrix.androidsdk.rest.model.crypto.KeyVerificationAccept
+import org.matrix.androidsdk.rest.model.crypto.KeyVerificationKey
+import org.matrix.androidsdk.rest.model.crypto.KeyVerificationMac
+import org.matrix.androidsdk.rest.model.crypto.KeyVerificationStart
 import org.matrix.androidsdk.util.JsonUtils
 import org.matrix.androidsdk.util.Log
 
@@ -72,13 +74,6 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
         this.startReq = startReq
         state = SASVerificationTxState.OnStarted
         this.otherDevice = startReq.fromDevice
-
-        //force device key download!!
-        session.crypto?.deviceList?.downloadKeys(listOf(this.otherUserID), true, object: SimpleApiCallback<MXUsersDevicesMap<MXDeviceInfo>>() {
-            override fun onSuccess(info: MXUsersDevicesMap<MXDeviceInfo>?) {
-               //nop
-            }
-        })
 
     }
 

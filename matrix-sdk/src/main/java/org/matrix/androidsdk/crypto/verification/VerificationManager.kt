@@ -167,36 +167,81 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
             }
             return
         }
-        Log.d(SASVerificationTransaction.LOG_TAG, "## SAS onStartRequestReceived ${startReq.transactionID!!}")
+        //Download device keys prior to everything
+        checkKeysAreDownloaded(
+                session,
+                otherUserId,
+                startReq,
+                success = {
+                    Log.d(SASVerificationTransaction.LOG_TAG, "## SAS onStartRequestReceived ${startReq.transactionID!!}")
+                    val tid = startReq.transactionID!!
+                    val existing = getExistingTransaction(otherUserId, tid)
+                    val existingTxs = getExistingTransactionsForUser(otherUserId)
+                    if (existing != null) {
+                        //should cancel both!
+                        Log.d(SASVerificationTransaction.LOG_TAG, "## SAS onStartRequestReceived - Request exist with same if ${startReq.transactionID!!}")
+                        existing.cancel(session, CancelCode.UnexpectedMessage)
+                        cancelTransaction(session, tid, otherUserId, startReq.fromDevice!!, CancelCode.UnexpectedMessage)
+                    } else if (existingTxs?.isEmpty() == false) {
+                        Log.d(SASVerificationTransaction.LOG_TAG,
+                                "## SAS onStartRequestReceived - There is already a transaction with this user ${startReq.transactionID!!}")
+                        //Multiple keyshares between two devices: any two devices may only have at most one key verification in flight at a time.
+                        existingTxs.forEach {
+                            it.cancel(session, CancelCode.UnexpectedMessage)
+                        }
+                        cancelTransaction(session, tid, otherUserId, startReq.fromDevice!!, CancelCode.UnexpectedMessage)
+                    } else {
+                        //Ok we can create
+                        if (KeyVerificationStart.VERIF_METHOD_SAS == startReq.method) {
+                            Log.d(SASVerificationTransaction.LOG_TAG, "## SAS onStartRequestReceived - request accepted ${startReq.transactionID!!}")
+                            val tx = IncomingSASVerificationTransaction(startReq.transactionID!!, otherUserId)
+                            addTransaction(tx)
+                            tx.acceptToDeviceEvent(session, otherUserId, startReq)
+                        } else {
+                            Log.e(SASVerificationTransaction.LOG_TAG, "## SAS onStartRequestReceived - unknown method ${startReq.method}")
+                            cancelTransaction(session, tid, otherUserId, startReq.fromDevice
+                                    ?: event.senderKey(), CancelCode.UnknownMethod)
+                        }
+                    }
+                },
+                error = {
+                    cancelTransaction(session, startReq.transactionID!!, otherUserId, startReq.fromDevice!!, CancelCode.UnexpectedMessage)
+                })
+
+
+    }
+
+    private fun checkKeysAreDownloaded(session: MXSession, otherUserId: String, startReq: KeyVerificationStart, success: (MXUsersDevicesMap<MXDeviceInfo>) -> Unit, error: () -> Unit) {
         val tid = startReq.transactionID!!
-        val existing = getExistingTransaction(otherUserId, tid)
-        val existingTxs = getExistingTransactionsForUser(otherUserId)
-        if (existing != null) {
-            //should cancel both!
-            Log.d(SASVerificationTransaction.LOG_TAG, "## SAS onStartRequestReceived - Request exist with same if ${startReq.transactionID!!}")
-            existing.cancel(session, CancelCode.UnexpectedMessage)
-            cancelTransaction(session, tid, otherUserId, startReq.fromDevice!!, CancelCode.UnexpectedMessage)
-        } else if (existingTxs?.isEmpty() == false) {
-            Log.d(SASVerificationTransaction.LOG_TAG,
-                    "## SAS onStartRequestReceived - There is already a transaction with this user ${startReq.transactionID!!}")
-            //Multiple keyshares between two devices: any two devices may only have at most one key verification in flight at a time.
-            existingTxs.forEach {
-                it.cancel(session, CancelCode.UnexpectedMessage)
+        session.crypto?.deviceList?.downloadKeys(listOf(otherUserId), true, object : ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> {
+            override fun onUnexpectedError(e: java.lang.Exception) {
+                session.crypto?.decryptingThreadHandler?.post {
+                    error()
+                }
             }
-            cancelTransaction(session, tid, otherUserId, startReq.fromDevice!!, CancelCode.UnexpectedMessage)
-        } else {
-            //Ok we can create
-            if (KeyVerificationStart.VERIF_METHOD_SAS == startReq.method) {
-                Log.d(SASVerificationTransaction.LOG_TAG, "## SAS onStartRequestReceived - request accepted ${startReq.transactionID!!}")
-                val tx = IncomingSASVerificationTransaction(startReq.transactionID!!, otherUserId)
-                addTransaction(tx)
-                tx.acceptToDeviceEvent(session, otherUserId, startReq)
-            } else {
-                Log.e(SASVerificationTransaction.LOG_TAG, "## SAS onStartRequestReceived - unknown method ${startReq.method}")
-                cancelTransaction(session, tid, otherUserId, startReq.fromDevice
-                        ?: event.senderKey(), CancelCode.UnknownMethod)
+
+            override fun onNetworkError(e: java.lang.Exception) {
+                session.crypto?.decryptingThreadHandler?.post {
+                    error()
+                }
             }
-        }
+
+            override fun onMatrixError(e: MatrixError) {
+                session.crypto?.decryptingThreadHandler?.post {
+                    error()
+                }
+            }
+
+            override fun onSuccess(info: MXUsersDevicesMap<MXDeviceInfo>) {
+                session.crypto?.decryptingThreadHandler?.post {
+                    if (info.getUserDeviceIds(otherUserId).contains(startReq.fromDevice)) {
+                        success(info)
+                    } else {
+                        error()
+                    }
+                }
+            }
+        })
     }
 
     private fun onCancelReceived(event: Event) {

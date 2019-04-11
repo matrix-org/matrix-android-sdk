@@ -341,7 +341,7 @@ class SASTest {
 
         val bobUserId = bobSession!!.myUserId
         val bobDeviceId = bobSession.crypto!!.myDevice.deviceId
-        aliceSasMgr.beginKeyVerificationSAS(bobUserId!!, bobDeviceId)
+        aliceSasMgr.beginKeyVerificationSAS(bobUserId, bobDeviceId)
         aliceSasMgr.beginKeyVerificationSAS(bobUserId, bobDeviceId)
 
         mTestHelper.await(aliceCreatedLatch)

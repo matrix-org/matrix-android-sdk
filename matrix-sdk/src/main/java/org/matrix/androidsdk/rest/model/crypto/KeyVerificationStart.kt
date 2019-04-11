@@ -60,7 +60,7 @@ class KeyVerificationStart : SendToDeviceObject {
 
     /**
      * An array of message authentication codes that Alice’s client understands.
-     * Must include “hmac-sha256”.
+     * Must include “hkdf-hmac-sha256”.
      * Other methods may be defined in the future.
      */
     @JvmField
@@ -91,7 +91,8 @@ class KeyVerificationStart : SendToDeviceObject {
                 || hashes?.size == 0
                 || hashes?.contains("sha256") == false
                 || message_authentication_codes?.size == 0
-                || message_authentication_codes?.contains("hmac-sha256") == false
+                || (message_authentication_codes?.contains(SASVerificationTransaction.SAS_MAC_SHA256) == false
+                        && message_authentication_codes?.contains(SASVerificationTransaction.SAS_MAC_SHA256_LONGKDF) == false)
                 || short_authentication_string?.size == 0
                 || short_authentication_string?.contains(KeyVerificationStart.SAS_MODE_DECIMAL) == false) {
             Log.e(SASVerificationTransaction.LOG_TAG, "## received invalid verification request")

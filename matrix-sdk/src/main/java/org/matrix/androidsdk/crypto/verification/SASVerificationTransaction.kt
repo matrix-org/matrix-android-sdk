@@ -217,103 +217,86 @@ abstract class SASVerificationTransaction(transactionId: String,
     protected fun verifyMacs(session: MXSession) {
         Log.d(LOG_TAG, "## SAS verifying macs for id:$transactionId")
         state = SASVerificationTxState.Verifying
-        //Alice and Bob’ devices calculate the HMAC of their own device keys and a comma-separated,
-        // sorted list of the key IDs that they wish the other user to verify,
-        //the shared secret as the input keying material, no salt, and with the input parameter set to the concatenation of:
-        // - the string “MATRIX_KEY_VERIFICATION_MAC”,
-        // - the Matrix ID of the user whose key is being MAC-ed,
-        // - the device ID of the device sending the MAC,
-        // - the Matrix ID of the other user,
-        // - the device ID of the device receiving the MAC,
-        // - the transaction ID, and
-        // - the key ID of the key being MAC-ed, or the string “KEY_IDS” if the item being MAC-ed is the list of key IDs.
 
+        //Keys have been downloaded earlier in process
+        val otherUserKnownDevices = session.crypto!!.cryptoStore.getUserDevices(otherUserID)
 
-        session.crypto!!.getDeviceInfo(otherUserID, otherDevice, object : ApiCallback<MXDeviceInfo> {
-            override fun onSuccess(info: MXDeviceInfo) {
-                val otherDeviceKey = info.fingerprint()
-                session.crypto!!.decryptingThreadHandler.post {
+        // Bob’s device calculates the HMAC (as above) of its copies of Alice’s keys given in the message (as identified by their key ID),
+        // as well as the HMAC of the comma-separated, sorted list of the key IDs given in the message.
+        // Bob’s device compares these with the HMAC values given in the m.key.verification.mac message.
+        // If everything matches, then consider Alice’s device keys as verified.
 
-                    //mmmm could have been canceled by other meanwhile?
-                    if (state == SASVerificationTxState.OnCancelled || state == SASVerificationTxState.Cancelled) {
-                        //ignore
-                        Log.d(LOG_TAG, "## SAS request cancelled id:$transactionId")
-                        return@post
-                    }
+        val baseInfo = "MATRIX_KEY_VERIFICATION_MAC" +
+                otherUserID + otherDevice +
+                session.myUserId + session.crypto!!.myDevice.deviceId +
+                transactionId
 
-                    val baseInfo = "MATRIX_KEY_VERIFICATION_MAC" +
-                            otherUserID + otherDevice +
-                            session.myUserId + session.crypto!!.myDevice.deviceId +
-                            transactionId
+        val commaSeparatedListOfKeyIds = theirMac!!.mac!!.keys.sorted().joinToString(",")
 
-                    val keyId = "ed25519:$otherDevice"
+        val keyStrings = macUsingAgreedMethod(commaSeparatedListOfKeyIds, baseInfo + "KEY_IDS")
+        if (theirMac!!.keys != keyStrings) {
+            //WRONG!
+            cancel(session, CancelCode.MismatchedKeys)
+            return
+        }
+        //cannot be empty because it has been validated
+        theirMac!!.mac!!.keys.forEach {
+            val keyIDNoPrefix = if (it.startsWith("ed25519:")) it.substring("ed25519:".length) else it
+            val otherDeviceKey = otherUserKnownDevices[keyIDNoPrefix]?.fingerprint()
+            if (otherDeviceKey == null) {
+                cancel(session, CancelCode.MismatchedKeys)
+                return
+            }
+            val mac = macUsingAgreedMethod(otherDeviceKey, baseInfo + it)
+            if (mac != theirMac?.mac?.get(it)) {
+                //WRONG!
+                cancel(session, CancelCode.MismatchedKeys)
+                return
+            }
+        }
 
-                    val macString = macUsingAgreedMethod(otherDeviceKey, baseInfo + keyId)
-                    val keyStrings = macUsingAgreedMethod(keyId, baseInfo + "KEY_IDS")
-                    if (macString?.length == 0 || keyStrings?.length == 0) {
-                        //Should not happen
-                        Log.e(LOG_TAG, "## SAS verification [$transactionId] failed to send KeyMac, empty key hashes.")
-                        cancel(session, CancelCode.UnexpectedMessage)
-                        return@post
-                    }
-                    //Check
-                    if (theirMac!!.keys != keyStrings) {
-                        //WRONG!
-                        cancel(session, CancelCode.MismatchedKeys)
-                        return@post
-                    }
-
-                    if (macString != theirMac?.mac?.get(keyId)) {
-                        cancel(session, CancelCode.MismatchedKeys)
-                        return@post
-                    }
-
-
-                    session.crypto!!.setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED,
-                            otherDevice,
-                            otherUserID,
-                            object : ApiCallback<Void> {
-
-
-                                override fun onSuccess(info: Void?) {
-                                    //We good
-                                    Log.d(LOG_TAG, "## SAS verification complete and device status updated for id:$transactionId")
-                                    state = SASVerificationTxState.Verified
-                                }
-
-                                override fun onUnexpectedError(e: java.lang.Exception?) {
-                                    Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state", e)
-                                }
-
-                                override fun onNetworkError(e: java.lang.Exception?) {
-                                    Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state", e)
-                                }
-
-                                override fun onMatrixError(e: MatrixError?) {
-                                    Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
-                                }
-
-                            })
+        setDeviceVerified(
+                session,
+                otherDevice ?: "",
+                otherUserID,
+                success = {
+                    state = SASVerificationTxState.Verified
+                },
+                error = {
+                    //mmm what to do?, looks like this is never called
                 }
-            }
+        )
+    }
 
-            override fun onUnexpectedError(e: java.lang.Exception?) {
-                cancel(session, CancelCode.UnexpectedMessage)
-                Log.e(LOG_TAG, "## SAS verification failed to get info for device $otherDevice ")
-            }
+    private fun setDeviceVerified(session: MXSession, deviceId: String, userId: String, success: () -> Unit, error: () -> Unit) {
 
-            override fun onNetworkError(e: java.lang.Exception?) {
-                cancel(session, CancelCode.UnexpectedMessage)
-                Log.e(LOG_TAG, "## SAS verification failed to get info for device $otherDevice ")
-            }
+        session.crypto!!.setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED,
+                deviceId,
+                userId,
+                object : ApiCallback<Void> {
 
-            override fun onMatrixError(e: MatrixError?) {
-                cancel(session, CancelCode.UnexpectedMessage)
-                Log.e(LOG_TAG, "## SAS verification failed to get info for device $otherDevice ")
-            }
+                    override fun onSuccess(info: Void?) {
+                        //We good
+                        Log.d(LOG_TAG, "## SAS verification complete and device status updated for id:$transactionId")
+                        success()
+                    }
 
-        })
+                    override fun onUnexpectedError(e: java.lang.Exception?) {
+                        Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state", e)
+                        error()
+                    }
 
+                    override fun onNetworkError(e: java.lang.Exception?) {
+                        Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state", e)
+                        error()
+                    }
+
+                    override fun onMatrixError(e: MatrixError?) {
+                        Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
+                        error()
+                    }
+
+                })
     }
 
 
@@ -339,26 +322,34 @@ abstract class SASVerificationTransaction(transactionId: String,
         session.cryptoRestClient.sendToDevice(type, contentMap, transactionId, object : ApiCallback<Void> {
             override fun onSuccess(info: Void?) {
                 Log.d(LOG_TAG, "## SAS verification [$transactionId] toDevice type '$type' success.")
-                if (onDone != null) {
-                    onDone()
-                } else {
-                    state = nextState
+                session.crypto!!.decryptingThreadHandler.post {
+                    if (onDone != null) {
+                        onDone()
+                    } else {
+                        state = nextState
+                    }
+                }
+            }
+
+            private fun handleError() {
+                session.crypto!!.decryptingThreadHandler.post {
+                    cancel(session, onErrorReason)
                 }
             }
 
             override fun onUnexpectedError(e: Exception?) {
-                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
-                cancel(session, onErrorReason)
+                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed to send toDevice in state : $state")
+                handleError()
             }
 
             override fun onNetworkError(e: Exception?) {
-                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
-                cancel(session, onErrorReason)
+                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed to send toDevice in state : $state")
+                handleError()
             }
 
             override fun onMatrixError(e: MatrixError?) {
-                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state")
-                cancel(session, onErrorReason)
+                Log.e(LOG_TAG, "## SAS verification [$transactionId] failed to send toDevice in state : $state")
+                handleError()
             }
         })
     }
