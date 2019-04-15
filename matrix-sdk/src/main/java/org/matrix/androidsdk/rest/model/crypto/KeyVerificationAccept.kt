@@ -29,15 +29,16 @@ class KeyVerificationAccept : SendToDeviceObject {
      * This string must be unique for the pair of users performing verification for the duration that the transaction is valid.
      * Alice’s device should record this ID and use it in future messages in this transaction.
      */
-    @SerializedName("transaction_id")
     @JvmField
+    @SerializedName("transaction_id")
     var transactionID: String? = null
 
     /**
      * The key agreement protocol that Bob’s device has selected to use, out of the list proposed by Alice’s device
      */
     @JvmField
-    var key_agreement_protocol: String? = null
+    @SerializedName("key_agreement_protocol")
+    var keyAgreementProtocol: String? = null
 
     /**
      * The hash algorithm that Bob’s device has selected to use, out of the list proposed by Alice’s device
@@ -49,13 +50,15 @@ class KeyVerificationAccept : SendToDeviceObject {
      * The message authentication code that Bob’s device has selected to use, out of the list proposed by Alice’s device
      */
     @JvmField
-    var message_authentication_code: String? = null
+    @SerializedName("message_authentication_code")
+    var messageAuthenticationCode: String? = null
 
     /**
      * An array of short authentication string methods that Bob’s client (and Bob) understands.  Must be a subset of the list proposed by Alice’s device
      */
     @JvmField
-    var short_authentication_string: List<String>? = null
+    @SerializedName("short_authentication_string")
+    var shortAuthenticationStrings: List<String>? = null
 
 
     /**
@@ -68,11 +71,11 @@ class KeyVerificationAccept : SendToDeviceObject {
 
     fun isValid(): Boolean {
         if (transactionID.isNullOrBlank()
-                || key_agreement_protocol.isNullOrBlank()
+                || keyAgreementProtocol.isNullOrBlank()
                 || hash.isNullOrBlank()
                 || commitment.isNullOrBlank()
-                || message_authentication_code.isNullOrBlank()
-                || short_authentication_string?.size == 0) {
+                || messageAuthenticationCode.isNullOrBlank()
+                || shortAuthenticationStrings.isNullOrEmpty()) {
             Log.e(SASVerificationTransaction.LOG_TAG, "## received invalid verification request")
             return false
         }
@@ -80,19 +83,19 @@ class KeyVerificationAccept : SendToDeviceObject {
     }
 
     companion object {
-        fun new(tid: String,
-                key_agreement_protocol: String,
-                hash: String,
-                commitment: String,
-                message_authentication_code: String,
-                short_authentication_string: List<String>): KeyVerificationAccept {
+        fun create(tid: String,
+                   keyAgreementProtocol: String,
+                   hash: String,
+                   commitment: String,
+                   messageAuthenticationCode: String,
+                   shortAuthenticationStrings: List<String>): KeyVerificationAccept {
             return KeyVerificationAccept().apply {
                 this.transactionID = tid
-                this.key_agreement_protocol = key_agreement_protocol
+                this.keyAgreementProtocol = keyAgreementProtocol
                 this.hash = hash
                 this.commitment = commitment
-                this.message_authentication_code = message_authentication_code
-                this.short_authentication_string = short_authentication_string
+                this.messageAuthenticationCode = messageAuthenticationCode
+                this.shortAuthenticationStrings = shortAuthenticationStrings
             }
         }
     }

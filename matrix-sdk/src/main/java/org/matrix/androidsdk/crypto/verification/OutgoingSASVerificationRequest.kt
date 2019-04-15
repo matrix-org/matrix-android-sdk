@@ -58,9 +58,7 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
                 SASVerificationTxState.Verified -> State.VERIFIED
                 SASVerificationTxState.OnCancelled -> State.CANCELLED_BY_ME
                 SASVerificationTxState.Cancelled -> State.CANCELLED_BY_OTHER
-                else -> {
-                    State.UNKNOWN
-                }
+                else -> State.UNKNOWN
             }
         }
 
@@ -81,10 +79,10 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
         startMessage.fromDevice = session.crypto?.myDevice?.deviceId
         startMessage.method = KeyVerificationStart.VERIF_METHOD_SAS
         startMessage.transactionID = transactionId
-        startMessage.key_agreement_protocols = KNOWN_AGREEMENT_PROTOCOLS
+        startMessage.keyAgreementProtocols = KNOWN_AGREEMENT_PROTOCOLS
         startMessage.hashes = KNOWN_HASHES
-        startMessage.message_authentication_codes = KNOWN_MAC
-        startMessage.short_authentication_string = KNOWN_SHORT_CODES
+        startMessage.messageAuthenticationCodes = KNOWN_MACS
+        startMessage.shortAuthenticationStrings = KNOWN_SHORT_CODES
 
         startReq = startMessage
         val contentMap = MXUsersDevicesMap<Any>()
@@ -99,7 +97,6 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
                 CancelCode.User,
                 null
         )
-
     }
 
     override fun onVerificationAccept(session: MXSession, accept: KeyVerificationAccept) {
@@ -110,14 +107,11 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
             return
         }
         //Check that the agreement is correct
-        if (
-                !KNOWN_AGREEMENT_PROTOCOLS.contains(accept.key_agreement_protocol)
+        if (!KNOWN_AGREEMENT_PROTOCOLS.contains(accept.keyAgreementProtocol)
                 || !KNOWN_HASHES.contains(accept.hash)
-                || !KNOWN_MAC.contains(accept.message_authentication_code)
-                || accept.short_authentication_string!!.intersect(KNOWN_SHORT_CODES).isEmpty()
-
-        ) {
-            Log.e(LOG_TAG, "## received accet request from invalid state")
+                || !KNOWN_MACS.contains(accept.messageAuthenticationCode)
+                || accept.shortAuthenticationStrings!!.intersect(KNOWN_SHORT_CODES).isEmpty()) {
+            Log.e(LOG_TAG, "## received accept request from invalid state")
             cancel(session, CancelCode.UnknownMethod)
             return
         }
@@ -131,7 +125,7 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
         // and replies with a to_device message with type set to “m.key.verification.key”, sending Alice’s public key QA
         val pubKey = getSAS().publicKey
 
-        val keyToDevice = KeyVerificationKey.new(transactionId, pubKey)
+        val keyToDevice = KeyVerificationKey.create(transactionId, pubKey)
         //we need to send this to other device now
         state = SASVerificationTxState.SendingKey
         sendToOther(Event.EVENT_TYPE_KEY_VERIFICATION_KEY, keyToDevice, session, SASVerificationTxState.KeySent, CancelCode.User) {
@@ -186,12 +180,11 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
 
     override fun onKeyVerificationMac(session: MXSession, vKey: KeyVerificationMac) {
         Log.d(LOG_TAG, "## onKeyVerificationMac id:$transactionId")
-        if (
-                state != SASVerificationTxState.OnKeyReceived &&
-                state != SASVerificationTxState.ShortCodeReady &&
-                state != SASVerificationTxState.ShortCodeAccepted &&
-                state != SASVerificationTxState.SendingMac &&
-                state != SASVerificationTxState.MacSent) {
+        if (state != SASVerificationTxState.OnKeyReceived
+                && state != SASVerificationTxState.ShortCodeReady
+                && state != SASVerificationTxState.ShortCodeAccepted
+                && state != SASVerificationTxState.SendingMac
+                && state != SASVerificationTxState.MacSent) {
             Log.e(LOG_TAG, "## received key from invalid state $state")
             cancel(session, CancelCode.UnexpectedMessage)
             return

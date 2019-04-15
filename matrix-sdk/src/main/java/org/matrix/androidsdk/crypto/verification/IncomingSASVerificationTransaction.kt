@@ -58,9 +58,7 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
                 SASVerificationTxState.Verified -> State.VERIFIED
                 SASVerificationTxState.Cancelled -> State.CANCELLED_BY_ME
                 SASVerificationTxState.OnCancelled -> State.CANCELLED_BY_OTHER
-                else -> {
-                    State.UNKNOWN
-                }
+                else -> State.UNKNOWN
             }
         }
 
@@ -86,18 +84,16 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
 
         // Select a key agreement protocol, a hash algorithm, a message authentication code,
         // and short authentication string methods out of the lists given in requester's message.
-        val agreedProtocol = startReq!!.key_agreement_protocols?.firstOrNull { KNOWN_AGREEMENT_PROTOCOLS.contains(it) }
+        val agreedProtocol = startReq!!.keyAgreementProtocols?.firstOrNull { KNOWN_AGREEMENT_PROTOCOLS.contains(it) }
         val agreedHash = startReq!!.hashes?.firstOrNull { KNOWN_HASHES.contains(it) }
-        val agreedMac = startReq!!.message_authentication_codes?.firstOrNull { KNOWN_MAC.contains(it) }
-        val agreedShortCode = startReq!!.short_authentication_string?.filter { KNOWN_SHORT_CODES.contains(it) }
+        val agreedMac = startReq!!.messageAuthenticationCodes?.firstOrNull { KNOWN_MACS.contains(it) }
+        val agreedShortCode = startReq!!.shortAuthenticationStrings?.filter { KNOWN_SHORT_CODES.contains(it) }
 
         //No common key sharing/hashing/hmac/SAS methods.
         //If a device is unable to complete the verification because the devices are unable to find a common key sharing,
         // hashing, hmac, or SAS method, then it should send a m.key.verification.cancel message
-        if (
-                listOf(agreedProtocol, agreedHash, agreedMac).any { it.isNullOrBlank() }
-                || agreedShortCode?.size == 0
-        ) {
+        if (listOf(agreedProtocol, agreedHash, agreedMac).any { it.isNullOrBlank() }
+                || agreedShortCode.isNullOrEmpty()) {
             //Failed to find agreement
             Log.e(LOG_TAG, "## Failed to find agreement ")
             cancel(session, CancelCode.UnknownMethod)
@@ -118,13 +114,13 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
                 } else {
                     //                    val otherKey = info.identityKey()
                     //need to jump back to correct thread
-                    val accept = KeyVerificationAccept.new(
+                    val accept = KeyVerificationAccept.create(
                             tid = transactionId,
-                            key_agreement_protocol = agreedProtocol!!,
+                            keyAgreementProtocol = agreedProtocol!!,
                             hash = agreedHash!!,
-                            message_authentication_code = agreedMac!!,
-                            short_authentication_string = agreedShortCode!!,
-                            commitment = Base64.encodeToString("yo i don't commit FUUU".toByteArray(), Base64.DEFAULT)
+                            messageAuthenticationCode = agreedMac!!,
+                            shortAuthenticationStrings = agreedShortCode!!,
+                            commitment = Base64.encodeToString("temporary commitment".toByteArray(), Base64.DEFAULT)
                     )
                     session.crypto?.decryptingThreadHandler?.post {
                         doAccept(session, accept)
@@ -173,7 +169,7 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
         // sending Bob’s public key QB
         val pubKey = getSAS().publicKey
 
-        val keyToDevice = KeyVerificationKey.new(transactionId, pubKey)
+        val keyToDevice = KeyVerificationKey.create(transactionId, pubKey)
         //we need to send this to other device now
         state = SASVerificationTxState.SendingKey
         this.sendToOther(Event.EVENT_TYPE_KEY_VERIFICATION_KEY, keyToDevice, session, SASVerificationTxState.KeySent, CancelCode.User) {
@@ -204,24 +200,21 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
         //emoji: generate six bytes by using HKDF.
         shortCodeBytes = getSAS().generateShortCode(sasInfo, 6)
 
-
         Log.e(LOG_TAG, "************  BOB CODE ${getDecimalCodeRepresentation(shortCodeBytes!!)}")
         Log.e(LOG_TAG, "************  BOB EMOJI CODE ${getShortCodeRepresentation(KeyVerificationStart.SAS_MODE_EMOJI)}")
 
         state = SASVerificationTxState.ShortCodeReady
-
     }
 
     override fun onKeyVerificationMac(session: MXSession, vKey: KeyVerificationMac) {
         Log.d(LOG_TAG, "## SAS received mac for request id:$transactionId")
         //Check for state?
-        if (
-                state != SASVerificationTxState.SendingKey &&
-                state != SASVerificationTxState.KeySent &&
-                state != SASVerificationTxState.ShortCodeReady &&
-                state != SASVerificationTxState.ShortCodeAccepted &&
-                state != SASVerificationTxState.SendingMac &&
-                state != SASVerificationTxState.MacSent) {
+        if (state != SASVerificationTxState.SendingKey
+                && state != SASVerificationTxState.KeySent
+                && state != SASVerificationTxState.ShortCodeReady
+                && state != SASVerificationTxState.ShortCodeAccepted
+                && state != SASVerificationTxState.SendingMac
+                && state != SASVerificationTxState.MacSent) {
             Log.e(LOG_TAG, "## received key from invalid state $state")
             cancel(session, CancelCode.UnexpectedMessage)
             return
@@ -234,6 +227,5 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
             verifyMacs(session)
         }
         //Wait for ShortCode Accepted
-
     }
 }

@@ -16,21 +16,13 @@
 package org.matrix.androidsdk.crypto.verification
 
 enum class CancelCode(val value: String, val humanReadable: String) {
-    // (the user cancelled the verification)
     User("m.user", "the user cancelled the verification"),
-    // (the verification process timed out)
     Timeout("m.timeout", "the verification process timed out"),
-    // (the device does not know about that transaction)
     UnknownTransaction("m.unknown_transaction", "the device does not know about that transaction"),
-    // (the device can’t agree on a key agreement, hash, MAC, or SAS method)
     UnknownMethod("m.unknown_method", "the device can’t agree on a key agreement, hash, MAC, or SAS method"),
-    // (the hash commitment did not match)
     MismatchedCommitment("m.mismatched_commitment", "the hash commitment did not match"),
-    // (the SAS did not match)
     MismatchedSas("m.mismatched_sas", "the SAS did not match"),
-    // (the device received an unexpected message)
     UnexpectedMessage("m.unexpected_message", "the device received an unexpected message"),
-    // (an invalid message was received)
     InvalidMessage("m.invalid_message", "an invalid message was received"),
     MismatchedKeys("m.key_mismatch", "Key mismatch"),
     UserMismatchError("m.user_error", "User mismatch")

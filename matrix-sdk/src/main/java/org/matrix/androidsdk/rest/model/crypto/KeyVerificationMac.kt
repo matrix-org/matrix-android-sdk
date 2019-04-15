@@ -18,7 +18,7 @@ package org.matrix.androidsdk.rest.model.crypto
 import com.google.gson.annotations.SerializedName
 
 /**
- * Sent by both devices to send their ephemeral Curve25519 public key the other device
+ * Sent by both devices to send the MAC of their device key to the other device.
  */
 class KeyVerificationMac : SendToDeviceObject {
 
@@ -38,20 +38,21 @@ class KeyVerificationMac : SendToDeviceObject {
     /**
      *  The MAC of the comma-separated, sorted list of key IDs given in the mac property,
      *  as an unpadded base64 string, calculated using the MAC key.
-     *  For example, if the mac property gives MACs for the keys ed25519:ABCDEFG and ed25519:HIJKLMN, then this property will give the MAC of the string “ed25519:ABCDEFG,ed25519:HIJKLMN”.
+     *  For example, if the mac property gives MACs for the keys ed25519:ABCDEFG and ed25519:HIJKLMN, then this property will
+     *  give the MAC of the string “ed25519:ABCDEFG,ed25519:HIJKLMN”.
      */
     @JvmField
     var keys: String? = null
 
     fun isValid(): Boolean {
-        if (transactionID.isNullOrBlank() || keys.isNullOrBlank() || mac?.isEmpty() == true) {
+        if (transactionID.isNullOrBlank() || keys.isNullOrBlank() || mac.isNullOrEmpty()) {
             return false
         }
         return true
     }
 
     companion object {
-        fun new(tid: String, mac: Map<String, String>, keys: String): KeyVerificationMac {
+        fun create(tid: String, mac: Map<String, String>, keys: String): KeyVerificationMac {
             return KeyVerificationMac().apply {
                 this.transactionID = tid
                 this.mac = mac

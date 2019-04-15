@@ -21,12 +21,14 @@ import org.matrix.androidsdk.rest.model.crypto.SendToDeviceObject
 /**
  * Generic interactive key verification transaction
  */
-abstract class VerificationTransaction(val transactionId: String, val otherUserID: String, var otherDevice: String? = null, val isIncoming: Boolean) {
+abstract class VerificationTransaction(val transactionId: String,
+                                       val otherUserID: String,
+                                       var otherDevice: String? = null,
+                                       val isIncoming: Boolean) {
 
     interface Listener {
         fun transactionUpdated(tx: VerificationTransaction)
     }
-
 
     protected var listeners = ArrayList<Listener>()
 

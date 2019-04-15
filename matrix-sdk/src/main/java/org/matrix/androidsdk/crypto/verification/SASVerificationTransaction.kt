@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.crypto.verification
 
-import android.content.Context
 import android.os.Build
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
@@ -50,7 +49,7 @@ abstract class SASVerificationTransaction(transactionId: String,
         //ordered by preferred order
         val KNOWN_HASHES = listOf("sha256")
         //ordered by preferred order
-        val KNOWN_MAC = listOf(SAS_MAC_SHA256, SAS_MAC_SHA256_LONGKDF)
+        val KNOWN_MACS = listOf(SAS_MAC_SHA256, SAS_MAC_SHA256_LONGKDF)
 
         //older devices have limited support of emoji, so reply with decimal
         val KNOWN_SHORT_CODES =
@@ -179,7 +178,7 @@ abstract class SASVerificationTransaction(transactionId: String,
             return
         }
 
-        val macMsg = KeyVerificationMac.new(transactionId, mapOf(keyId to macString), keyStrings)
+        val macMsg = KeyVerificationMac.create(transactionId, mapOf(keyId to macString), keyStrings)
         myMac = macMsg
         state = SASVerificationTxState.SendingMac
         sendToOther(Event.EVENT_TYPE_KEY_VERIFICATION_MAC, macMsg, session, SASVerificationTxState.MacSent, CancelCode.User) {
@@ -283,12 +282,12 @@ abstract class SASVerificationTransaction(transactionId: String,
                         success()
                     }
 
-                    override fun onUnexpectedError(e: java.lang.Exception?) {
+                    override fun onUnexpectedError(e: Exception?) {
                         Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state", e)
                         error()
                     }
 
-                    override fun onNetworkError(e: java.lang.Exception?) {
+                    override fun onNetworkError(e: Exception?) {
                         Log.e(LOG_TAG, "## SAS verification [$transactionId] failed in state : $state", e)
                         error()
                     }
@@ -356,29 +355,29 @@ abstract class SASVerificationTransaction(transactionId: String,
         })
     }
 
-    fun getShortCodeRepresentation(short_authentication_string: String): String? {
+    fun getShortCodeRepresentation(shortAuthenticationStringMode: String): String? {
         if (shortCodeBytes == null) {
             return null
         }
-        when (short_authentication_string) {
+        when (shortAuthenticationStringMode) {
             KeyVerificationStart.SAS_MODE_DECIMAL -> {
                 if (shortCodeBytes!!.size < 5) return null
                 return getDecimalCodeRepresentation(shortCodeBytes!!)
             }
             KeyVerificationStart.SAS_MODE_EMOJI -> {
                 if (shortCodeBytes!!.size < 6) return null
-                return getEmojiCodeRepresentation(shortCodeBytes!!, null)?.joinToString(" ") { it.emoji }
+                return getEmojiCodeRepresentation(shortCodeBytes!!).joinToString(" ") { it.emoji }
             }
             else -> return null
         }
     }
 
     fun supportsEmoji(): Boolean {
-        return this.accepted?.short_authentication_string?.contains(KeyVerificationStart.SAS_MODE_EMOJI) == true
+        return accepted?.shortAuthenticationStrings?.contains(KeyVerificationStart.SAS_MODE_EMOJI) == true
     }
 
     fun supportsDecimal(): Boolean {
-        return this.accepted?.short_authentication_string?.contains(KeyVerificationStart.SAS_MODE_DECIMAL) == true
+        return accepted?.shortAuthenticationStrings?.contains(KeyVerificationStart.SAS_MODE_DECIMAL) == true
     }
 
     protected fun hashUsingAgreedHashMethod(toHash: String): String? {
@@ -392,9 +391,9 @@ abstract class SASVerificationTransaction(transactionId: String,
     }
 
     protected fun macUsingAgreedMethod(message: String, info: String): String? {
-        if (SAS_MAC_SHA256_LONGKDF.toLowerCase() == accepted?.message_authentication_code?.toLowerCase()) {
+        if (SAS_MAC_SHA256_LONGKDF.toLowerCase() == accepted?.messageAuthenticationCode?.toLowerCase()) {
             return getSAS().calculateMacLongKdf(message, info)
-        } else if (SAS_MAC_SHA256.toLowerCase() == accepted?.message_authentication_code?.toLowerCase()) {
+        } else if (SAS_MAC_SHA256.toLowerCase() == accepted?.messageAuthenticationCode?.toLowerCase()) {
             return getSAS().calculateMac(message, info)
         }
         return null
@@ -412,7 +411,7 @@ abstract class SASVerificationTransaction(transactionId: String,
      * The three 4-digit numbers are displayed to the user either with dashes (or another appropriate separator) separating the three numbers,
      * or with the three numbers on separate lines.
      */
-    fun getDecimalCodeRepresentation(byteArray: ByteArray): String? {
+    fun getDecimalCodeRepresentation(byteArray: ByteArray): String {
         val b0 = byteArray[0].toInt().and(0xff) //need unsigned byte
         val b1 = byteArray[1].toInt().and(0xff) //need unsigned byte
         val b2 = byteArray[2].toInt().and(0xff) //need unsigned byte
@@ -434,7 +433,7 @@ abstract class SASVerificationTransaction(transactionId: String,
      * For each group of 6 bits, look up the emoji from Appendix A corresponding
      * to that number 7 emoji are selected from a list of 64 emoji (see Appendix A)
      */
-    fun getEmojiCodeRepresentation(byteArray: ByteArray, context: Context?): List<VerificationEmoji.EmojiRepresentation>? {
+    fun getEmojiCodeRepresentation(byteArray: ByteArray): List<VerificationEmoji.EmojiRepresentation> {
         val b0 = byteArray[0].toInt().and(0xff)
         val b1 = byteArray[1].toInt().and(0xff)
         val b2 = byteArray[2].toInt().and(0xff)
@@ -442,14 +441,13 @@ abstract class SASVerificationTransaction(transactionId: String,
         val b4 = byteArray[4].toInt().and(0xff)
         val b5 = byteArray[5].toInt().and(0xff)
         return listOf(
-                VerificationEmoji.getEmojiForCode((b0 and 0xFC).shr(2), context)!!,
-                VerificationEmoji.getEmojiForCode((b0 and 0x3).shl(4) or (b1 and 0xF0).shr(4), context)!!,
-                VerificationEmoji.getEmojiForCode((b1 and 0xF).shl(2) or (b2 and 0xC0).shr(6), context)!!,
-                VerificationEmoji.getEmojiForCode((b2 and 0x3F), context)!!,
-
-                VerificationEmoji.getEmojiForCode((b3 and 0xFC).shr(2), context)!!,
-                VerificationEmoji.getEmojiForCode((b3 and 0x3).shl(4) or (b4 and 0xF0).shr(4), context)!!,
-                VerificationEmoji.getEmojiForCode((b4 and 0xF).shl(2) or (b5 and 0xC0).shr(6), context)!!
+                VerificationEmoji.getEmojiForCode((b0 and 0xFC).shr(2)),
+                VerificationEmoji.getEmojiForCode((b0 and 0x3).shl(4) or (b1 and 0xF0).shr(4)),
+                VerificationEmoji.getEmojiForCode((b1 and 0xF).shl(2) or (b2 and 0xC0).shr(6)),
+                VerificationEmoji.getEmojiForCode((b2 and 0x3F)),
+                VerificationEmoji.getEmojiForCode((b3 and 0xFC).shr(2)),
+                VerificationEmoji.getEmojiForCode((b3 and 0x3).shl(4) or (b4 and 0xF0).shr(4)),
+                VerificationEmoji.getEmojiForCode((b4 and 0xF).shl(2) or (b5 and 0xC0).shr(6))
         )
     }
 

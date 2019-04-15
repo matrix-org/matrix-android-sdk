@@ -17,8 +17,6 @@
 package org.matrix.androidsdk.crypto.verification
 
 
-import android.os.Handler
-import android.os.Looper
 import android.support.test.InstrumentationRegistry
 import android.support.test.runner.AndroidJUnit4
 import org.junit.Assert.*
@@ -48,7 +46,6 @@ class SASTest {
     private val mCryptoTestHelper = CryptoTestHelper(mTestHelper)
 
     @Test
-    @Throws(Exception::class)
     fun test_aliceStartThenAliceCancel() {
         val context = InstrumentationRegistry.getContext()
 
@@ -67,7 +64,7 @@ class SASTest {
         })
 
         val bobTxCreatedLatch = CountDownLatch(1)
-        var bobListener: VerificationManager.ManagerListener = object : VerificationManager.ManagerListener {
+        var bobListener = object : VerificationManager.VerificationManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {
             }
 
@@ -105,7 +102,7 @@ class SASTest {
         //Let's cancel from alice side
         val cancelLatch = CountDownLatch(1)
 
-        bobListener = object : VerificationManager.ManagerListener {
+        val bobListener2 = object : VerificationManager.VerificationManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {}
 
             override fun transactionUpdated(tx: VerificationTransaction) {
@@ -118,7 +115,7 @@ class SASTest {
 
             override fun markedAsManuallyVerified(userId: String, deviceID: String) {}
         }
-        bobSasMgr.addListener(bobListener)
+        bobSasMgr.addListener(bobListener2)
 
         aliceSasTx.cancel(aliceSession, CancelCode.User)
         mTestHelper.await(cancelLatch)
@@ -168,7 +165,7 @@ class SASTest {
         val aliceUserID = aliceSession.myUserId
         val aliceDevice = aliceSession.crypto!!.myDevice.deviceId
 
-        val aliceListener = object : VerificationManager.ManagerListener {
+        val aliceListener = object : VerificationManager.VerificationManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {}
 
             override fun transactionUpdated(tx: VerificationTransaction) {
@@ -281,15 +278,22 @@ class SASTest {
 
     }
 
-    private fun fakeBobStart(bobSession: MXSession, aliceUserID: String?, aliceDevice: String?, tid: String, protocols: List<String> = SASVerificationTransaction.KNOWN_AGREEMENT_PROTOCOLS, hashes: List<String> = SASVerificationTransaction.KNOWN_HASHES, mac: List<String> = SASVerificationTransaction.KNOWN_MAC, codes: List<String> = SASVerificationTransaction.KNOWN_SHORT_CODES) {
+    private fun fakeBobStart(bobSession: MXSession,
+                             aliceUserID: String?,
+                             aliceDevice: String?,
+                             tid: String,
+                             protocols: List<String> = SASVerificationTransaction.KNOWN_AGREEMENT_PROTOCOLS,
+                             hashes: List<String> = SASVerificationTransaction.KNOWN_HASHES,
+                             mac: List<String> = SASVerificationTransaction.KNOWN_MACS,
+                             codes: List<String> = SASVerificationTransaction.KNOWN_SHORT_CODES) {
         val startMessage = KeyVerificationStart()
         startMessage.fromDevice = bobSession.crypto!!.myDevice.deviceId
         startMessage.method = KeyVerificationStart.VERIF_METHOD_SAS
         startMessage.transactionID = tid
-        startMessage.key_agreement_protocols = protocols
+        startMessage.keyAgreementProtocols = protocols
         startMessage.hashes = hashes
-        startMessage.message_authentication_codes = mac
-        startMessage.short_authentication_string = codes
+        startMessage.messageAuthenticationCodes = mac
+        startMessage.shortAuthenticationStrings = codes
 
         val contentMap = MXUsersDevicesMap<Any>()
         contentMap.setObject(startMessage, aliceUserID, aliceDevice)
@@ -307,7 +311,6 @@ class SASTest {
     //any two devices may only have at most one key verification in flight at a time.
     // If a device has two verifications in progress with the same device, then it should cancel both verifications.
     @Test
-    @Throws(Exception::class)
     fun test_aliceStartTwoRequests() {
         val context = InstrumentationRegistry.getContext()
 
@@ -322,7 +325,7 @@ class SASTest {
         val aliceCreatedLatch = CountDownLatch(2)
         val aliceCancelledLatch = CountDownLatch(2)
         val createdTx = ArrayList<SASVerificationTransaction>()
-        val aliceListener = object : VerificationManager.ManagerListener {
+        val aliceListener = object : VerificationManager.VerificationManagerListener {
 
             override fun transactionCreated(tx: VerificationTransaction) {
                 createdTx.add(tx as SASVerificationTransaction)
@@ -354,7 +357,6 @@ class SASTest {
      * Test that when alice starts a 'correct' request, bob agrees.
      */
     @Test
-    @Throws(Exception::class)
     fun test_aliceAndBobAgreement() {
         val context = InstrumentationRegistry.getContext()
 
@@ -371,7 +373,7 @@ class SASTest {
 
 
         val aliceAcceptedLatch = CountDownLatch(1)
-        val aliceListener = object : VerificationManager.ManagerListener {
+        val aliceListener = object : VerificationManager.VerificationManagerListener {
             override fun markedAsManuallyVerified(userId: String, deviceID: String) {}
 
             override fun transactionCreated(tx: VerificationTransaction) {}
@@ -387,7 +389,7 @@ class SASTest {
         }
         aliceSasMgr.addListener(aliceListener)
 
-        val bobListener = object : VerificationManager.ManagerListener {
+        val bobListener = object : VerificationManager.VerificationManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {}
 
             override fun transactionUpdated(tx: VerificationTransaction) {
@@ -402,7 +404,7 @@ class SASTest {
         bobSasMgr.addListener(bobListener)
 
 
-        val bobUserId = bobSession!!.myUserId
+        val bobUserId = bobSession.myUserId
         val bobDeviceId = bobSession.crypto!!.myDevice.deviceId
         aliceSasMgr.beginKeyVerificationSAS(bobUserId!!, bobDeviceId)
         mTestHelper.await(aliceAcceptedLatch)
@@ -411,19 +413,18 @@ class SASTest {
 
         //check that agreement is valid
         assertTrue("Agreed Protocol should be Valid", accepted!!.isValid())
-        assertTrue("Agreed Protocol should be known by alice", startReq!!.key_agreement_protocols!!.contains(accepted!!.key_agreement_protocol))
+        assertTrue("Agreed Protocol should be known by alice", startReq!!.keyAgreementProtocols!!.contains(accepted!!.keyAgreementProtocol))
         assertTrue("Hash should be known by alice", startReq!!.hashes!!.contains(accepted!!.hash))
-        assertTrue("Hash should be known by alice", startReq!!.message_authentication_codes!!.contains(accepted!!.message_authentication_code))
+        assertTrue("Hash should be known by alice", startReq!!.messageAuthenticationCodes!!.contains(accepted!!.messageAuthenticationCode))
 
-        accepted!!.short_authentication_string?.forEach {
-            assertTrue("all agreed Short Code should be known by alice", startReq!!.short_authentication_string!!.contains(it))
+        accepted!!.shortAuthenticationStrings?.forEach {
+            assertTrue("all agreed Short Code should be known by alice", startReq!!.shortAuthenticationStrings!!.contains(it))
         }
 
         cryptoTestData.clear(context)
     }
 
     @Test
-    @Throws(Exception::class)
     fun test_aliceAndBobSASCode() {
         val context = InstrumentationRegistry.getContext()
 
@@ -437,7 +438,7 @@ class SASTest {
 
 
         val aliceSASLatch = CountDownLatch(1)
-        val aliceListener = object : VerificationManager.ManagerListener {
+        val aliceListener = object : VerificationManager.VerificationManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {
             }
 
@@ -455,7 +456,7 @@ class SASTest {
         aliceSasMgr.addListener(aliceListener)
 
         val bobSASLatch = CountDownLatch(1)
-        val bobListener = object : VerificationManager.ManagerListener {
+        val bobListener = object : VerificationManager.VerificationManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {
 
             }
@@ -477,23 +478,23 @@ class SASTest {
         bobSasMgr.addListener(bobListener)
 
 
-        val bobUserId = bobSession!!.myUserId
+        val bobUserId = bobSession.myUserId
         val bobDeviceId = bobSession.crypto!!.myDevice.deviceId
         val verificationSAS = aliceSasMgr.beginKeyVerificationSAS(bobUserId!!, bobDeviceId)
         mTestHelper.await(aliceSASLatch)
         mTestHelper.await(bobSASLatch)
 
         val aliceTx = aliceSasMgr.getExistingTransaction(bobUserId, verificationSAS!!) as SASVerificationTransaction
-        val bobTx = bobSasMgr.getExistingTransaction(aliceSession.myUserId, verificationSAS!!) as SASVerificationTransaction
+        val bobTx = bobSasMgr.getExistingTransaction(aliceSession.myUserId, verificationSAS) as SASVerificationTransaction
 
-        assertEquals("Should have same SAS", aliceTx.getShortCodeRepresentation("decimal"), bobTx.getShortCodeRepresentation("decimal"))
+        assertEquals("Should have same SAS", aliceTx.getShortCodeRepresentation(KeyVerificationStart.SAS_MODE_DECIMAL),
+                bobTx.getShortCodeRepresentation(KeyVerificationStart.SAS_MODE_DECIMAL))
 
         cryptoTestData.clear(context)
     }
 
 
     @Test
-    @Throws(Exception::class)
     fun test_happyPath() {
         val context = InstrumentationRegistry.getContext()
 
@@ -507,7 +508,7 @@ class SASTest {
 
 
         val aliceSASLatch = CountDownLatch(1)
-        val aliceListener = object : VerificationManager.ManagerListener {
+        val aliceListener = object : VerificationManager.VerificationManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {
             }
 
@@ -528,7 +529,7 @@ class SASTest {
         aliceSasMgr.addListener(aliceListener)
 
         val bobSASLatch = CountDownLatch(1)
-        val bobListener = object : VerificationManager.ManagerListener {
+        val bobListener = object : VerificationManager.VerificationManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {
 
             }
@@ -553,14 +554,14 @@ class SASTest {
         bobSasMgr.addListener(bobListener)
 
 
-        val bobUserId = bobSession!!.myUserId
+        val bobUserId = bobSession.myUserId
         val bobDeviceId = bobSession.crypto!!.myDevice.deviceId
         val verificationSAS = aliceSasMgr.beginKeyVerificationSAS(bobUserId!!, bobDeviceId)
         mTestHelper.await(aliceSASLatch)
         mTestHelper.await(bobSASLatch)
 
         //Assert that devices are verified
-        var dLatchAlice = CountDownLatch(1)
+        val dLatchAlice = CountDownLatch(1)
         var bobDeviceInfoFromAlicePOV: MXDeviceInfo? = null
         aliceSession.crypto?.getDeviceInfo(bobUserId, bobDeviceId, object : TestApiCallback<MXDeviceInfo>(dLatchAlice) {
             override fun onSuccess(info: MXDeviceInfo) {
@@ -568,7 +569,7 @@ class SASTest {
                 super.onSuccess(info)
             }
         })
-        var dLatchBob = CountDownLatch(1)
+        val dLatchBob = CountDownLatch(1)
         var aliceDeviceInfoFromBobPOV: MXDeviceInfo? = null
         bobSession.crypto?.getDeviceInfo(aliceSession.myUserId, aliceSession.crypto!!.myDevice.deviceId, object : TestApiCallback<MXDeviceInfo>(dLatchBob) {
             override fun onSuccess(info: MXDeviceInfo) {
@@ -578,11 +579,7 @@ class SASTest {
         })
 
         //latch wait a bit again
-        val stabilityLatch = CountDownLatch(1)
-        Handler(Looper.getMainLooper()).postDelayed({
-            stabilityLatch.countDown()
-        }, 1000)
-        stabilityLatch.await()
+        Thread.sleep(1000)
 
         assertTrue("alice device should be verified from bob point of view", aliceDeviceInfoFromBobPOV!!.isVerified)
         assertTrue("bob device should be verified from alice point of view", bobDeviceInfoFromAlicePOV!!.isVerified)
@@ -590,6 +587,6 @@ class SASTest {
     }
 
     companion object {
-        private val LOG_TAG = "SASTest"
+        private const val LOG_TAG = "SASTest"
     }
 }

@@ -24,7 +24,7 @@ import org.matrix.androidsdk.crypto.verification.CancelCode
 class KeyVerificationCancel : SendToDeviceObject {
 
     companion object {
-        fun new(tid: String, cancelCode: CancelCode): KeyVerificationCancel {
+        fun create(tid: String, cancelCode: CancelCode): KeyVerificationCancel {
             return KeyVerificationCancel().apply {
                 this.transactionID = tid
                 this.code = cancelCode.value

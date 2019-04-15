@@ -27,20 +27,20 @@ class KeyVerificationStart : SendToDeviceObject {
     /**
      * Alice’s device ID
      */
-    @SerializedName("from_device")
     @JvmField
+    @SerializedName("from_device")
     var fromDevice: String? = null
 
     @JvmField
-    var method = VERIF_METHOD_SAS
+    var method: String? = null
 
     /**
      * String to identify the transaction.
      * This string must be unique for the pair of users performing verification for the duration that the transaction is valid.
      * Alice’s device should record this ID and use it in future messages in this transaction.
      */
-    @SerializedName("transaction_id")
     @JvmField
+    @SerializedName("transaction_id")
     var transactionID: String? = null
 
     /**
@@ -49,7 +49,8 @@ class KeyVerificationStart : SendToDeviceObject {
      * Other methods may be defined in the future
      */
     @JvmField
-    var key_agreement_protocols: List<String>? = null
+    @SerializedName("key_agreement_protocols")
+    var keyAgreementProtocols: List<String>? = null
 
     /**
      * An array of hashes that Alice’s client understands.
@@ -64,7 +65,8 @@ class KeyVerificationStart : SendToDeviceObject {
      * Other methods may be defined in the future.
      */
     @JvmField
-    var message_authentication_codes: List<String>? = null
+    @SerializedName("message_authentication_codes")
+    var messageAuthenticationCodes: List<String>? = null
 
     /**
      * An array of short authentication string methods that Alice’s client (and Alice) understands.
@@ -73,28 +75,29 @@ class KeyVerificationStart : SendToDeviceObject {
      * Other methods may be defined in the future
      */
     @JvmField
-    var short_authentication_string: List<String>? = null
+    @SerializedName("short_authentication_string")
+    var shortAuthenticationStrings: List<String>? = null
 
 
     companion object {
-        val VERIF_METHOD_SAS = "m.sas.v1"
-        val SAS_MODE_DECIMAL = "decimal"
-        val SAS_MODE_EMOJI = "emoji"
+        const val VERIF_METHOD_SAS = "m.sas.v1"
+        const val SAS_MODE_DECIMAL = "decimal"
+        const val SAS_MODE_EMOJI = "emoji"
     }
 
 
     fun isValid(): Boolean {
         if (transactionID.isNullOrBlank()
                 || fromDevice.isNullOrBlank()
-                || method.isNullOrBlank()
-                || key_agreement_protocols?.size == 0
-                || hashes?.size == 0
+                || method != VERIF_METHOD_SAS
+                || keyAgreementProtocols.isNullOrEmpty()
+                || hashes.isNullOrEmpty()
                 || hashes?.contains("sha256") == false
-                || message_authentication_codes?.size == 0
-                || (message_authentication_codes?.contains(SASVerificationTransaction.SAS_MAC_SHA256) == false
-                        && message_authentication_codes?.contains(SASVerificationTransaction.SAS_MAC_SHA256_LONGKDF) == false)
-                || short_authentication_string?.size == 0
-                || short_authentication_string?.contains(KeyVerificationStart.SAS_MODE_DECIMAL) == false) {
+                || messageAuthenticationCodes.isNullOrEmpty()
+                || (messageAuthenticationCodes?.contains(SASVerificationTransaction.SAS_MAC_SHA256) == false
+                        && messageAuthenticationCodes?.contains(SASVerificationTransaction.SAS_MAC_SHA256_LONGKDF) == false)
+                || shortAuthenticationStrings.isNullOrEmpty()
+                || shortAuthenticationStrings?.contains(KeyVerificationStart.SAS_MODE_DECIMAL) == false) {
             Log.e(SASVerificationTransaction.LOG_TAG, "## received invalid verification request")
             return false
         }

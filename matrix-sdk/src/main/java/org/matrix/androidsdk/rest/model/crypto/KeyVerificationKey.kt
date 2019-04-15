@@ -18,12 +18,12 @@ package org.matrix.androidsdk.rest.model.crypto
 import com.google.gson.annotations.SerializedName
 
 /**
- * Sent by both devices to send their ephemeral Curve25519 public key the other device.
+ * Sent by both devices to send their ephemeral Curve25519 public key to the other device.
  */
 class KeyVerificationKey : SendToDeviceObject {
 
     companion object {
-        fun new(tid: String, key: String): KeyVerificationKey {
+        fun create(tid: String, key: String): KeyVerificationKey {
             return KeyVerificationKey().apply {
                 this.transactionID = tid
                 this.key = key

@@ -195,6 +195,7 @@ public class MXCrypto {
     // The key backup manager.
     private final KeysBackup mKeysBackup;
 
+    // The SAS verification manager.
     private final VerificationManager mShortCodeVerificationManager;
 
     /**
@@ -622,6 +623,9 @@ public class MXCrypto {
         return mKeysBackup;
     }
 
+    /**
+     * @return the VerificationManager instance
+     */
     public VerificationManager getShortCodeVerificationManager() {
         return mShortCodeVerificationManager;
     }

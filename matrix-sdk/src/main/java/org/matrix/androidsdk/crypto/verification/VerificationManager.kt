@@ -35,11 +35,10 @@ import kotlin.collections.HashMap
  * Manages all current verifications transactions with short codes.
  * Short codes interactive verification is a more user friendly way of verifying devices
  * that is still maintaining a good level of security (alternative to the 43-character strings compare method).
- *
  */
 class VerificationManager(val session: MXSession) : VerificationTransaction.Listener {
 
-    interface ManagerListener {
+    interface VerificationManagerListener {
         fun transactionCreated(tx: VerificationTransaction)
         fun transactionUpdated(tx: VerificationTransaction)
         fun markedAsManuallyVerified(userId: String, deviceID: String)
@@ -52,7 +51,10 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
 
     private val sessionListener = object : MXEventListener() {
         override fun onToDeviceEvent(event: Event?) {
-            if (event?.sender == null) return
+            if (event?.sender == null) {
+                return
+            }
+
             session.crypto?.decryptingThreadHandler?.post {
                 when (event.getType()) {
                     Event.EVENT_TYPE_KEY_VERIFICATION_START -> {
@@ -82,19 +84,25 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
         session.dataHandler.addListener(sessionListener)
     }
 
-    private var listeners = ArrayList<ManagerListener>()
+    private var listeners = ArrayList<VerificationManagerListener>()
 
-    fun addListener(listener: ManagerListener) {
-        if (!listeners.contains(listener)) listeners.add(listener)
+    fun addListener(listener: VerificationManagerListener) {
+        uiHandler.post {
+            if (!listeners.contains(listener)) {
+                listeners.add(listener)
+            }
+        }
     }
 
-    fun removeListener(listener: ManagerListener) {
-        listeners.remove(listener)
+    fun removeListener(listener: VerificationManagerListener) {
+        uiHandler.post {
+            listeners.remove(listener)
+        }
     }
 
     private fun dispatchTxAdded(tx: VerificationTransaction) {
-        listeners.forEach {
-            uiHandler.post {
+        uiHandler.post {
+            listeners.forEach {
                 try {
                     it.transactionCreated(tx)
                 } catch (e: Throwable) {
@@ -106,8 +114,8 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
     }
 
     private fun dispatchTxUpdated(tx: VerificationTransaction) {
-        listeners.forEach {
-            uiHandler.post {
+        uiHandler.post {
+            listeners.forEach {
                 try {
                     it.transactionUpdated(tx)
                 } catch (e: Throwable) {
@@ -123,8 +131,8 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
                 userId,
                 object : ApiCallback<Void> {
                     override fun onSuccess(info: Void?) {
-                        listeners.forEach {
-                            uiHandler.post {
+                        uiHandler.post {
+                            listeners.forEach {
                                 try {
                                     it.markedAsManuallyVerified(userId, deviceID)
                                 } catch (e: Throwable) {
@@ -134,20 +142,18 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
                         }
                     }
 
-                    override fun onUnexpectedError(e: java.lang.Exception?) {
+                    override fun onUnexpectedError(e: Exception?) {
                         Log.e(SASVerificationTransaction.LOG_TAG, "## Manual verification failed in state", e)
                     }
 
-                    override fun onNetworkError(e: java.lang.Exception?) {
+                    override fun onNetworkError(e: Exception?) {
                         Log.e(SASVerificationTransaction.LOG_TAG, "## Manual verification failed in state", e)
                     }
 
                     override fun onMatrixError(e: MatrixError?) {
                         Log.e(SASVerificationTransaction.LOG_TAG, "## Manual verification failed in state " + e?.mReason)
                     }
-
                 })
-
     }
 
     private fun onStartRequestReceived(event: Event) {
@@ -207,20 +213,21 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
                 error = {
                     cancelTransaction(session, startReq.transactionID!!, otherUserId, startReq.fromDevice!!, CancelCode.UnexpectedMessage)
                 })
-
-
     }
 
-    private fun checkKeysAreDownloaded(session: MXSession, otherUserId: String, startReq: KeyVerificationStart, success: (MXUsersDevicesMap<MXDeviceInfo>) -> Unit, error: () -> Unit) {
-        val tid = startReq.transactionID!!
+    private fun checkKeysAreDownloaded(session: MXSession,
+                                       otherUserId: String,
+                                       startReq: KeyVerificationStart,
+                                       success: (MXUsersDevicesMap<MXDeviceInfo>) -> Unit,
+                                       error: () -> Unit) {
         session.crypto?.deviceList?.downloadKeys(listOf(otherUserId), true, object : ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> {
-            override fun onUnexpectedError(e: java.lang.Exception) {
+            override fun onUnexpectedError(e: Exception) {
                 session.crypto?.decryptingThreadHandler?.post {
                     error()
                 }
             }
 
-            override fun onNetworkError(e: java.lang.Exception) {
+            override fun onNetworkError(e: Exception) {
                 session.crypto?.decryptingThreadHandler?.post {
                     error()
                 }
@@ -288,7 +295,6 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
         } else {
             //not other types now
         }
-
     }
 
 
@@ -311,7 +317,6 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
         } else {
             //not other types now
         }
-
     }
 
     private fun onMacReceived(event: Event) {
@@ -333,7 +338,6 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
         } else {
             //not other types known for now
         }
-
     }
 
     fun getExistingTransaction(otherUser: String, tid: String): VerificationTransaction? {
@@ -365,7 +369,6 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
                 tx.addListener(this)
             }
         }
-
     }
 
     fun beginKeyVerificationSAS(userId: String, deviceID: String): String? {
@@ -373,7 +376,6 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
     }
 
     fun beginKeyVerification(method: String, userId: String, deviceID: String): String? {
-
         val txID = createUniqueIDForTransaction(userId, deviceID)
         //should check if already one (and cancel it)
         if (KeyVerificationStart.VERIF_METHOD_SAS == method) {
@@ -386,8 +388,6 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
         } else {
             throw IllegalArgumentException("Unknown verification method")
         }
-
-
     }
 
     /**
@@ -402,15 +402,13 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
                 .append(deviceID).append("|")
                 .append(UUID.randomUUID().toString())
         return buff.toString()
-
     }
 
 
     override fun transactionUpdated(tx: VerificationTransaction) {
         dispatchTxUpdated(tx)
         if (tx is SASVerificationTransaction
-                &&
-                (tx.state == SASVerificationTransaction.SASVerificationTxState.Cancelled
+                && (tx.state == SASVerificationTransaction.SASVerificationTxState.Cancelled
                         || tx.state == SASVerificationTransaction.SASVerificationTxState.OnCancelled
                         || tx.state == SASVerificationTransaction.SASVerificationTxState.Verified)
         ) {
@@ -420,10 +418,10 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
     }
 
     companion object {
-        val LOG_TAG = VerificationManager::class.java.name!!
+        val LOG_TAG: String = VerificationManager::class.java.name
 
         fun cancelTransaction(session: MXSession, transactionId: String, userId: String, userDevice: String, code: CancelCode) {
-            val cancelMessage = KeyVerificationCancel.new(transactionId, code)
+            val cancelMessage = KeyVerificationCancel.create(transactionId, code)
             val contentMap = MXUsersDevicesMap<Any>()
             contentMap.setObject(cancelMessage, userId, userDevice)
 
