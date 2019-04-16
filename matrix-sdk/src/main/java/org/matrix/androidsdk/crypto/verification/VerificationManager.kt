@@ -41,7 +41,7 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
     interface VerificationManagerListener {
         fun transactionCreated(tx: VerificationTransaction)
         fun transactionUpdated(tx: VerificationTransaction)
-        fun markedAsManuallyVerified(userId: String, deviceID: String)
+        fun markedAsManuallyVerified(userId: String, deviceId: String)
     }
 
     private val uiHandler = Handler(Looper.getMainLooper())
@@ -359,7 +359,7 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
     }
 
     private fun addTransaction(tx: VerificationTransaction) {
-        tx.otherUserID.let { otherUserId ->
+        tx.otherUserId.let { otherUserId ->
             synchronized(txMap) {
                 if (txMap[otherUserId] == null) {
                     txMap[otherUserId] = HashMap()
@@ -413,7 +413,7 @@ class VerificationManager(val session: MXSession) : VerificationTransaction.List
                         || tx.state == SASVerificationTransaction.SASVerificationTxState.Verified)
         ) {
             //remove
-            this.removeTransaction(tx.otherUserID, tx.transactionId)
+            this.removeTransaction(tx.otherUserId, tx.transactionId)
         }
     }
 

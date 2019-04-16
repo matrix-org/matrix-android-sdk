@@ -33,10 +33,10 @@ import kotlin.properties.Delegates
  * Represents an ongoing short code interactive key verification between two devices.
  */
 abstract class SASVerificationTransaction(transactionId: String,
-                                          otherUserID: String,
+                                          otherUserId: String,
                                           otherDevice: String?,
                                           isIncoming: Boolean) :
-        VerificationTransaction(transactionId, otherUserID, otherDevice, isIncoming) {
+        VerificationTransaction(transactionId, otherUserId, otherDevice, isIncoming) {
 
     companion object {
         val LOG_TAG = SASVerificationTransaction::javaClass.name
@@ -164,7 +164,7 @@ abstract class SASVerificationTransaction(transactionId: String,
 
         val baseInfo = "MATRIX_KEY_VERIFICATION_MAC" +
                 session.myUserId + session.crypto!!.myDevice.deviceId +
-                otherUserID + otherDevice +
+                otherUserId + otherDeviceId +
                 transactionId
 
         val keyId = "ed25519:${session.crypto!!.myDevice.deviceId}"
@@ -220,7 +220,7 @@ abstract class SASVerificationTransaction(transactionId: String,
         state = SASVerificationTxState.Verifying
 
         //Keys have been downloaded earlier in process
-        val otherUserKnownDevices = session.crypto!!.cryptoStore.getUserDevices(otherUserID)
+        val otherUserKnownDevices = session.crypto!!.cryptoStore.getUserDevices(otherUserId)
 
         // Bob’s device calculates the HMAC (as above) of its copies of Alice’s keys given in the message (as identified by their key ID),
         // as well as the HMAC of the comma-separated, sorted list of the key IDs given in the message.
@@ -228,7 +228,7 @@ abstract class SASVerificationTransaction(transactionId: String,
         // If everything matches, then consider Alice’s device keys as verified.
 
         val baseInfo = "MATRIX_KEY_VERIFICATION_MAC" +
-                otherUserID + otherDevice +
+                otherUserId + otherDeviceId +
                 session.myUserId + session.crypto!!.myDevice.deviceId +
                 transactionId
 
@@ -258,8 +258,8 @@ abstract class SASVerificationTransaction(transactionId: String,
 
         setDeviceVerified(
                 session,
-                otherDevice ?: "",
-                otherUserID,
+                otherDeviceId ?: "",
+                otherUserId,
                 success = {
                     state = SASVerificationTxState.Verified
                 },
@@ -306,8 +306,8 @@ abstract class SASVerificationTransaction(transactionId: String,
         state = SASVerificationTxState.Cancelled
         VerificationManager.cancelTransaction(session,
                 this.transactionId,
-                this.otherUserID,
-                this.otherDevice ?: "",
+                this.otherUserId,
+                this.otherDeviceId ?: "",
                 code)
     }
 
@@ -318,7 +318,7 @@ abstract class SASVerificationTransaction(transactionId: String,
                               onErrorReason: CancelCode,
                               onDone: (() -> Unit)?) {
         val contentMap = MXUsersDevicesMap<Any>()
-        contentMap.setObject(keyToDevice, otherUserID, otherDevice)
+        contentMap.setObject(keyToDevice, otherUserId, otherDeviceId)
 
         session.cryptoRestClient.sendToDevice(type, contentMap, transactionId, object : ApiCallback<Void> {
             override fun onSuccess(info: Void?) {

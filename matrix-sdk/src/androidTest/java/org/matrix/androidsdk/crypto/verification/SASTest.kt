@@ -72,7 +72,7 @@ class SASTest {
                 bobTxCreatedLatch.countDown()
             }
 
-            override fun markedAsManuallyVerified(userId: String, deviceID: String) {}
+            override fun markedAsManuallyVerified(userId: String, deviceId: String) {}
         }
         bobSasMgr.addListener(bobListener)
 
@@ -113,7 +113,7 @@ class SASTest {
                 }
             }
 
-            override fun markedAsManuallyVerified(userId: String, deviceID: String) {}
+            override fun markedAsManuallyVerified(userId: String, deviceId: String) {}
         }
         bobSasMgr.addListener(bobListener2)
 
@@ -174,7 +174,7 @@ class SASTest {
                 }
             }
 
-            override fun markedAsManuallyVerified(userId: String, deviceID: String) {}
+            override fun markedAsManuallyVerified(userId: String, deviceId: String) {}
         }
         aliceSession.crypto?.shortCodeVerificationManager?.addListener(aliceListener)
 
@@ -338,7 +338,7 @@ class SASTest {
                 }
             }
 
-            override fun markedAsManuallyVerified(userId: String, deviceID: String) {}
+            override fun markedAsManuallyVerified(userId: String, deviceId: String) {}
         }
         aliceSasMgr.addListener(aliceListener)
 
@@ -374,7 +374,7 @@ class SASTest {
 
         val aliceAcceptedLatch = CountDownLatch(1)
         val aliceListener = object : VerificationManager.VerificationManagerListener {
-            override fun markedAsManuallyVerified(userId: String, deviceID: String) {}
+            override fun markedAsManuallyVerified(userId: String, deviceId: String) {}
 
             override fun transactionCreated(tx: VerificationTransaction) {}
 
@@ -399,7 +399,7 @@ class SASTest {
                 }
             }
 
-            override fun markedAsManuallyVerified(userId: String, deviceID: String) {}
+            override fun markedAsManuallyVerified(userId: String, deviceId: String) {}
         }
         bobSasMgr.addListener(bobListener)
 
@@ -451,7 +451,7 @@ class SASTest {
                 }
             }
 
-            override fun markedAsManuallyVerified(userId: String, deviceID: String) {}
+            override fun markedAsManuallyVerified(userId: String, deviceId: String) {}
         }
         aliceSasMgr.addListener(aliceListener)
 
@@ -473,7 +473,7 @@ class SASTest {
                 }
             }
 
-            override fun markedAsManuallyVerified(userId: String, deviceID: String) {}
+            override fun markedAsManuallyVerified(userId: String, deviceId: String) {}
         }
         bobSasMgr.addListener(bobListener)
 
@@ -524,7 +524,7 @@ class SASTest {
                 }
             }
 
-            override fun markedAsManuallyVerified(userId: String, deviceID: String) {}
+            override fun markedAsManuallyVerified(userId: String, deviceId: String) {}
         }
         aliceSasMgr.addListener(aliceListener)
 
@@ -549,7 +549,7 @@ class SASTest {
                 }
             }
 
-            override fun markedAsManuallyVerified(userId: String, deviceID: String) {}
+            override fun markedAsManuallyVerified(userId: String, deviceId: String) {}
         }
         bobSasMgr.addListener(bobListener)
 

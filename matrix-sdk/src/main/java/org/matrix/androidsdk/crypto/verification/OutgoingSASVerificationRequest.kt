@@ -25,8 +25,8 @@ import org.matrix.androidsdk.rest.model.crypto.KeyVerificationStart
 import org.matrix.androidsdk.util.JsonUtils
 import org.matrix.androidsdk.util.Log
 
-class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String, otherDevice: String)
-    : SASVerificationTransaction(transactionId, otherUserID, otherDevice, isIncoming = false) {
+class OutgoingSASVerificationRequest(transactionId: String, otherUserId: String, otherDeviceId: String)
+    : SASVerificationTransaction(transactionId, otherUserId, otherDeviceId, isIncoming = false) {
 
 
     enum class State {
@@ -86,7 +86,7 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
 
         startReq = startMessage
         val contentMap = MXUsersDevicesMap<Any>()
-        contentMap.setObject(startMessage, otherUserID, otherDevice)
+        contentMap.setObject(startMessage, otherUserId, otherDeviceId)
         state = SASVerificationTxState.SendingStart
 
         sendToOther(
@@ -166,7 +166,7 @@ class OutgoingSASVerificationRequest(transactionId: String, otherUserID: String,
             // - the transaction ID.
             val sasInfo = "MATRIX_KEY_VERIFICATION_SAS" +
                     "${session.myUserId}${session.crypto!!.myDevice.deviceId}" +
-                    "$otherUserID$otherDevice" +
+                    "$otherUserId$otherDeviceId" +
                     transactionId
             //decimal: generate five bytes by using HKDF.
             //emoji: generate six bytes by using HKDF.

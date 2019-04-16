@@ -71,7 +71,7 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
         }
         this.startReq = startReq
         state = SASVerificationTxState.OnStarted
-        this.otherDevice = startReq.fromDevice
+        this.otherDeviceId = startReq.fromDevice
 
     }
 
@@ -101,7 +101,7 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
         }
 
         //Bob’s device ensures that it has a copy of Alice’s device key.
-        session.crypto!!.getDeviceInfo(this.otherUserID, otherDevice, object : SimpleApiCallback<MXDeviceInfo>() {
+        session.crypto!!.getDeviceInfo(this.otherUserId, otherDeviceId, object : SimpleApiCallback<MXDeviceInfo>() {
             override fun onSuccess(info: MXDeviceInfo?) {
                 if (info?.fingerprint() == null) {
                     Log.e(LOG_TAG, "## Failed to find device key ")
@@ -119,7 +119,7 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
                             keyAgreementProtocol = agreedProtocol!!,
                             hash = agreedHash!!,
                             messageAuthenticationCode = agreedMac!!,
-                            shortAuthenticationStrings = agreedShortCode!!,
+                            shortAuthenticationStrings = agreedShortCode,
                             commitment = Base64.encodeToString("temporary commitment".toByteArray(), Base64.DEFAULT)
                     )
                     session.crypto?.decryptingThreadHandler?.post {
@@ -193,7 +193,7 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
         // - he device ID of the device that sent the m.key.verification.accept message
         // - the transaction ID.
         val sasInfo = "MATRIX_KEY_VERIFICATION_SAS" +
-                "$otherUserID$otherDevice" +
+                "$otherUserId$otherDeviceId" +
                 "${session.myUserId}${session.crypto!!.myDevice.deviceId}" +
                 transactionId
         //decimal: generate five bytes by using HKDF.
