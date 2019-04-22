@@ -71,11 +71,14 @@ public class MXMediaCache {
             "MXMediaStore2"
     );
 
+
+    private static final String MXMEDIA_STORE_EXT_SHARE_FOLDER = "ext_share";
     private static final String MXMEDIA_STORE_FOLDER = "MXMediaStore3";
     private static final String MXMEDIA_STORE_MEMBER_THUMBNAILS_FOLDER = "MXMemberThumbnailsStore";
     private static final String MXMEDIA_STORE_IMAGES_FOLDER = "Images";
     private static final String MXMEDIA_STORE_OTHERS_FOLDER = "Others";
     private static final String MXMEDIA_STORE_TMP_FOLDER = "tmp";
+    /**@deprecated*/
     private static final String MXMEDIA_STORE_SHARE_FOLDER = "share";
 
     /**
@@ -147,7 +150,7 @@ public class MXMediaCache {
         }
         mTmpFolderFile.mkdirs();
 
-        mShareFolderFile = new File(mMediaFolderFile, MXMEDIA_STORE_SHARE_FOLDER);
+        mShareFolderFile = new File(context.getApplicationContext().getFilesDir(), MXMEDIA_STORE_EXT_SHARE_FOLDER);
 
         if (mShareFolderFile.exists()) {
             ContentUtils.deleteDirectory(mShareFolderFile);
