@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Fix issue with file extension parsing (vector-im/riot-android#3123)
 
 API Change:
  -

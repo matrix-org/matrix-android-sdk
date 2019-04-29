@@ -150,3 +150,7 @@ URI_API_PREFIX_IDENTITY \+ \"\/
 &&$
 \|\|$
  ==$
+
+### getFileExtensionFromUrl is bugged (see https://stackoverflow.com/questions/14320527/android-should-i-use-mimetypemap-getfileextensionfromurl-bugs). Use getFileExtension()
+getFileExtensionFromUrl\(
+

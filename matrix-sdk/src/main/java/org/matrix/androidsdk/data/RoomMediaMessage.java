@@ -40,6 +40,7 @@ import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
 import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.util.FileUtilsKt;
 import org.matrix.androidsdk.util.JsonUtils;
 import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.util.ResourceUtils;
@@ -497,7 +498,7 @@ public class RoomMediaMessage implements Parcelable {
 
                 // try to find the mimetype from the filename
                 if (null == mMimeType) {
-                    String extension = MimeTypeMap.getFileExtensionFromUrl(uri.toString().toLowerCase());
+                    String extension = FileUtilsKt.getFileExtension(uri.toString());
                     if (extension != null) {
                         mMimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
                     }
