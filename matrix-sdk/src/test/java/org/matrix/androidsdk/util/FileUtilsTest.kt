@@ -33,20 +33,24 @@ class FileUtilsTest {
     fun getFileExtension_nominalCase() {
         assertEquals("jpg", getFileExtension("test.jpg"))
         assertEquals("jpg", getFileExtension("test.Jpg"))
+        assertEquals("jpg", getFileExtension("test.JPG"))
+        assertEquals("jpg", getFileExtension("test.foo.JPG"))
         assertEquals("jpg", getFileExtension("https://example.org/test.jpg"))
-        assertEquals("jpg", getFileExtension("https://example.org/test.jpg#fragment"))
-        assertEquals("jpg", getFileExtension("https://example.org/test.jpg?param=x"))
-        assertEquals("jpg", getFileExtension("https://example.org/test.jpg?param=x#fragment"))
+        assertEquals("jpg", getFileExtension("https://example.org/test.jpg#fragment.bar"))
+        assertEquals("jpg", getFileExtension("https://example.org/test.jpg?param=x.foo"))
+        assertEquals("jpg", getFileExtension("https://example.org/test.jpg?param=x.foo#fragment.bar"))
     }
 
     @Test
     fun getFileExtension_errorCase() {
         assertNull(getFileExtension(""))
         assertNull(getFileExtension("."))
+        assertNull(getFileExtension("test."))
+        assertNull(getFileExtension("test.foo."))
         assertNull(getFileExtension("https://example.org/test"))
-        assertNull(getFileExtension("https://example.org/test#fragment"))
-        assertNull(getFileExtension("https://example.org/test?param=x"))
-        assertNull(getFileExtension("https://example.org/test?param=x#fragment"))
+        assertNull(getFileExtension("https://example.org/test#fragment.bar"))
+        assertNull(getFileExtension("https://example.org/test?param=x.foo"))
+        assertNull(getFileExtension("https://example.org/test?param=x.foo#fragment.bar"))
     }
 
     @Test
