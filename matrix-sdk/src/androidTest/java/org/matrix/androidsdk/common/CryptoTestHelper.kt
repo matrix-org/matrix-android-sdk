@@ -114,7 +114,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
      * @param cryptedBob
      * @return alice and bob sessions
      */
-    fun doE2ETestWithAliceAndBobInARoom(cryptedBob: Boolean): CryptoTestData {
+    fun doE2ETestWithAliceAndBobInARoom(cryptedBob: Boolean = true): CryptoTestData {
         val statuses = HashMap<String, String>()
 
         val cryptoTestData = doE2ETestWithAliceInARoom()

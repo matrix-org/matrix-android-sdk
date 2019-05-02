@@ -49,7 +49,7 @@ class SASTest {
     fun test_aliceStartThenAliceCancel() {
         val context = InstrumentationRegistry.getContext()
 
-        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobAndSamInARoom()
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoom()
 
         val aliceSession = cryptoTestData.firstSession
         val bobSession = cryptoTestData.secondSession
@@ -64,7 +64,7 @@ class SASTest {
         })
 
         val bobTxCreatedLatch = CountDownLatch(1)
-        var bobListener = object : VerificationManager.VerificationManagerListener {
+        val bobListener = object : VerificationManager.VerificationManagerListener {
             override fun transactionCreated(tx: VerificationTransaction) {
             }
 
@@ -140,7 +140,7 @@ class SASTest {
     fun test_key_agreement_protocols_must_include_curve25519() {
         val context = InstrumentationRegistry.getContext()
 
-        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobAndSamInARoom()
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoom()
 
         val bobSession = cryptoTestData.secondSession
 
@@ -196,7 +196,7 @@ class SASTest {
     fun test_key_agreement_macs_Must_include_hmac_sha256() {
         val context = InstrumentationRegistry.getContext()
 
-        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobAndSamInARoom()
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoom()
 
         val bobSession = cryptoTestData.secondSession
 
@@ -239,7 +239,7 @@ class SASTest {
     fun test_key_agreement_short_code_include_decimal() {
         val context = InstrumentationRegistry.getContext()
 
-        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobAndSamInARoom()
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoom()
 
         val bobSession = cryptoTestData.secondSession
 
@@ -314,7 +314,7 @@ class SASTest {
     fun test_aliceStartTwoRequests() {
         val context = InstrumentationRegistry.getContext()
 
-        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobAndSamInARoom()
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoom()
 
         val aliceSession = cryptoTestData.firstSession
         val bobSession = cryptoTestData.secondSession
@@ -360,7 +360,7 @@ class SASTest {
     fun test_aliceAndBobAgreement() {
         val context = InstrumentationRegistry.getContext()
 
-        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobAndSamInARoom()
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoom()
 
         val aliceSession = cryptoTestData.firstSession
         val bobSession = cryptoTestData.secondSession
@@ -428,7 +428,7 @@ class SASTest {
     fun test_aliceAndBobSASCode() {
         val context = InstrumentationRegistry.getContext()
 
-        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobAndSamInARoom()
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoom()
 
         val aliceSession = cryptoTestData.firstSession
         val bobSession = cryptoTestData.secondSession
@@ -498,7 +498,7 @@ class SASTest {
     fun test_happyPath() {
         val context = InstrumentationRegistry.getContext()
 
-        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobAndSamInARoom()
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoom()
 
         val aliceSession = cryptoTestData.firstSession
         val bobSession = cryptoTestData.secondSession
