@@ -40,6 +40,7 @@ import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.crypto.keysbackup.KeysBackup;
+import org.matrix.androidsdk.crypto.verification.VerificationManager;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
@@ -194,6 +195,9 @@ public class MXCrypto {
     // The key backup manager.
     private final KeysBackup mKeysBackup;
 
+    // The SAS verification manager.
+    private final VerificationManager mShortCodeVerificationManager;
+
     /**
      * Constructor
      *
@@ -288,6 +292,7 @@ public class MXCrypto {
         mReceivedRoomKeyRequests.addAll(mCryptoStore.getPendingIncomingRoomKeyRequests());
 
         mKeysBackup = new KeysBackup(this, mSession);
+        mShortCodeVerificationManager = new VerificationManager(mSession);
     }
 
     /**
@@ -616,6 +621,13 @@ public class MXCrypto {
      */
     public KeysBackup getKeysBackup() {
         return mKeysBackup;
+    }
+
+    /**
+     * @return the VerificationManager instance
+     */
+    public VerificationManager getShortCodeVerificationManager() {
+        return mShortCodeVerificationManager;
     }
 
     /**

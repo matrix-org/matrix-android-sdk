@@ -100,6 +100,14 @@ public class Event implements Externalizable {
     public static final String EVENT_TYPE_ROOM_KEY_REQUEST = "m.room_key_request";
     public static final String EVENT_TYPE_FORWARDED_ROOM_KEY = "m.forwarded_room_key";
 
+    // Interactive key verification
+    public static final String EVENT_TYPE_KEY_VERIFICATION_START = "m.key.verification.start";
+    public static final String EVENT_TYPE_KEY_VERIFICATION_ACCEPT = "m.key.verification.accept";
+    public static final String EVENT_TYPE_KEY_VERIFICATION_KEY = "m.key.verification.key";
+    public static final String EVENT_TYPE_KEY_VERIFICATION_MAC = "m.key.verification.mac";
+    public static final String EVENT_TYPE_KEY_VERIFICATION_CANCEL= "m.key.verification.cancel";
+
+
     // Possible value for room account data type
     public static final String EVENT_TYPE_TAGS = "m.tag";
     public static final String EVENT_TYPE_READ_MARKER = "m.fully_read";

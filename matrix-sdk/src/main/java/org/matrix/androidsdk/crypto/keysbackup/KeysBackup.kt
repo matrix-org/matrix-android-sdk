@@ -190,12 +190,12 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                 callback.onSuccess(info)
             }
 
-            override fun onUnexpectedError(e: java.lang.Exception?) {
+            override fun onUnexpectedError(e: Exception?) {
                 mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
                 callback.onUnexpectedError(e)
             }
 
-            override fun onNetworkError(e: java.lang.Exception?) {
+            override fun onNetworkError(e: Exception?) {
                 mKeysBackupStateManager.state = KeysBackupStateManager.KeysBackupState.Disabled
                 callback.onNetworkError(e)
             }
@@ -389,7 +389,7 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
         if (keysBackupVersion.algorithm == null
                 || authData == null
                 || authData.publicKey.isEmpty()
-                || authData.signatures?.isEmpty() == true) {
+                || authData.signatures.isNullOrEmpty()) {
             Log.d(LOG_TAG, "getKeysBackupTrust: Key backup is absent or missing required data")
             return keysBackupVersionTrust
         }
@@ -520,13 +520,13 @@ class KeysBackup(private val mCrypto: MXCrypto, session: MXSession) {
                     }
                 }
 
-                override fun onUnexpectedError(e: java.lang.Exception?) {
+                override fun onUnexpectedError(e: Exception?) {
                     mCrypto.uiHandler.post {
                         callback.onUnexpectedError(e)
                     }
                 }
 
-                override fun onNetworkError(e: java.lang.Exception?) {
+                override fun onNetworkError(e: Exception?) {
                     mCrypto.uiHandler.post {
                         callback.onNetworkError(e)
                     }
