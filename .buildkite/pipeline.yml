@@ -1,0 +1,39 @@
+# Use Docker file from https://hub.docker.com/r/runmymind/docker-android-sdk
+
+# Build debug version of the SDK, from the develop branch and the features branches
+
+steps:
+  - label: "Assemble Debug version"
+    command: "./gradlew clean assembleDebug"
+    artifact_paths: "matrix-sdk/build/outputs/aar/*.aar"
+    branches: "develop feature/*"
+    plugins:
+    - docker#v3.1.0:
+          image: "runmymind/docker-android-sdk"
+
+# Build release version of the SDK, from the master branch
+
+  - label: "Assemble Release version"
+    command: "./gradlew clean assembleRelease"
+    artifact_paths: "matrix-sdk/build/outputs/aar/*.aar"
+    branches: "master"
+    plugins:
+    - docker#v3.1.0:
+          image: "runmymind/docker-android-sdk"
+
+# Code quality
+
+  - label: "Code quality"
+    command: "./tools/check/check_code_quality.sh"
+
+# Trigger Riot-Android project, when develop branch build successfully
+
+  - wait
+
+  - label: "🐴 Trigger riot-android"
+    trigger: "riot-android"
+    branches: "develop"
+    build:
+        branch: "develop"
+        message: "[matrix-android-sdk] ${BUILDKITE_MESSAGE}"
+    async: true
