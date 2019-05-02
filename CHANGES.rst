@@ -3,6 +3,7 @@ Changes to Matrix Android SDK in 0.9.22 (2019-XX-XX)
 
 Features:
  - E2E: SAS Verification
+ - Upgrade olm-sdk.aar from version 3.0.0 to version 3.1.2
 
 Improvements:
  -
@@ -20,7 +21,7 @@ Others:
  -
 
 Build:
- -
+ - olm-sdk.aar is now hosted by jitpack
 
 Test:
  -
