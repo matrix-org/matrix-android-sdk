@@ -22,7 +22,7 @@
 
 searchForbiddenStringsScript=./tmp/search_forbidden_strings.pl
 
-if [ -f ${searchForbiddenStringsScript} ]; then
+if [[ -f ${searchForbiddenStringsScript} ]]; then
   echo "${searchForbiddenStringsScript} already there"
 else
   mkdir tmp
@@ -30,7 +30,7 @@ else
   wget https://raw.githubusercontent.com/matrix-org/matrix-dev-tools/develop/bin/search_forbidden_strings.pl -O ${searchForbiddenStringsScript}
 fi
 
-if [ -x ${searchForbiddenStringsScript} ]; then
+if [[ -x ${searchForbiddenStringsScript} ]]; then
   echo "${searchForbiddenStringsScript} is already executable"
 else
   echo "Make the script executable"
@@ -41,9 +41,9 @@ echo
 echo "Search for forbidden patterns in code..."
 
 ${searchForbiddenStringsScript} ./tools/check/forbidden_strings_in_code.txt \
+    ./matrix-sdk/src/debug/java \
     ./matrix-sdk/src/main/java \
-    ./matrix-sdk/src/test/java \
-    ./matrix-sdk/src/androidTest/java
+    ./matrix-sdk/src/release/java
 
 resultForbiddenStringInCode=$?
 
@@ -62,7 +62,7 @@ resultForbiddenStringInResource=$?
 
 checkLongFilesScript=./tmp/check_long_files.pl
 
-if [ -f ${checkLongFilesScript} ]; then
+if [[ -f ${checkLongFilesScript} ]]; then
   echo "${checkLongFilesScript} already there"
 else
   mkdir tmp
@@ -70,7 +70,7 @@ else
   wget https://raw.githubusercontent.com/matrix-org/matrix-dev-tools/develop/bin/check_long_files.pl -O ${checkLongFilesScript}
 fi
 
-if [ -x ${checkLongFilesScript} ]; then
+if [[ -x ${checkLongFilesScript} ]]; then
   echo "${checkLongFilesScript} is already executable"
 else
   echo "Make the script executable"
@@ -80,8 +80,11 @@ fi
 echo
 echo "Search for long files..."
 
-${checkLongFilesScript} 3200 \
+${checkLongFilesScript} 3400 \
+    ./matrix-sdk/src/androidTest/java \
+    ./matrix-sdk/src/debug/java \
     ./matrix-sdk/src/main/java \
+    ./matrix-sdk/src/release/java \
     ./matrix-sdk/src/test/java \
     ./matrix-sdk/src/main/res/layout \
     ./matrix-sdk/src/main/res/values
@@ -90,7 +93,7 @@ resultLongFiles=$?
 
 echo
 
-if [ ${resultForbiddenStringInCode} -eq 0 ] && [ ${resultForbiddenStringInResource} -eq 0 ] && [ ${resultLongFiles} -eq 0 ]; then
+if [[ ${resultForbiddenStringInCode} -eq 0 ]] && [[ ${resultForbiddenStringInResource} -eq 0 ]] && [[ ${resultLongFiles} -eq 0 ]]; then
    echo "MAIN OK"
 else
    echo "MAIN ERROR"

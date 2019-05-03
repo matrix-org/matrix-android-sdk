@@ -1,4 +1,4 @@
-[![Jenkins](https://img.shields.io/jenkins/s/https/matrix.org/jenkins/view/MatrixView/job/MatrixAndroidSDKDevelop.svg)](https://matrix.org/jenkins/view/MatrixView/job/MatrixAndroidSDKDevelop/)
+[![Buildkite](https://badge.buildkite.com/c080f1de5e60c792fab17531dfda61ee0c3178ec616cfccb29.svg?branch=develop)](https://buildkite.com/matrix-dot-org/matrix-android-sdk)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=alert_status)](https://sonarcloud.io/dashboard?id=matrix.android.sdk)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=vulnerabilities)](https://sonarcloud.io/project/issues?id=matrix.android.sdk&resolved=false&types=VULNERABILITY)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=bugs)](https://sonarcloud.io/project/issues?id=matrix.android.sdk&resolved=false&types=BUG) 

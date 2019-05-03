@@ -17,6 +17,8 @@
  */
 package org.matrix.androidsdk.rest.model.sync;
 
+import android.support.annotation.Nullable;
+
 import org.matrix.androidsdk.data.comparator.Comparators;
 import org.matrix.androidsdk.interfaces.DatedObject;
 
@@ -50,6 +52,7 @@ public class DeviceInfo implements DatedObject {
     /**
      * The last ip address
      */
+    @Nullable
     public String last_seen_ip;
 
     @Override

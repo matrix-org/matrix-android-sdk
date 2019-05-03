@@ -92,7 +92,7 @@ public class ResourceUtils {
 
                 // try to find the mimetype from the filename
                 if (null == mimetype) {
-                    String extension = MimeTypeMap.getFileExtensionFromUrl(uri.toString().toLowerCase());
+                    String extension = FileUtilsKt.getFileExtension(uri.toString());
                     if (extension != null) {
                         mimetype = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
                     }
