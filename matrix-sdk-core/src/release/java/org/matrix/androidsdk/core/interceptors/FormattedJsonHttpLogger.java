@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.interceptors;
+package org.matrix.androidsdk.core.interceptors;
 
 import android.support.annotation.NonNull;
 
