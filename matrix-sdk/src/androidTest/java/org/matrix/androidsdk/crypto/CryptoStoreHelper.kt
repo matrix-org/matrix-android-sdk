@@ -19,9 +19,9 @@
 package org.matrix.androidsdk.crypto
 
 import android.support.test.InstrumentationRegistry
-import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore
-import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore
-import org.matrix.androidsdk.data.cryptostore.db.RealmCryptoStore
+import org.matrix.androidsdk.crypto.cryptostore.IMXCryptoStore
+import org.matrix.androidsdk.crypto.cryptostore.MXFileCryptoStore
+import org.matrix.androidsdk.crypto.cryptostore.db.RealmCryptoStore
 import org.matrix.androidsdk.rest.model.login.Credentials
 import java.util.*
 

@@ -32,8 +32,8 @@ import com.google.gson.JsonObject;
 import com.oney.WebRTCModule.EglUtils;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.util.Log;
 import org.webrtc.AudioSource;
 import org.webrtc.AudioTrack;
 import org.webrtc.Camera1Enumerator;

@@ -19,13 +19,13 @@ package org.matrix.androidsdk.rest.client;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.core.callback.ApiCallback;
+import org.matrix.androidsdk.core.model.HttpError;
+import org.matrix.androidsdk.core.model.HttpException;
+import org.matrix.androidsdk.core.rest.DefaultRetrofit2ResponseHandler;
 import org.matrix.androidsdk.rest.api.ThirdPidApi;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.DefaultRetrofit2ResponseHandler;
 import org.matrix.androidsdk.rest.model.BulkLookupParams;
 import org.matrix.androidsdk.rest.model.BulkLookupResponse;
-import org.matrix.androidsdk.rest.model.HttpError;
-import org.matrix.androidsdk.rest.model.HttpException;
 import org.matrix.androidsdk.rest.model.pid.PidResponse;
 
 import java.io.IOException;

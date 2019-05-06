@@ -18,7 +18,7 @@ package org.matrix.androidsdk.rest.model.filter;
 
 import com.google.gson.annotations.SerializedName;
 
-import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.core.JsonUtils;
 
 import java.util.List;
 

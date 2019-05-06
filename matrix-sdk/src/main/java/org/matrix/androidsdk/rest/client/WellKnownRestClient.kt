@@ -16,12 +16,11 @@
 package org.matrix.androidsdk.rest.client
 
 import android.net.Uri
-
 import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.RestClient
+import org.matrix.androidsdk.core.callback.ApiCallback
+import org.matrix.androidsdk.core.rest.DefaultRetrofit2CallbackWrapper
 import org.matrix.androidsdk.rest.api.WellKnownAPI
-import org.matrix.androidsdk.rest.callback.ApiCallback
-import org.matrix.androidsdk.rest.callback.DefaultRetrofit2CallbackWrapper
 import org.matrix.androidsdk.rest.model.WellKnown
 
 class WellKnownRestClient() :

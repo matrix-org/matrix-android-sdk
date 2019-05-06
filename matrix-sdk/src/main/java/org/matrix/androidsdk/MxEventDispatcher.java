@@ -19,15 +19,17 @@ package org.matrix.androidsdk;
 import android.os.Looper;
 import android.support.annotation.Nullable;
 
+import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.MXOsHandler;
+import org.matrix.androidsdk.core.model.MatrixError;
+import org.matrix.androidsdk.crypto.interfaces.CryptoEvent;
+import org.matrix.androidsdk.crypto.interfaces.CryptoEventListener;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
-import org.matrix.androidsdk.util.Log;
-import org.matrix.androidsdk.util.MXOsHandler;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -44,7 +46,7 @@ import java.util.Set;
     private final MXOsHandler mUiHandler;
 
     @Nullable
-    private IMXEventListener mCryptoEventsListener = null;
+    private CryptoEventListener mCryptoEventsListener = null;
 
     private final Set<IMXEventListener> mEventListeners = new HashSet<>();
 
@@ -61,7 +63,7 @@ import java.util.Set;
      *
      * @param listener the listener or null to remove the listener
      */
-    public void setCryptoEventsListener(@Nullable IMXEventListener listener) {
+    public void setCryptoEventsListener(@Nullable CryptoEventListener listener) {
         mCryptoEventsListener = listener;
     }
 
@@ -562,7 +564,7 @@ import java.util.Set;
         });
     }
 
-    public void dispatchOnEventDecrypted(final Event event) {
+    public void dispatchOnEventDecrypted(final CryptoEvent event) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -570,7 +572,7 @@ import java.util.Set;
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onEventDecrypted(event);
+                        listener.onEventDecrypted(event.getRoomId(), event.getEventId());
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onDecryptedEvent " + e.getMessage(), e);
                     }

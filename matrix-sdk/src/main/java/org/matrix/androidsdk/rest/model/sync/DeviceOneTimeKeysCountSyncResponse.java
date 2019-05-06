@@ -17,7 +17,16 @@
 
 package org.matrix.androidsdk.rest.model.sync;
 
-public class DeviceOneTimeKeysCountSyncResponse {
+import org.jetbrains.annotations.NotNull;
+import org.matrix.androidsdk.crypto.interfaces.CryptoDeviceOneTimeKeysCountSyncResponse;
+
+public class DeviceOneTimeKeysCountSyncResponse implements CryptoDeviceOneTimeKeysCountSyncResponse {
 
     public Integer signed_curve25519;
+
+    @NotNull
+    @Override
+    public Integer getSignedCurve25519() {
+        return signed_curve25519;
+    }
 }

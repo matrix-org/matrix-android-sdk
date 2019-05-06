@@ -16,12 +16,14 @@
  */
 package org.matrix.androidsdk.rest.model;
 
+import org.jetbrains.annotations.NotNull;
+import org.matrix.androidsdk.crypto.interfaces.CryptoEventContent;
 import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
 
 /**
  * Class representing an event content
  */
-public class EventContent implements java.io.Serializable {
+public class EventContent implements java.io.Serializable, CryptoEventContent {
     /**
      * The display name for this user, if any.
      */
@@ -46,4 +48,10 @@ public class EventContent implements java.io.Serializable {
      * e2e encryption format
      */
     public String algorithm;
+
+    @NotNull
+    @Override
+    public String getAlgorithm() {
+        return algorithm;
+    }
 }

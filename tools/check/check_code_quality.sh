@@ -41,9 +41,11 @@ echo
 echo "Search for forbidden patterns in code..."
 
 ${searchForbiddenStringsScript} ./tools/check/forbidden_strings_in_code.txt \
-    ./matrix-sdk/src/debug/java \
     ./matrix-sdk/src/main/java \
-    ./matrix-sdk/src/release/java
+    ./matrix-sdk-crypto/src/main/java \
+    ./matrix-sdk-core/src/release/java \
+    ./matrix-sdk-core/src/debug/java \
+    ./matrix-sdk-core/src/main/java
 
 resultForbiddenStringInCode=$?
 
@@ -82,12 +84,14 @@ echo "Search for long files..."
 
 ${checkLongFilesScript} 3400 \
     ./matrix-sdk/src/androidTest/java \
-    ./matrix-sdk/src/debug/java \
     ./matrix-sdk/src/main/java \
-    ./matrix-sdk/src/release/java \
     ./matrix-sdk/src/test/java \
     ./matrix-sdk/src/main/res/layout \
-    ./matrix-sdk/src/main/res/values
+    ./matrix-sdk/src/main/res/values \
+    ./matrix-sdk-core/src/debug/java \
+    ./matrix-sdk-core/src/main/java \
+    ./matrix-sdk-core/src/release/java \
+    ./matrix-sdk-crypto/src/main/java
 
 resultLongFiles=$?
 

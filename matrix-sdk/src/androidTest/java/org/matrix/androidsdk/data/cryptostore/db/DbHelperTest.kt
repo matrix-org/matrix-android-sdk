@@ -21,7 +21,9 @@ import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runners.MethodSorters
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody
+import org.matrix.androidsdk.crypto.cryptostore.db.deserializeFromRealm
+import org.matrix.androidsdk.crypto.cryptostore.db.serializeForRealm
+import org.matrix.androidsdk.crypto.model.crypto.RoomKeyRequestBody
 
 @FixMethodOrder(MethodSorters.JVM)
 class DbHelperTest {

@@ -31,9 +31,10 @@ import org.junit.runners.MethodSorters
 import org.matrix.androidsdk.RestClientHttpClientFactory
 import org.matrix.androidsdk.RestHttpClientFactoryProvider
 import org.matrix.androidsdk.common.*
+import org.matrix.androidsdk.core.Log
+import org.matrix.androidsdk.crypto.interfaces.CryptoEvent
 import org.matrix.androidsdk.listeners.MXEventListener
 import org.matrix.androidsdk.rest.model.Event
-import org.matrix.androidsdk.util.Log
 import java.util.concurrent.CountDownLatch
 
 @RunWith(AndroidJUnit4::class)
@@ -54,7 +55,7 @@ class PartialSharedSessionTest {
     @Test
     fun testPartialSharedSession() {
 
-        var blockKeyRequests = true
+        val blockKeyRequests = true
         val mockInterceptor = MockOkHttpInterceptor()
 
         mockInterceptor.addRule(object : MockOkHttpInterceptor.Rule("_matrix/client/") {
@@ -118,7 +119,7 @@ class PartialSharedSessionTest {
         aliceSession.crypto!!.setWarnOnUnknownDevices(false)
         bobSession.crypto!!.setWarnOnUnknownDevices(false)
 
-        var sentEvents = ArrayList<Event>()
+        val sentEvents = ArrayList<Event>()
 
         val mxListener = object : MXEventListener() {
             override fun onEventSent(event: Event?, prevEventId: String?) {
@@ -139,7 +140,7 @@ class PartialSharedSessionTest {
 
         val aliceNewSession = mTestHelper.logIntoAccount(aliceSession.myUserId, defaultSessionParamsWithInitialSync)
 
-        var aliceRoomOtherSession = aliceNewSession.dataHandler.store.getRoom(aliceRoom.roomId)
+        val aliceRoomOtherSession = aliceNewSession.dataHandler.store.getRoom(aliceRoom.roomId)
 
         val aliceSecondSessionEvents = sentEvents.map {
             aliceRoomOtherSession.store.getEvent(it.eventId, aliceRoomOtherSession.roomId)
@@ -159,24 +160,24 @@ class PartialSharedSessionTest {
         val secondMessage = aliceSecondSessionEvents[1]
         val sessionID = secondMessage.contentAsJsonObject?.get("session_id")?.asString
         val senderKey = secondMessage.contentAsJsonObject?.get("sender_key")?.asString
-        val osession = aliceSession.crypto?.olmDevice?.getInboundGroupSession(
+        val osession = aliceSession.crypto?.getOlmDevice()?.getInboundGroupSession(
                 sessionID,
                 senderKey, aliceRoom.roomId)
 
 
-        var megolmSessionData: MegolmSessionData = MegolmSessionData()
+        val megolmSessionData = MegolmSessionData()
         megolmSessionData.senderClaimedEd25519Key = osession!!.mKeysClaimed.get("ed25519")
-        megolmSessionData.forwardingCurve25519KeyChain = osession!!.mForwardingCurve25519KeyChain
-        megolmSessionData.senderKey = osession!!.mSenderKey
-        megolmSessionData.senderClaimedKeys = osession!!.mKeysClaimed
-        megolmSessionData.roomId = osession!!.mRoomId
-        megolmSessionData.sessionId = osession!!.mSession.sessionIdentifier()
-        megolmSessionData.sessionKey = osession!!.mSession.export(1)
+        megolmSessionData.forwardingCurve25519KeyChain = osession.mForwardingCurve25519KeyChain
+        megolmSessionData.senderKey = osession.mSenderKey
+        megolmSessionData.senderClaimedKeys = osession.mKeysClaimed
+        megolmSessionData.roomId = osession.mRoomId
+        megolmSessionData.sessionId = osession.mSession.sessionIdentifier()
+        megolmSessionData.sessionKey = osession.mSession.export(1)
         megolmSessionData.algorithm = MXCRYPTO_ALGORITHM_MEGOLM
 
 
         //import olm session in new session from index 1
-        aliceNewSession.crypto!!.olmDevice!!.importInboundGroupSessions(listOf(megolmSessionData))
+        aliceNewSession.crypto!!.getOlmDevice()!!.importInboundGroupSessions(listOf(megolmSessionData))
 
         val dec = aliceNewSession.crypto!!.decryptEvent(aliceRoomOtherSession.store.getLatestEvent(aliceRoom.roomId), null)
         Assert.assertNotNull(dec)
@@ -197,7 +198,7 @@ class PartialSharedSessionTest {
         toDeviceEvent.sender = aliceSession.myUserId
         val decryptEvent = MXEventDecryptionResult()
         val jo = JsonObject()
-        jo.add("type", JsonPrimitive(Event.EVENT_TYPE_FORWARDED_ROOM_KEY))
+        jo.add("type", JsonPrimitive(CryptoEvent.EVENT_TYPE_FORWARDED_ROOM_KEY))
 
         decryptEvent.mClearEvent = jo
         toDeviceEvent.setClearData(decryptEvent)
@@ -205,14 +206,14 @@ class PartialSharedSessionTest {
         val content = JsonObject()
 
         content.add("algorithm", JsonPrimitive(MXCRYPTO_ALGORITHM_MEGOLM))
-        content.add("session_id", JsonPrimitive(osession!!.mSession.sessionIdentifier()))
-        content.add("session_key", JsonPrimitive(osession!!.mSession.export(0)))
-        content.add("sender_claimed_ed25519_key", JsonPrimitive(osession!!.mKeysClaimed.get("ed25519")))
-        content.add("sender_key", JsonPrimitive(osession!!.mSenderKey))
-        content.add("room_id", JsonPrimitive(osession!!.mRoomId))
+        content.add("session_id", JsonPrimitive(osession.mSession.sessionIdentifier()))
+        content.add("session_key", JsonPrimitive(osession.mSession.export(0)))
+        content.add("sender_claimed_ed25519_key", JsonPrimitive(osession.mKeysClaimed.get("ed25519")))
+        content.add("sender_key", JsonPrimitive(osession.mSenderKey))
+        content.add("room_id", JsonPrimitive(osession.mRoomId))
 
         val sck = JsonObject()
-        sck.add("ed25519", JsonPrimitive(osession!!.mKeysClaimed.get("ed25519")))
+        sck.add("ed25519", JsonPrimitive(osession.mKeysClaimed.get("ed25519")))
         content.add("sender_claimed_keys", sck)
 
         toDeviceEvent.clearEvent.updateContent(content)

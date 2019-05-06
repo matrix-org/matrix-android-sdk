@@ -23,11 +23,11 @@ import android.text.SpannableString;
 import android.text.style.ParagraphStyle;
 import android.text.style.QuoteSpan;
 
+import org.matrix.androidsdk.core.EventDisplay;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.RoomCreateContent;
 import org.matrix.androidsdk.rest.model.RoomMember;
-import org.matrix.androidsdk.util.EventDisplay;
 
 /**
  * this class defines a MessagesAdapter Item.

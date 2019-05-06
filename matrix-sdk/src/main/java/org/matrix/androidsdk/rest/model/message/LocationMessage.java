@@ -17,7 +17,7 @@ package org.matrix.androidsdk.rest.model.message;
 
 import android.net.Uri;
 
-import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.core.Log;
 
 import java.io.File;
 

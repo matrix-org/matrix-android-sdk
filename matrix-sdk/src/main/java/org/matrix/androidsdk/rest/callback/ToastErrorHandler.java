@@ -18,7 +18,8 @@ package org.matrix.androidsdk.rest.callback;
 import android.content.Context;
 import android.widget.Toast;
 
-import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.core.callback.ApiFailureCallback;
+import org.matrix.androidsdk.core.model.MatrixError;
 
 /**
  * Failure callback that shows different toast messages.

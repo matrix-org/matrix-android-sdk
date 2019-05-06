@@ -20,8 +20,10 @@ import android.os.SystemClock
 import android.text.TextUtils
 import org.junit.Assert.*
 import org.matrix.androidsdk.MXSession
+import org.matrix.androidsdk.core.JsonUtils
 import org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM
 import org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
+import org.matrix.androidsdk.crypto.interfaces.CryptoEvent
 import org.matrix.androidsdk.crypto.keysbackup.MegolmBackupAuthData
 import org.matrix.androidsdk.crypto.keysbackup.MegolmBackupCreationInfo
 import org.matrix.androidsdk.data.RoomState
@@ -29,7 +31,6 @@ import org.matrix.androidsdk.listeners.MXEventListener
 import org.matrix.androidsdk.rest.model.Event
 import org.matrix.androidsdk.rest.model.RoomMember
 import org.matrix.androidsdk.rest.model.message.Message
-import org.matrix.androidsdk.util.JsonUtils
 import java.util.*
 import java.util.concurrent.CountDownLatch
 
@@ -95,7 +96,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
         mTestHelper.await(lock1)
         assertNotNull(roomId)
 
-        val room = aliceSession.dataHandler.getRoom(roomId)
+        val room = aliceSession.dataHandler.getRoom(roomId!!)
 
         val lock2 = CountDownLatch(1)
         room.enableEncryptionWithAlgorithm(MXCRYPTO_ALGORITHM_MEGOLM, object : TestApiCallback<Void?>(lock2) {
@@ -344,7 +345,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
         return cryptoTestData
     }
 
-    fun checkEncryptedEvent(event: Event, roomId: String, clearMessage: String, senderSession: MXSession) {
+    fun checkEncryptedEvent(event: CryptoEvent, roomId: String, clearMessage: String, senderSession: MXSession) {
         assertEquals(Event.EVENT_TYPE_MESSAGE_ENCRYPTED, event.wireType)
         assertNotNull(event.wireContent)
 
@@ -360,15 +361,15 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
 
         assertEquals(senderSession.credentials.deviceId, eventWireContent.get("device_id").asString)
 
-        assertNotNull(event.eventId)
-        assertEquals(roomId, event.roomId)
+        assertNotNull(event.getEventId())
+        assertEquals(roomId, event.getRoomId())
         assertEquals(Event.EVENT_TYPE_MESSAGE, event.getType())
         assertTrue(event.getAge() < 10000)
 
         val eventContent = event.contentAsJsonObject
         assertNotNull(eventContent)
-        assertEquals(clearMessage, eventContent!!.get("body").asString)
-        assertEquals(senderSession.myUserId, event.sender)
+        assertEquals(clearMessage, eventContent.get("body").asString)
+        assertEquals(senderSession.myUserId, event.getSender())
     }
 
     fun createFakeMegolmBackupAuthData(): MegolmBackupAuthData {

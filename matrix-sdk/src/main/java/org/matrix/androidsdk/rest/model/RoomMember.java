@@ -21,9 +21,11 @@ import android.text.TextUtils;
 
 import com.google.gson.annotations.SerializedName;
 
-import org.matrix.androidsdk.interfaces.DatedObject;
-import org.matrix.androidsdk.util.ContentManager;
-import org.matrix.androidsdk.util.Log;
+import org.jetbrains.annotations.NotNull;
+import org.matrix.androidsdk.core.ContentManager;
+import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.interfaces.DatedObject;
+import org.matrix.androidsdk.crypto.interfaces.CryptoRoomMember;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -34,7 +36,7 @@ import java.util.Comparator;
 /**
  * Class representing a room member: a user with membership information.
  */
-public class RoomMember implements Externalizable, DatedObject {
+public class RoomMember implements Externalizable, DatedObject, CryptoRoomMember {
     private static final String LOG_TAG = RoomMember.class.getSimpleName();
 
     public static final String MEMBERSHIP_JOIN = "join";
@@ -164,6 +166,7 @@ public class RoomMember implements Externalizable, DatedObject {
         }
     }
 
+    @Override
     public String getUserId() {
         return userId;
     }
@@ -353,6 +356,12 @@ public class RoomMember implements Externalizable, DatedObject {
      */
     public boolean kickedOrBanned() {
         return TextUtils.equals(membership, MEMBERSHIP_KICK) || TextUtils.equals(membership, MEMBERSHIP_BAN);
+    }
+
+    @NotNull
+    @Override
+    public String getMembership() {
+        return membership;
     }
 
     /* ==========================================================================================

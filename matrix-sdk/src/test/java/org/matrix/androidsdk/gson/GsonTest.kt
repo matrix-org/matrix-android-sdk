@@ -19,7 +19,7 @@ package org.matrix.androidsdk.gson
 import com.google.gson.annotations.SerializedName
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.matrix.androidsdk.util.JsonUtils
+import org.matrix.androidsdk.core.JsonUtils
 
 class GsonTest {
 

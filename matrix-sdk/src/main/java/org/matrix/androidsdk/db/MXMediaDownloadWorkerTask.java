@@ -34,21 +34,22 @@ import com.google.gson.JsonParser;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.core.ImageUtils;
+import org.matrix.androidsdk.core.JsonUtility;
+import org.matrix.androidsdk.core.JsonUtils;
+import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.callback.ApiCallback;
+import org.matrix.androidsdk.core.callback.SimpleApiCallback;
+import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
+import org.matrix.androidsdk.crypto.model.crypto.EncryptedBodyFileInfo;
+import org.matrix.androidsdk.crypto.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.listeners.IMXMediaDownloadListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.MediaScanRestClient;
 import org.matrix.androidsdk.rest.model.EncryptedMediaScanBody;
 import org.matrix.androidsdk.rest.model.EncryptedMediaScanEncryptedBody;
-import org.matrix.androidsdk.rest.model.MatrixError;
-import org.matrix.androidsdk.rest.model.crypto.EncryptedBodyFileInfo;
-import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.ssl.CertUtil;
-import org.matrix.androidsdk.util.ImageUtils;
-import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.androidsdk.util.Log;
 import org.matrix.olm.OlmPkEncryption;
 import org.matrix.olm.OlmPkMessage;
 
@@ -768,7 +769,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                     EncryptedMediaScanBody encryptedMediaScanBody = new EncryptedMediaScanBody();
                     encryptedMediaScanBody.encryptedFileInfo = mEncryptedFileInfo;
 
-                    String data = JsonUtils.getCanonicalizedJsonString(encryptedMediaScanBody);
+                    String data = JsonUtility.getCanonicalizedJsonString(encryptedMediaScanBody);
 
                     // Encrypt the data, if antivirus server supports it
                     String publicServerKey = getAntivirusServerPublicKey();
@@ -786,7 +787,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
                         EncryptedMediaScanEncryptedBody encryptedMediaScanEncryptedBody = new EncryptedMediaScanEncryptedBody();
                         encryptedMediaScanEncryptedBody.encryptedBodyFileInfo = new EncryptedBodyFileInfo(message);
 
-                        data = JsonUtils.getCanonicalizedJsonString(encryptedMediaScanEncryptedBody);
+                        data = JsonUtility.getCanonicalizedJsonString(encryptedMediaScanEncryptedBody);
                     }
                     // Else: no public key on this server, do not encrypt data
 

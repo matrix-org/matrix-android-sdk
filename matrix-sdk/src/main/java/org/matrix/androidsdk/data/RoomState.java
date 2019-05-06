@@ -25,11 +25,16 @@ import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
 
+import org.jetbrains.annotations.NotNull;
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.core.JsonUtils;
+import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.callback.ApiCallback;
+import org.matrix.androidsdk.core.callback.SimpleApiCallback;
+import org.matrix.androidsdk.crypto.interfaces.CryptoRoomMember;
+import org.matrix.androidsdk.crypto.interfaces.CryptoRoomState;
 import org.matrix.androidsdk.data.store.IMXStore;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.RoomCreateContent;
@@ -39,8 +44,6 @@ import org.matrix.androidsdk.rest.model.RoomPinnedEventsContent;
 import org.matrix.androidsdk.rest.model.RoomTombstoneContent;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.pid.RoomThirdPartyInvite;
-import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.androidsdk.util.Log;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -57,7 +60,7 @@ import java.util.Set;
 /**
  * The state of a room.
  */
-public class RoomState implements Externalizable {
+public class RoomState implements Externalizable, CryptoRoomState {
     private static final String LOG_TAG = RoomState.class.getSimpleName();
     private static final long serialVersionUID = -6019932024524988201L;
 
@@ -257,6 +260,13 @@ public class RoomState implements Externalizable {
         }
 
         return res;
+    }
+
+    // This should not be necessary, but I haven't found any other solution for the moment.
+    @NotNull
+    @Override
+    public List<CryptoRoomMember> getLoadedMembersCrypto() {
+        return new ArrayList<>(getLoadedMembers());
     }
 
     /**
@@ -512,6 +522,7 @@ public class RoomState implements Externalizable {
      */
     // TODO Change this? Can return null if all members are not loaded yet
     @Nullable
+    @Override
     public RoomMember getMember(String userId) {
         RoomMember member;
 
@@ -819,6 +830,7 @@ public class RoomState implements Externalizable {
     /**
      * @return true if the room is encrypted
      */
+    @Override
     public boolean isEncrypted() {
         // When a client receives an m.room.encryption event as above, it should set a flag to indicate that messages sent in the room should be encrypted.
         // This flag should not be cleared if a later m.room.encryption event changes the configuration. This is to avoid a situation where a MITM can simply
@@ -837,6 +849,7 @@ public class RoomState implements Externalizable {
     /**
      * @return the room tombstone content
      */
+    @Nullable
     public RoomTombstoneContent getRoomTombstoneContent() {
         return mRoomTombstoneContent;
     }
@@ -859,6 +872,7 @@ public class RoomState implements Externalizable {
     /**
      * @return the encryption algorithm
      */
+    @Override
     public String encryptionAlgorithm() {
         return TextUtils.isEmpty(algorithm) ? null : algorithm;
     }

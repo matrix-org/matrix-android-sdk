@@ -24,12 +24,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
 import org.matrix.androidsdk.common.*
+import org.matrix.androidsdk.core.JsonUtils
+import org.matrix.androidsdk.core.Log
+import org.matrix.androidsdk.core.model.MatrixError
 import org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
 import org.matrix.androidsdk.crypto.keysbackup.MegolmBackupAuthData
-import org.matrix.androidsdk.rest.model.MatrixError
-import org.matrix.androidsdk.rest.model.keys.*
-import org.matrix.androidsdk.util.JsonUtils
-import org.matrix.androidsdk.util.Log
+import org.matrix.androidsdk.crypto.model.keys.*
 import java.util.*
 import java.util.concurrent.CountDownLatch
 
@@ -48,7 +48,7 @@ class RoomKeysRestClientTest {
         val bobSession = mTestHelper.createAccount(TestConstants.USER_BOB, SessionTestParams())
 
         val lock = CountDownLatch(2)
-        bobSession.roomKeysRestClient
+        bobSession.getRoomKeysRestClient()
                 .getKeysBackupLastVersion(object : TestApiCallback<KeysVersionResult>(lock, false) {
                     override fun onMatrixError(e: MatrixError) {
                         // Error is NOT_FOUND
@@ -57,7 +57,7 @@ class RoomKeysRestClientTest {
                     }
                 })
 
-        bobSession.roomKeysRestClient
+        bobSession.getRoomKeysRestClient()
                 .getKeysBackupVersion("1", object : TestApiCallback<KeysVersionResult>(lock, false) {
                     override fun onMatrixError(e: MatrixError) {
                         assertEquals(MatrixError.NOT_FOUND, e.errcode)
@@ -89,7 +89,7 @@ class RoomKeysRestClientTest {
 
         var keysVersion: KeysVersion? = null
         var lock = CountDownLatch(1)
-        bobSession.roomKeysRestClient
+        bobSession.getRoomKeysRestClient()
                 .createKeysBackupVersion(createKeysBackupVersionBody, object : TestApiCallback<KeysVersion>(lock) {
                     override fun onSuccess(info: KeysVersion) {
                         keysVersion = info
@@ -107,7 +107,7 @@ class RoomKeysRestClientTest {
         var keysVersionResultLast: KeysVersionResult? = null
         lock = CountDownLatch(2)
         // Retrieve the last version by specifying it and check we get the same content
-        bobSession.roomKeysRestClient
+        bobSession.getRoomKeysRestClient()
                 .getKeysBackupVersion(version!!, object : TestApiCallback<KeysVersionResult>(lock) {
                     override fun onSuccess(info: KeysVersionResult) {
                         keysVersionResult = info
@@ -115,7 +115,7 @@ class RoomKeysRestClientTest {
                     }
                 })
         // Retrieve the last version without specifying it and check we get the same content
-        bobSession.roomKeysRestClient
+        bobSession.getRoomKeysRestClient()
                 .getKeysBackupLastVersion(object : TestApiCallback<KeysVersionResult>(lock) {
                     override fun onSuccess(info: KeysVersionResult) {
                         keysVersionResultLast = info
@@ -166,7 +166,7 @@ class RoomKeysRestClientTest {
 
         var keysVersion: KeysVersion? = null
         var lock = CountDownLatch(1)
-        bobSession.roomKeysRestClient
+        bobSession.getRoomKeysRestClient()
                 .createKeysBackupVersion(createKeysBackupVersionBody, object : TestApiCallback<KeysVersion>(lock) {
                     override fun onSuccess(info: KeysVersion) {
                         keysVersion = info
@@ -245,7 +245,7 @@ class RoomKeysRestClientTest {
 
         var keysVersion: KeysVersion? = null
         var lock = CountDownLatch(1)
-        bobSession.roomKeysRestClient
+        bobSession.getRoomKeysRestClient()
                 .createKeysBackupVersion(createKeysBackupVersionBody, object : TestApiCallback<KeysVersion>(lock) {
                     override fun onSuccess(info: KeysVersion) {
                         keysVersion = info

@@ -19,7 +19,7 @@ package org.matrix.androidsdk.rest.client;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 
-import org.matrix.androidsdk.util.MXOsHandler;
+import org.matrix.androidsdk.core.MXOsHandler;
 
 import java.util.Collections;
 import java.util.List;

@@ -17,7 +17,7 @@ Translations:
  -
 
 Others:
- -
+ - SDK has been splitted into 3 modules, to help extracting the crypto part.
 
 Build:
  -

@@ -21,12 +21,13 @@ package org.matrix.androidsdk.data.store;
 import android.content.Context;
 import android.support.annotation.Nullable;
 
+import org.matrix.androidsdk.core.callback.ApiCallback;
+import org.matrix.androidsdk.crypto.interfaces.CryptoStore;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -45,7 +46,7 @@ import java.util.Set;
 /**
  * An interface for storing and retrieving Matrix objects.
  */
-public interface IMXStore {
+public interface IMXStore extends CryptoStore {
     /**
      * Save changes in the store.
      * If the store uses permanent storage like database or file, it is the optimised time
