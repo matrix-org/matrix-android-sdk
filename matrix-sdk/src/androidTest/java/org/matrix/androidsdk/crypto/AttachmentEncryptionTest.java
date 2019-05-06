@@ -9,8 +9,8 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
-import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
-import org.matrix.androidsdk.rest.model.crypto.EncryptedFileKey;
+import org.matrix.androidsdk.crypto.model.crypto.EncryptedFileInfo;
+import org.matrix.androidsdk.crypto.model.crypto.EncryptedFileKey;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;

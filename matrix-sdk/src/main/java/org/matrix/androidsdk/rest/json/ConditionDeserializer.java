@@ -21,6 +21,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 
+import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.bingrules.ContainsDisplayNameCondition;
 import org.matrix.androidsdk.rest.model.bingrules.DeviceCondition;
@@ -28,7 +29,6 @@ import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
 import org.matrix.androidsdk.rest.model.bingrules.SenderNotificationPermissionCondition;
 import org.matrix.androidsdk.rest.model.bingrules.UnknownCondition;
-import org.matrix.androidsdk.util.Log;
 
 import java.lang.reflect.Type;
 

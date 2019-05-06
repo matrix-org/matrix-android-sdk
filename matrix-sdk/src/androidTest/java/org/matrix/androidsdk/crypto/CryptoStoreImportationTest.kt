@@ -26,17 +26,17 @@ import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runners.MethodSorters
 import org.matrix.androidsdk.common.*
+import org.matrix.androidsdk.core.Log
+import org.matrix.androidsdk.crypto.cryptostore.IMXCryptoStore
+import org.matrix.androidsdk.crypto.cryptostore.MXFileCryptoStore
+import org.matrix.androidsdk.crypto.cryptostore.db.RealmCryptoStore
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXOlmSession
+import org.matrix.androidsdk.crypto.model.crypto.RoomKeyRequestBody
 import org.matrix.androidsdk.data.RoomState
-import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore
-import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore
-import org.matrix.androidsdk.data.cryptostore.db.RealmCryptoStore
 import org.matrix.androidsdk.data.timeline.EventTimeline
 import org.matrix.androidsdk.listeners.MXEventListener
 import org.matrix.androidsdk.rest.model.Event
-import org.matrix.androidsdk.rest.model.crypto.RoomKeyRequestBody
-import org.matrix.androidsdk.util.Log
 import org.matrix.olm.OlmAccount
 import org.matrix.olm.OlmManager
 import org.matrix.olm.OlmSession
@@ -316,7 +316,7 @@ class CryptoStoreImportationTest {
         assertTrue(aliceSession2.crypto?.cryptoStore is RealmCryptoStore)
 
         // Not empty list
-        assertTrue(aliceSession2.crypto!!.cryptoStore!!.inboundGroupSessions!!.isNotEmpty())
+        assertTrue(aliceSession2.crypto!!.cryptoStore.inboundGroupSessions!!.isNotEmpty())
 
         // Bob should still be able to decrypt message from Alice
 
@@ -327,7 +327,7 @@ class CryptoStoreImportationTest {
         assertTrue(bobSession2.crypto!!.cryptoStore is RealmCryptoStore)
 
         // Not empty list
-        assertFalse(bobSession2.crypto!!.cryptoStore!!.inboundGroupSessions!!.isEmpty())
+        assertFalse(bobSession2.crypto!!.cryptoStore.inboundGroupSessions!!.isEmpty())
 
         val roomFromBobPOV2 = bobSession2.dataHandler.getRoom(aliceRoomId)
         assertTrue(roomFromBobPOV2.isEncrypted)

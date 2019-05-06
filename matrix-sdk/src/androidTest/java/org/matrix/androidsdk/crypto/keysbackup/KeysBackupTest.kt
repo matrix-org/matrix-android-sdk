@@ -25,20 +25,20 @@ import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.common.*
+import org.matrix.androidsdk.core.JsonUtils
+import org.matrix.androidsdk.core.callback.SuccessCallback
+import org.matrix.androidsdk.core.callback.SuccessErrorCallback
+import org.matrix.androidsdk.core.listeners.ProgressListener
+import org.matrix.androidsdk.core.listeners.StepProgressListener
 import org.matrix.androidsdk.crypto.MXCRYPTO_ALGORITHM_MEGOLM_BACKUP
 import org.matrix.androidsdk.crypto.MegolmSessionData
 import org.matrix.androidsdk.crypto.OutgoingRoomKeyRequest
 import org.matrix.androidsdk.crypto.data.ImportRoomKeysResult
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2
-import org.matrix.androidsdk.listeners.ProgressListener
-import org.matrix.androidsdk.listeners.StepProgressListener
-import org.matrix.androidsdk.rest.callback.SuccessCallback
-import org.matrix.androidsdk.rest.callback.SuccessErrorCallback
-import org.matrix.androidsdk.rest.model.keys.CreateKeysBackupVersionBody
-import org.matrix.androidsdk.rest.model.keys.KeysVersion
-import org.matrix.androidsdk.rest.model.keys.KeysVersionResult
-import org.matrix.androidsdk.util.JsonUtils
+import org.matrix.androidsdk.crypto.model.keys.CreateKeysBackupVersionBody
+import org.matrix.androidsdk.crypto.model.keys.KeysVersion
+import org.matrix.androidsdk.crypto.model.keys.KeysVersionResult
 import java.util.*
 import java.util.concurrent.CountDownLatch
 
@@ -1211,7 +1211,8 @@ class KeysBackupTest {
 
         // - Validate the old device from the new one
         val latch3 = CountDownLatch(1)
-        aliceSession2.crypto!!.setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED, oldDeviceId, aliceSession2.myUserId, TestApiCallback(latch3))
+        aliceSession2.crypto!!
+                .setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED, oldDeviceId, aliceSession2.myUserId, TestApiCallback(latch3))
         mTestHelper.await(latch3)
 
         // -> Backup should automatically enable on the new device
@@ -1284,7 +1285,7 @@ class KeysBackupTest {
      * ========================================================================================== */
 
     /**
-     * As KaysBackup is doing asynchronous call to update its internal state, this method help to wait for the
+     * As KeysBackup is doing asynchronous call to update its internal state, this method help to wait for the
      * KeysBackup object to be in the specified state
      */
     private fun waitForKeysBackupToBeInState(mxSession: MXSession, state: KeysBackupStateManager.KeysBackupState) {

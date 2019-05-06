@@ -34,8 +34,8 @@ import org.matrix.androidsdk.common.TestConstants;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXKey;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
-import org.matrix.androidsdk.rest.model.crypto.KeysQueryResponse;
-import org.matrix.androidsdk.rest.model.crypto.KeysUploadResponse;
+import org.matrix.androidsdk.crypto.model.crypto.KeysQueryResponse;
+import org.matrix.androidsdk.crypto.model.crypto.KeysUploadResponse;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,7 +69,7 @@ public class CryptoRestTest {
         bobDevice.keys = keysMap;
 
         CountDownLatch lock0 = new CountDownLatch(1);
-        bobSession.getCryptoRestClient().uploadKeys(bobDevice.JSONDictionary(), null, "dev1", new TestApiCallback<KeysUploadResponse>(lock0) {
+        bobSession.getCryptoRestClientForTest().uploadKeys(bobDevice.JSONDictionary(), null, "dev1", new TestApiCallback<KeysUploadResponse>(lock0) {
             @Override
             public void onSuccess(KeysUploadResponse keysUploadResponse) {
                 results.put("keysUploadResponse", keysUploadResponse);
@@ -87,7 +87,7 @@ public class CryptoRestTest {
         Assert.assertEquals(0, keysUploadResponse.oneTimeKeyCountsForAlgorithm("deded"));
 
         CountDownLatch lock1 = new CountDownLatch(1);
-        bobSession.getCryptoRestClient().downloadKeysForUsers(Arrays.asList(bobSession.getMyUserId()), null, new TestApiCallback<KeysQueryResponse>(lock1) {
+        bobSession.getCryptoRestClientForTest().downloadKeysForUsers(Arrays.asList(bobSession.getMyUserId()), null, new TestApiCallback<KeysQueryResponse>(lock1) {
             @Override
             public void onSuccess(KeysQueryResponse keysQueryResponse) {
                 results.put("keysQueryResponse", keysQueryResponse);
@@ -130,7 +130,7 @@ public class CryptoRestTest {
         otks.put("curve25519:AAAABA", "PmyaaB68Any+za9CuZXzFsQZW31s/TW6XbAB9akEpQs");
 
         CountDownLatch lock1 = new CountDownLatch(1);
-        bobSession.getCryptoRestClient().uploadKeys(null, otks, "dev1", new TestApiCallback<KeysUploadResponse>(lock1) {
+        bobSession.getCryptoRestClientForTest().uploadKeys(null, otks, "dev1", new TestApiCallback<KeysUploadResponse>(lock1) {
             @Override
             public void onSuccess(KeysUploadResponse keysUploadResponse) {
                 results.put("keysUploadResponse", keysUploadResponse);
@@ -187,7 +187,7 @@ public class CryptoRestTest {
         }
 
         CountDownLatch lock1 = new CountDownLatch(1);
-        bobSession.getCryptoRestClient().uploadKeys(null, otks, "dev1", new TestApiCallback<KeysUploadResponse>(lock1) {
+        bobSession.getCryptoRestClientForTest().uploadKeys(null, otks, "dev1", new TestApiCallback<KeysUploadResponse>(lock1) {
             @Override
             public void onSuccess(KeysUploadResponse keysUploadResponse) {
                 results.put("keysUploadResponse", keysUploadResponse);
@@ -204,7 +204,7 @@ public class CryptoRestTest {
         usersDevicesKeyTypesMap.setObject("curve25519", bobSession.getMyUserId(), "dev1");
 
         CountDownLatch lock2 = new CountDownLatch(1);
-        aliceSession.getCryptoRestClient().claimOneTimeKeysForUsersDevices(usersDevicesKeyTypesMap, new TestApiCallback<MXUsersDevicesMap<MXKey>>(lock2) {
+        aliceSession.getCryptoRestClientForTest().claimOneTimeKeysForUsersDevices(usersDevicesKeyTypesMap, new TestApiCallback<MXUsersDevicesMap<MXKey>>(lock2) {
             @Override
             public void onSuccess(MXUsersDevicesMap<MXKey> usersDevicesMap) {
                 results.put("usersDevicesMap", usersDevicesMap);

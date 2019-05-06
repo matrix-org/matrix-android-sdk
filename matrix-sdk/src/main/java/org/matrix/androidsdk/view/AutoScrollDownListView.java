@@ -20,7 +20,7 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.widget.ListView;
 
-import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.core.Log;
 
 /**
  * The listView automatically scrolls down when its height is updated.

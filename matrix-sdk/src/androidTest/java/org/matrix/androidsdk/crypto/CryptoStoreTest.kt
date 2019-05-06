@@ -18,8 +18,8 @@ package org.matrix.androidsdk.crypto
 
 import org.junit.Assert.*
 import org.junit.Test
+import org.matrix.androidsdk.crypto.cryptostore.IMXCryptoStore
 import org.matrix.androidsdk.crypto.data.MXOlmSession
-import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore
 import org.matrix.olm.OlmAccount
 import org.matrix.olm.OlmManager
 import org.matrix.olm.OlmSession

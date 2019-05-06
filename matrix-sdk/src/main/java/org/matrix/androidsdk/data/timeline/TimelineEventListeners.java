@@ -21,9 +21,9 @@ import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;

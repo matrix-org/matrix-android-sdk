@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.rest.model.message;
 
-import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
+import org.matrix.androidsdk.crypto.model.crypto.EncryptedFileInfo;
 
 public class ImageInfo {
     public String mimetype;

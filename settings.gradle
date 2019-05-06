@@ -1,1 +1,1 @@
-include ':matrix-sdk'
+include ':matrix-sdk', ':matrix-sdk-crypto', ':matrix-sdk-core'

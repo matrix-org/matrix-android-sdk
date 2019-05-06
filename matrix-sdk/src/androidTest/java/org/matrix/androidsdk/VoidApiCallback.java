@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk;
 
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
+import org.matrix.androidsdk.core.callback.SimpleApiCallback;
 
 public class VoidApiCallback extends SimpleApiCallback<Void> {
 

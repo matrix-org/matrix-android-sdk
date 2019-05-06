@@ -16,10 +16,10 @@
  */
 package org.matrix.androidsdk.listeners;
 
+import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 
@@ -65,7 +65,7 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onEventDecrypted(Event event) {
+    public void onEventDecrypted(String roomId, String eventId) {
     }
 
     @Override

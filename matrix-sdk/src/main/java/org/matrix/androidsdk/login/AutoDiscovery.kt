@@ -20,13 +20,13 @@ import android.net.Uri
 import com.google.gson.stream.MalformedJsonException
 import org.json.JSONObject
 import org.matrix.androidsdk.HomeServerConnectionConfig
-import org.matrix.androidsdk.rest.callback.ApiCallback
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback
+import org.matrix.androidsdk.core.callback.ApiCallback
+import org.matrix.androidsdk.core.callback.SimpleApiCallback
+import org.matrix.androidsdk.core.model.HttpException
+import org.matrix.androidsdk.core.model.MatrixError
 import org.matrix.androidsdk.rest.client.IdentityPingRestClient
 import org.matrix.androidsdk.rest.client.LoginRestClient
 import org.matrix.androidsdk.rest.client.WellKnownRestClient
-import org.matrix.androidsdk.rest.model.HttpException
-import org.matrix.androidsdk.rest.model.MatrixError
 import org.matrix.androidsdk.rest.model.Versions
 import org.matrix.androidsdk.rest.model.WellKnown
 import java.io.EOFException

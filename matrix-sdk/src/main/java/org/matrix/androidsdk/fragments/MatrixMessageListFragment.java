@@ -42,6 +42,12 @@ import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.adapters.AbstractMessagesAdapter;
 import org.matrix.androidsdk.adapters.MessageRow;
+import org.matrix.androidsdk.core.EventDisplay;
+import org.matrix.androidsdk.core.JsonUtils;
+import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.callback.ApiCallback;
+import org.matrix.androidsdk.core.callback.SimpleApiCallback;
+import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomMediaMessage;
@@ -55,19 +61,13 @@ import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.listeners.MXMediaUploadListener;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.rest.model.message.MediaMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;
 import org.matrix.androidsdk.rest.model.search.SearchResult;
-import org.matrix.androidsdk.util.EventDisplay;
-import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.androidsdk.util.Log;
 import org.matrix.androidsdk.view.AutoScrollDownListView;
 
 import java.io.IOException;
@@ -300,16 +300,16 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
         private boolean mRefreshAfterEventsDecryption;
 
         @Override
-        public void onEventDecrypted(final Event event) {
+        public void onEventDecrypted(final String roomId, final String eventId) {
             getUiHandler().post(new Runnable() {
                 @Override
                 public void run() {
                     // avoid refreshing the whole list for each event
                     // they are often refreshed by bunches.
                     if (mRefreshAfterEventsDecryption) {
-                        Log.d(LOG_TAG, "## onEventDecrypted " + event.eventId + " : there is a pending refresh");
+                        Log.d(LOG_TAG, "## onEventDecrypted " + eventId + " : there is a pending refresh");
                     } else {
-                        Log.d(LOG_TAG, "## onEventDecrypted " + event.eventId);
+                        Log.d(LOG_TAG, "## onEventDecrypted " + eventId);
 
                         mRefreshAfterEventsDecryption = true;
                         getUiHandler().postDelayed(new Runnable() {

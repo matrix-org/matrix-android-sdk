@@ -18,10 +18,10 @@ package org.matrix.androidsdk.data.timeline;
 
 import android.support.annotation.NonNull;
 
+import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.store.IMXStore;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.sync.RoomSync;

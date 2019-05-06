@@ -20,7 +20,7 @@ import android.media.ExifInterface;
 import android.support.annotation.Nullable;
 
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
-import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
+import org.matrix.androidsdk.crypto.model.crypto.EncryptedFileInfo;
 
 public class ImageMessage extends MediaMessage {
     public ImageInfo info;

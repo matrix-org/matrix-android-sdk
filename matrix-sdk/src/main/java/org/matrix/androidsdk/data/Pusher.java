@@ -31,7 +31,7 @@ public class Pusher {
 
 
     @Override
-    public java.lang.String toString() {
+    public String toString() {
         return "Pusher : \n\tappDisplayName " + appDisplayName + "\n\tdeviceDisplayName " + deviceDisplayName + "\n\tpushkey " + pushkey;
     }
 }

@@ -28,10 +28,21 @@ import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
 
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.core.BingRulesManager;
+import org.matrix.androidsdk.core.FilterUtil;
+import org.matrix.androidsdk.core.JsonUtils;
+import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.MXOsHandler;
+import org.matrix.androidsdk.core.callback.ApiCallback;
+import org.matrix.androidsdk.core.callback.SimpleApiCallback;
+import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXDecryptionException;
 import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
+import org.matrix.androidsdk.crypto.interfaces.CryptoDataHandler;
+import org.matrix.androidsdk.crypto.interfaces.CryptoEvent;
+import org.matrix.androidsdk.crypto.interfaces.CryptoEventListener;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
@@ -44,8 +55,6 @@ import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
@@ -54,7 +63,6 @@ import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.ChunkEvents;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -71,11 +79,6 @@ import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 import org.matrix.androidsdk.ssl.UnrecognizedCertificateException;
-import org.matrix.androidsdk.util.BingRulesManager;
-import org.matrix.androidsdk.util.FilterUtil;
-import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.androidsdk.util.Log;
-import org.matrix.androidsdk.util.MXOsHandler;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -93,7 +96,7 @@ import java.util.Set;
  * <li>Provides the means for an app to get callbacks for data changes</li>
  * </ul>
  */
-public class MXDataHandler {
+public class MXDataHandler implements CryptoDataHandler {
     private static final String LOG_TAG = MXDataHandler.class.getSimpleName();
 
     public interface RequestNetworkErrorListener {
@@ -594,7 +597,8 @@ public class MXDataHandler {
      *
      * @param listener the listener or null to remove the listener
      */
-    public void setCryptoEventsListener(@Nullable IMXEventListener listener) {
+    @Override
+    public void setCryptoEventsListener(@Nullable CryptoEventListener listener) {
         mMxEventDispatcher.setCryptoEventsListener(listener);
     }
 
@@ -684,6 +688,7 @@ public class MXDataHandler {
     /**
      * @return the used store.
      */
+    @Override
     public IMXStore getStore() {
         if (isAlive()) {
             return mStore;
@@ -759,6 +764,7 @@ public class MXDataHandler {
      * @param roomId the room id
      * @return the corresponding room
      */
+    @Override
     public Room getRoom(String roomId) {
         return getRoom(roomId, true);
     }
@@ -2013,7 +2019,8 @@ public class MXDataHandler {
         mMxEventDispatcher.dispatchOnDirectMessageChatRoomsListUpdate();
     }
 
-    public void onEventDecrypted(final Event event) {
+    @Override
+    public void onEventDecrypted(final CryptoEvent event) {
         mMxEventDispatcher.dispatchOnEventDecrypted(event);
     }
 

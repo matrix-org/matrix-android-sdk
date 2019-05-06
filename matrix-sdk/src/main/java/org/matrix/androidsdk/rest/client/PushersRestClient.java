@@ -19,9 +19,9 @@ package org.matrix.androidsdk.rest.client;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.data.Pusher;
 import org.matrix.androidsdk.rest.api.PushersApi;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.PushersResponse;
 

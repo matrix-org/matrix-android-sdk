@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.data.comparator;
 
-import org.matrix.androidsdk.interfaces.DatedObject;
+import org.matrix.androidsdk.core.interfaces.DatedObject;
 
 import java.util.Comparator;
 

@@ -18,9 +18,9 @@ package org.matrix.androidsdk.common
 
 import android.support.annotation.CallSuper
 import org.junit.Assert.fail
-import org.matrix.androidsdk.rest.callback.ApiCallback
-import org.matrix.androidsdk.rest.model.MatrixError
-import org.matrix.androidsdk.util.Log
+import org.matrix.androidsdk.core.Log
+import org.matrix.androidsdk.core.callback.ApiCallback
+import org.matrix.androidsdk.core.model.MatrixError
 import java.util.concurrent.CountDownLatch
 
 /**

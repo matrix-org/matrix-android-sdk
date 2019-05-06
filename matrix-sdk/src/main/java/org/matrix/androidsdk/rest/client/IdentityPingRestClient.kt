@@ -18,9 +18,9 @@ package org.matrix.androidsdk.rest.client
 import org.json.JSONObject
 import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.RestClient
+import org.matrix.androidsdk.core.callback.ApiCallback
+import org.matrix.androidsdk.core.rest.DefaultRetrofit2CallbackWrapper
 import org.matrix.androidsdk.rest.api.IdentityPingApi
-import org.matrix.androidsdk.rest.callback.ApiCallback
-import org.matrix.androidsdk.rest.callback.DefaultRetrofit2CallbackWrapper
 
 class IdentityPingRestClient(hsConfig: HomeServerConnectionConfig) : RestClient<IdentityPingApi>(hsConfig, IdentityPingApi::class.java, "", false, true) {
 

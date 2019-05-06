@@ -21,7 +21,7 @@ import android.support.annotation.NonNull;
 import android.util.Pair;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
-import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.core.Log;
 
 import java.security.KeyStore;
 import java.security.KeyStoreException;

@@ -20,8 +20,8 @@ package org.matrix.androidsdk.db;
 import android.content.Context;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.util.ContentUtils;
-import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.core.FileContentUtils;
+import org.matrix.androidsdk.core.Log;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -57,7 +57,7 @@ public class MXLatestChatMessageCache {
      * @param context The application context to use.
      */
     public void clearCache(Context context) {
-        ContentUtils.deleteDirectory(mLatestMessagesDirectory);
+        FileContentUtils.deleteDirectory(mLatestMessagesDirectory);
         mLatestMesssageByRoomId = null;
     }
 

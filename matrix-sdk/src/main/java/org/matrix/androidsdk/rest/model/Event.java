@@ -25,18 +25,27 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.annotations.SerializedName;
 
+import org.jetbrains.annotations.NotNull;
+import org.matrix.androidsdk.core.JsonUtils;
+import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.MXEventDecryptionResult;
+import org.matrix.androidsdk.crypto.interfaces.CryptoEvent;
+import org.matrix.androidsdk.crypto.model.crypto.EncryptedEventContent;
+import org.matrix.androidsdk.crypto.model.crypto.EncryptedFileInfo;
+import org.matrix.androidsdk.crypto.model.crypto.ForwardedRoomKeyContent;
+import org.matrix.androidsdk.crypto.model.crypto.OlmEventContent;
+import org.matrix.androidsdk.crypto.model.crypto.RoomKeyContent;
+import org.matrix.androidsdk.crypto.rest.model.crypto.RoomKeyShare;
+import org.matrix.androidsdk.crypto.rest.model.crypto.RoomKeyShareRequest;
 import org.matrix.androidsdk.db.MXMediaCache;
-import org.matrix.androidsdk.rest.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.rest.model.message.FileMessage;
 import org.matrix.androidsdk.rest.model.message.ImageMessage;
 import org.matrix.androidsdk.rest.model.message.LocationMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.message.StickerMessage;
 import org.matrix.androidsdk.rest.model.message.VideoMessage;
-import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.androidsdk.util.Log;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -58,7 +67,7 @@ import java.util.TimeZone;
 /**
  * Generic event class with all possible fields for events.
  */
-public class Event implements Externalizable {
+public class Event implements Externalizable, CryptoEvent {
     private static final String LOG_TAG = Event.class.getSimpleName();
 
     private static final long serialVersionUID = -1431845331022808337L;
@@ -94,19 +103,8 @@ public class Event implements Externalizable {
     public static final String EVENT_TYPE_TYPING = "m.typing";
     public static final String EVENT_TYPE_REDACTION = "m.room.redaction";
     public static final String EVENT_TYPE_RECEIPT = "m.receipt";
-    public static final String EVENT_TYPE_ROOM_KEY = "m.room_key";
     public static final String EVENT_TYPE_ROOM_PLUMBING = "m.room.plumbing";
     public static final String EVENT_TYPE_ROOM_BOT_OPTIONS = "m.room.bot.options";
-    public static final String EVENT_TYPE_ROOM_KEY_REQUEST = "m.room_key_request";
-    public static final String EVENT_TYPE_FORWARDED_ROOM_KEY = "m.forwarded_room_key";
-
-    // Interactive key verification
-    public static final String EVENT_TYPE_KEY_VERIFICATION_START = "m.key.verification.start";
-    public static final String EVENT_TYPE_KEY_VERIFICATION_ACCEPT = "m.key.verification.accept";
-    public static final String EVENT_TYPE_KEY_VERIFICATION_KEY = "m.key.verification.key";
-    public static final String EVENT_TYPE_KEY_VERIFICATION_MAC = "m.key.verification.mac";
-    public static final String EVENT_TYPE_KEY_VERIFICATION_CANCEL= "m.key.verification.cancel";
-
 
     // Possible value for room account data type
     public static final String EVENT_TYPE_TAGS = "m.tag";
@@ -144,7 +142,8 @@ public class Event implements Externalizable {
      */
     public String type;
 
-    public transient JsonElement content = null;
+    @SerializedName("content")
+    public transient JsonElement contentJson = null;
     private String contentAsString = null;
 
     public transient JsonElement prev_content = null;
@@ -201,7 +200,7 @@ public class Event implements Externalizable {
      */
     public Event() {
         type = null;
-        content = null;
+        contentJson = null;
         prev_content = null;
         mIsInternalPaginationToken = false;
 
@@ -225,6 +224,7 @@ public class Event implements Externalizable {
     /**
      * @return the sender
      */
+    @Override
     public String getSender() {
         return (null == sender) ? userId : sender;
     }
@@ -276,7 +276,7 @@ public class Event implements Externalizable {
      * @param newContent the new content.
      */
     public void updateContent(JsonElement newContent) {
-        content = newContent;
+        contentJson = newContent;
         contentAsString = null;
     }
 
@@ -336,6 +336,7 @@ public class Event implements Externalizable {
     /**
      * @return the event type
      */
+    @Override
     public String getType() {
         if (null != mClearEvent) {
             return mClearEvent.type;
@@ -357,6 +358,7 @@ public class Event implements Externalizable {
     /**
      * @return the wire event type
      */
+    @Override
     public String getWireType() {
         return type;
     }
@@ -375,9 +377,10 @@ public class Event implements Externalizable {
     /**
      * @return the wired event content
      */
+    @Override
     public JsonElement getWireContent() {
         finalizeDeserialization();
-        return content;
+        return contentJson;
     }
 
     /**
@@ -392,6 +395,7 @@ public class Event implements Externalizable {
      * @return the content casted as JsonObject.
      */
     @Nullable
+    @Override
     public JsonObject getContentAsJsonObject() {
         JsonElement cont = getContent();
 
@@ -434,6 +438,7 @@ public class Event implements Externalizable {
     /**
      * @return the content formatted as EventContent.
      */
+    @Override
     public EventContent getWireEventContent() {
         if (null != getWireContent()) {
             return JsonUtils.toEventContent(getWireContent());
@@ -454,6 +459,7 @@ public class Event implements Externalizable {
     /**
      * @return the event age.
      */
+    @Override
     public long getAge() {
         if (null != age) {
             return age;
@@ -489,7 +495,7 @@ public class Event implements Externalizable {
      */
     public Event(Message message, String anUserId, String aRoomId) {
         type = Event.EVENT_TYPE_MESSAGE;
-        content = JsonUtils.toJson(message);
+        contentJson = JsonUtils.toJson(message);
         originServerTs = System.currentTimeMillis();
         sender = userId = anUserId;
         roomId = aRoomId;
@@ -507,7 +513,7 @@ public class Event implements Externalizable {
      */
     public Event(String aType, JsonObject aContent, String anUserId, String aRoomId) {
         type = aType;
-        content = aContent;
+        contentJson = aContent;
         originServerTs = System.currentTimeMillis();
         sender = userId = anUserId;
         roomId = aRoomId;
@@ -575,7 +581,7 @@ public class Event implements Externalizable {
 
         Event copy = new Event();
         copy.type = type;
-        copy.content = content;
+        copy.contentJson = contentJson;
         copy.contentAsString = contentAsString;
 
         copy.eventId = eventId;
@@ -1036,8 +1042,8 @@ public class Event implements Externalizable {
      * Init some internal fields to serialize the event.
      */
     private void prepareSerialization() {
-        if ((null != content) && (null == contentAsString)) {
-            contentAsString = content.toString();
+        if ((null != contentJson) && (null == contentAsString)) {
+            contentAsString = contentJson.toString();
         }
 
         if ((null != getPrevContentAsJsonObject()) && (null == prev_content_as_string)) {
@@ -1053,9 +1059,9 @@ public class Event implements Externalizable {
      * Deserialize the event.
      */
     private void finalizeDeserialization() {
-        if ((null != contentAsString) && (null == content)) {
+        if ((null != contentAsString) && (null == contentJson)) {
             try {
-                content = new JsonParser().parse(contentAsString).getAsJsonObject();
+                contentJson = new JsonParser().parse(contentAsString).getAsJsonObject();
             } catch (Exception e) {
                 Log.e(LOG_TAG, "finalizeDeserialization : contentAsString deserialization " + e.getMessage(), e);
                 contentAsString = null;
@@ -1146,7 +1152,7 @@ public class Event implements Externalizable {
             allowedKeys = null;
         }
 
-        content = filterInContentWithKeys(getContentAsJsonObject(), allowedKeys);
+        contentJson = filterInContentWithKeys(getContentAsJsonObject(), allowedKeys);
         prev_content = filterInContentWithKeys(getPrevContentAsJsonObject(), allowedKeys);
 
         prev_content_as_string = null;
@@ -1226,6 +1232,7 @@ public class Event implements Externalizable {
      *
      * @param decryptionResult the decryption result, including the plaintext and some key info.
      */
+    @Override
     public void setClearData(@Nullable MXEventDecryptionResult decryptionResult) {
         mClearEvent = null;
 
@@ -1262,7 +1269,8 @@ public class Event implements Externalizable {
     /**
      * @return The curve25519 key that sent this event.
      */
-    public String senderKey() {
+    @Override
+    public String getSenderKey() {
         if (null != mClearEvent) {
             return mClearEvent.mSenderCurve25519Key;
         } else {
@@ -1273,6 +1281,7 @@ public class Event implements Externalizable {
     /**
      * @return The additional keys the sender of this encrypted event claims to possess.
      */
+    @Override
     public Map<String, String> getKeysClaimed() {
         Map<String, String> res = new HashMap<>();
 
@@ -1321,6 +1330,7 @@ public class Event implements Externalizable {
      *
      * @param error the new crypto error.
      */
+    @Override
     public void setCryptoError(MXCryptoError error) {
         mCryptoError = error;
         if (null != error) {
@@ -1333,5 +1343,59 @@ public class Event implements Externalizable {
      */
     public Event getClearEvent() {
         return mClearEvent;
+    }
+
+    @NotNull
+    @Override
+    public String getRoomId() {
+        return roomId;
+    }
+
+    @NotNull
+    @Override
+    public String getStateKey() {
+        return stateKey;
+    }
+
+    @NotNull
+    @Override
+    public RoomKeyShare toRoomKeyShare() {
+        return JsonUtils.toRoomKeyShare(getContentAsJsonObject());
+    }
+
+    @NotNull
+    @Override
+    public RoomKeyShareRequest toRoomKeyShareRequest() {
+        return JsonUtils.toRoomKeyShareRequest(getContentAsJsonObject());
+    }
+
+    @NotNull
+    @Override
+    public String getEventId() {
+        return eventId;
+    }
+
+    @NotNull
+    @Override
+    public RoomKeyContent toRoomKeyContent() {
+        return JsonUtils.toRoomKeyContent(getContentAsJsonObject());
+    }
+
+    @NotNull
+    @Override
+    public OlmEventContent toOlmEventContent() {
+        return JsonUtils.toOlmEventContent(getWireContent().getAsJsonObject());
+    }
+
+    @NotNull
+    @Override
+    public EncryptedEventContent toEncryptedEventContent() {
+        return JsonUtils.toEncryptedEventContent(getWireContent().getAsJsonObject());
+    }
+
+    @NotNull
+    @Override
+    public ForwardedRoomKeyContent toForwardedRoomKeyContent() {
+        return JsonUtils.toForwardedRoomKeyContent(getContentAsJsonObject());
     }
 }

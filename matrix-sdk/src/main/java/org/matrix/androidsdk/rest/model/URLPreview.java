@@ -19,7 +19,7 @@ package org.matrix.androidsdk.rest.model;
 
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.core.JsonUtils;
 
 import java.util.Map;
 

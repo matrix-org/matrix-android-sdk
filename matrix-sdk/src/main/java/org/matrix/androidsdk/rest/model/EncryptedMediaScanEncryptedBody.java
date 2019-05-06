@@ -17,7 +17,7 @@ package org.matrix.androidsdk.rest.model;
 
 import com.google.gson.annotations.SerializedName;
 
-import org.matrix.androidsdk.rest.model.crypto.EncryptedBodyFileInfo;
+import org.matrix.androidsdk.crypto.model.crypto.EncryptedBodyFileInfo;
 
 /**
  * Class to prepare the request body used to scan an encrypted content.
