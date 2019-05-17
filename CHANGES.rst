@@ -18,6 +18,7 @@ Translations:
 
 Others:
  - SDK has been splitted into 3 modules, to help extracting the crypto part.
+ - Rewrite react-native-webrtc dependency to remove the additional react-native dependency.
 
 Build:
  -
