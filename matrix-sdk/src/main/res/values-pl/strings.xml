@@ -141,4 +141,10 @@
     <string name="verification_emoji_folder">Folder</string>
     <string name="verification_emoji_pin">Pinezka</string>
 
-</resources>
+<string name="verification_emoji_globe">Ziemia</string>
+    <string name="verification_emoji_smiley">Uśmiech</string>
+    <string name="verification_emoji_wrench">Klucz francuski</string>
+    <string name="verification_emoji_santa">Mikołaj</string>
+    <string name="verification_emoji_gift">Prezent</string>
+    <string name="verification_emoji_hammer">Młotek</string>
+    </resources>
