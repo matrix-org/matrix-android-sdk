@@ -38,12 +38,6 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
-    repositories {
-        flatDir {
-            dir 'libs'
-        }
-    }
 }
 
 dependencies {

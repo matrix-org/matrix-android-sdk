@@ -125,12 +125,6 @@ android {
         error 'UseValueOf'
     }
 
-    repositories {
-        flatDir {
-            dir 'libs'
-        }
-    }
-
     testOptions {
         unitTests {
             includeAndroidResources = true
