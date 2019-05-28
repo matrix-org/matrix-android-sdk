@@ -128,4 +128,35 @@
     <string name="verification_emoji_robot">Robot</string>
     <string name="verification_emoji_hat">Hoed</string>
     <string name="verification_emoji_glasses">Bril</string>
-    </resources>
+    <string name="verification_emoji_wrench">Moersleutel</string>
+    <string name="verification_emoji_santa">Kerstman</string>
+    <string name="verification_emoji_thumbsup">Duim omhoog</string>
+    <string name="verification_emoji_umbrella">Paraplu</string>
+    <string name="verification_emoji_hourglass">Zandloper</string>
+    <string name="verification_emoji_clock">Klok</string>
+    <string name="verification_emoji_gift">Cadeau</string>
+    <string name="verification_emoji_lightbulb">Gloeilamp</string>
+    <string name="verification_emoji_book">Boek</string>
+    <string name="verification_emoji_pencil">Potlood</string>
+    <string name="verification_emoji_paperclip">Paperclip</string>
+    <string name="verification_emoji_scissors">Schaar</string>
+    <string name="verification_emoji_lock">Hangslot</string>
+    <string name="verification_emoji_key">Sleutel</string>
+    <string name="verification_emoji_hammer">Hamer</string>
+    <string name="verification_emoji_telephone">Telefoon</string>
+    <string name="verification_emoji_flag">Vlag</string>
+    <string name="verification_emoji_train">Trein</string>
+    <string name="verification_emoji_bicycle">Fiets</string>
+    <string name="verification_emoji_airplane">Vliegtuig</string>
+    <string name="verification_emoji_rocket">Raket</string>
+    <string name="verification_emoji_trophy">Trofee</string>
+    <string name="verification_emoji_ball">Bal</string>
+    <string name="verification_emoji_guitar">Gitaar</string>
+    <string name="verification_emoji_trumpet">Trompet</string>
+    <string name="verification_emoji_bell">Bel</string>
+    <string name="verification_emoji_anchor">Anker</string>
+    <string name="verification_emoji_headphone">Koptelefoon</string>
+    <string name="verification_emoji_folder">Map</string>
+    <string name="verification_emoji_pin">Speld</string>
+
+</resources>
