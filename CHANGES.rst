@@ -21,7 +21,7 @@ Others:
  - Rewrite react-native-webrtc dependency to remove the additional react-native dependency.
 
 Build:
- -
+ - Upgrade gradle version from 4.10.1 to 5.4.1
 
 Test:
  -
