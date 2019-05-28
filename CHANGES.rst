@@ -22,6 +22,7 @@ Others:
 
 Build:
  - Upgrade gradle version from 4.10.1 to 5.4.1
+ - Ensure Olm library is downloaded from the jitpack repository
 
 Test:
  -

@@ -26,15 +26,19 @@ allprojects {
     ext.okhttp_version = '3.14.1'
 
     repositories {
+        // For olm library. This has to be declared first, to ensure that Olm library is not downloaded from another repo
+        maven {
+            url 'https://jitpack.io'
+            content {
+                // Use this repo only for olm library
+                includeGroupByRegex "org\\.matrix\\.gitlab\\.matrix-org"
+            }
+        }
         google()
         jcenter()
         mavenCentral()
         maven {
             url "https://github.com/jitsi/jitsi-maven-repository/raw/master/releases"
-        }
-        // For olm library
-        maven {
-            url 'https://jitpack.io'
         }
     }
 }
