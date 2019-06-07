@@ -55,6 +55,15 @@ public class MatrixError implements java.io.Serializable {
     public static final String RESOURCE_LIMIT_EXCEEDED = "M_RESOURCE_LIMIT_EXCEEDED";
     public static final String WRONG_ROOM_KEYS_VERSION = "M_WRONG_ROOM_KEYS_VERSION";
 
+    // The error codes related to the password policy
+    public static final String PASSWORD_TOO_SHORT = "M_PASSWORD_TOO_SHORT";
+    public static final String PASSWORD_NO_DIGIT = "M_PASSWORD_NO_DIGIT";
+    public static final String PASSWORD_NO_UPPERCASE = "M_PASSWORD_NO_UPPERCASE";
+    public static final String PASSWORD_NO_LOWERCASE = "M_PASSWORD_NO_LOWERCASE";
+    public static final String PASSWORD_NO_SYMBOL = "M_PASSWORD_NO_SYMBOL";
+    public static final String PASSWORD_IN_DICTIONARY = "M_PASSWORD_IN_DICTIONARY";
+    public static final String WEAK_PASSWORD = "M_WEAK_PASSWORD";
+
     // custom ones
     public static final String NOT_SUPPORTED = "M_NOT_SUPPORTED";
 
