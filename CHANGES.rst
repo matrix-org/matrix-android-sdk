@@ -9,6 +9,7 @@ Improvements:
 
 Bugfix:
  - Fix replies showing mxids instead of display names (vector-im/riot-android#2468)
+ - Fix / SAS, don't error if we don't know about some keys (vector-im/riot-android#3184)
 
 API Change:
  -
