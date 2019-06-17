@@ -197,11 +197,11 @@ abstract class SASVerificationTransaction(transactionId: String,
 
     override fun acceptToDeviceEvent(session: CryptoSession, senderId: String, event: SendToDeviceObject) {
         when (event) {
-            is KeyVerificationStart -> onVerificationStart(session, event)
+            is KeyVerificationStart  -> onVerificationStart(session, event)
             is KeyVerificationAccept -> onVerificationAccept(session, event)
-            is KeyVerificationKey -> onKeyVerificationKey(session, senderId, event)
-            is KeyVerificationMac -> onKeyVerificationMac(session, event)
-            else -> {
+            is KeyVerificationKey    -> onKeyVerificationKey(session, senderId, event)
+            is KeyVerificationMac    -> onKeyVerificationMac(session, event)
+            else                     -> {
                 //nop
             }
         }
@@ -240,13 +240,17 @@ abstract class SASVerificationTransaction(transactionId: String,
             cancel(session, CancelCode.MismatchedKeys)
             return
         }
+
+        val verifiedDevices = ArrayList<String>()
+
         //cannot be empty because it has been validated
         theirMac!!.mac!!.keys.forEach {
             val keyIDNoPrefix = if (it.startsWith("ed25519:")) it.substring("ed25519:".length) else it
             val otherDeviceKey = otherUserKnownDevices[keyIDNoPrefix]?.fingerprint()
             if (otherDeviceKey == null) {
-                cancel(session, CancelCode.MismatchedKeys)
-                return
+                Log.e(LOG_TAG, "Verification: Could not find device $keyIDNoPrefix to verify")
+                //just ignore and continue
+                return@forEach
             }
             val mac = macUsingAgreedMethod(otherDeviceKey, baseInfo + it)
             if (mac != theirMac?.mac?.get(it)) {
@@ -254,19 +258,31 @@ abstract class SASVerificationTransaction(transactionId: String,
                 cancel(session, CancelCode.MismatchedKeys)
                 return
             }
+            verifiedDevices.add(keyIDNoPrefix)
         }
 
-        setDeviceVerified(
-                session,
-                otherDeviceId ?: "",
-                otherUserId,
-                success = {
-                    state = SASVerificationTxState.Verified
-                },
-                error = {
-                    //mmm what to do?, looks like this is never called
-                }
-        )
+        // if none of the keys could be verified, then error because the app
+        // should be informed about that
+        if (verifiedDevices.isEmpty()) {
+            Log.e(LOG_TAG, "Verification: No devices verified")
+            cancel(session, CancelCode.MismatchedKeys)
+            return
+        }
+        //TODO what if the otherDevice is not in this list? and should we
+        verifiedDevices.forEach {
+            setDeviceVerified(
+                    session,
+                    it,
+                    otherUserId,
+                    success = {
+                        state = SASVerificationTxState.Verified
+                    },
+                    error = {
+                        //mmm what to do?, looks like this is never called
+                    }
+            )
+        }
+
     }
 
     private fun setDeviceVerified(session: CryptoSession, deviceId: String, userId: String, success: () -> Unit, error: () -> Unit) {
@@ -364,11 +380,11 @@ abstract class SASVerificationTransaction(transactionId: String,
                 if (shortCodeBytes!!.size < 5) return null
                 return getDecimalCodeRepresentation(shortCodeBytes!!)
             }
-            KeyVerificationStart.SAS_MODE_EMOJI -> {
+            KeyVerificationStart.SAS_MODE_EMOJI   -> {
                 if (shortCodeBytes!!.size < 6) return null
                 return getEmojiCodeRepresentation(shortCodeBytes!!).joinToString(" ") { it.emoji }
             }
-            else -> return null
+            else                                  -> return null
         }
     }
 
