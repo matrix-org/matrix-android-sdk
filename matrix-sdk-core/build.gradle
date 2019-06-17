@@ -38,8 +38,6 @@ dependencies {
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-
     implementation "com.google.code.gson:gson:$gson_version"
     implementation "com.squareup.okhttp3:okhttp:$okhttp_version"
     implementation 'com.squareup.okhttp3:logging-interceptor:3.10.0'
