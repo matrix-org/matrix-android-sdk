@@ -80,7 +80,7 @@
 
     <string name="room_displayname_empty_room">Tomt rom</string>
 
-<string name="notice_event_redacted">Ei melding vart stroki</string>
+    <string name="notice_event_redacted">Ei melding vart stroki</string>
     <string name="notice_event_redacted_by">%1$s strauk meldingi</string>
     <string name="notice_event_redacted_with_reason">Meldingi vart stroki [av di: %1$s]</string>
     <string name="notice_event_redacted_by_with_reason">%1$s strauk meldingi [av di: %2$s]</string>

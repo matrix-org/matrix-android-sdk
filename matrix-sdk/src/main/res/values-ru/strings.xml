@@ -90,11 +90,11 @@
         <item quantity="one">%1$s и 1 другой</item>
         <item quantity="few">%1$s и %2$d другие</item>
         <item quantity="many">%1$s и %2$d других</item>
-        <item quantity="other"/>
+        <item quantity="other" />
     </plurals>
 
 
-<string name="notice_event_redacted">Сообщение удалено</string>
+    <string name="notice_event_redacted">Сообщение удалено</string>
     <string name="notice_event_redacted_by">%1$s удалил(а) сообщение</string>
     <string name="notice_event_redacted_with_reason">Сообщение удалено [причина: %1$s]</string>
     <string name="notice_event_redacted_by_with_reason">%1$s удалил(а) сообщение [причина: %2$s]</string>
