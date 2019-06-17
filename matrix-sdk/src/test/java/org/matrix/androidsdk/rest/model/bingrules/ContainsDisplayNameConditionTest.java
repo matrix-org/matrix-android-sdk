@@ -40,7 +40,7 @@ public class ContainsDisplayNameConditionTest {
 
     private void setEventMessage(String type, String rest) {
         String contentJson = "{'msgtype': '" + type + "', " + rest + "}";
-        event.content = new JsonParser().parse(contentJson);
+        event.contentJson = new JsonParser().parse(contentJson);
     }
 
     private void setEventTextMessageBody(String body) {
