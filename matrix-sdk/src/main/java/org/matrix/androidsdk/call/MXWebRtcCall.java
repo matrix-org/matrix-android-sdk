@@ -599,7 +599,7 @@ public class MXWebRtcCall extends MXCall {
         // define at least on server
         if (iceServers.isEmpty()) {
             Log.d(LOG_TAG, "## createLocalStream(): use the default google server");
-            iceServers.add(new PeerConnection.IceServer("stun:stun.l.google.com:19302"));
+            iceServers.add(new PeerConnection.IceServer("stun:stun.services.mozilla.com"));
         }
 
         // define constraints
