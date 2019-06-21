@@ -133,6 +133,7 @@ public class CreateRoomParams {
             Map<String, String> contentMap = new HashMap<>();
             contentMap.put("algorithm", algorithm);
             algoEvent.updateContent(JsonUtils.getGson(false).toJsonTree(contentMap));
+            algoEvent.stateKey = "";
 
             if (null == initialStates) {
                 initialStates = Arrays.asList(algoEvent);
@@ -170,6 +171,7 @@ public class CreateRoomParams {
             Map<String, String> contentMap = new HashMap<>();
             contentMap.put("history_visibility", historyVisibility);
             historyVisibilityEvent.updateContent(JsonUtils.getGson(false).toJsonTree(contentMap));
+            historyVisibilityEvent.stateKey = "";
 
             if (null == initialStates) {
                 initialStates = Arrays.asList(historyVisibilityEvent);
