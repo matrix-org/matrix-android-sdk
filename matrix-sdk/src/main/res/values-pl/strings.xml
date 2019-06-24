@@ -53,7 +53,7 @@
         <item quantity="one">%1$s i jeden inny</item>
         <item quantity="few">%1$s i kilku innych</item>
         <item quantity="many">%1$s i %2$d innych</item>
-        <item quantity="other"/>
+        <item quantity="other" />
     </plurals>
 
     <string name="notice_crypto_unable_to_decrypt">** Nie można odszyfrować: %s **</string>
@@ -81,7 +81,7 @@
     <string name="reply_to_an_audio_file">wyślij plik audio.</string>
     <string name="reply_to_a_file">wyślij plik.</string>
 
-<string name="notice_event_redacted">Wiadomość usunięta</string>
+    <string name="notice_event_redacted">Wiadomość usunięta</string>
     <string name="notice_event_redacted_by">Wiadomość usunięta przez %1$s</string>
     <string name="notice_event_redacted_with_reason">Wiadomość usunięta [powód: %1$s]</string>
     <string name="notice_event_redacted_by_with_reason">Wiadomość usunięta przez %1$s [powód: %2$s]</string>
@@ -141,10 +141,10 @@
     <string name="verification_emoji_folder">Folder</string>
     <string name="verification_emoji_pin">Pinezka</string>
 
-<string name="verification_emoji_globe">Ziemia</string>
+    <string name="verification_emoji_globe">Ziemia</string>
     <string name="verification_emoji_smiley">Uśmiech</string>
     <string name="verification_emoji_wrench">Klucz francuski</string>
     <string name="verification_emoji_santa">Mikołaj</string>
     <string name="verification_emoji_gift">Prezent</string>
     <string name="verification_emoji_hammer">Młotek</string>
-    </resources>
+</resources>

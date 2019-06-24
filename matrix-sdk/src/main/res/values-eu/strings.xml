@@ -85,7 +85,7 @@
     <string name="notice_event_redacted_by">%1$s erabiltzaileak mezua kendu du</string>
     <string name="notice_event_redacted_with_reason">Mezua kendu da [arrazoia: %1$s]</string>
     <string name="notice_event_redacted_by_with_reason">%1$s erabiltzaileak mezua kendu du [arrazoia: %2$s]</string>
-<string name="verification_emoji_dog">Txakurra</string>
+    <string name="verification_emoji_dog">Txakurra</string>
     <string name="verification_emoji_cat">Katua</string>
     <string name="verification_emoji_lion">Lehoia</string>
     <string name="verification_emoji_horse">Zaldia</string>

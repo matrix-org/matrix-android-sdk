@@ -85,7 +85,7 @@
     <string name="notice_event_redacted_by">Съобщение премахнато от %1$s</string>
     <string name="notice_event_redacted_with_reason">Премахнато съобщение [причина: %1$s]</string>
     <string name="notice_event_redacted_by_with_reason">Съобщение премахнато от %1$s [причина: %2$s]</string>
-<string name="verification_emoji_dog">Куче</string>
+    <string name="verification_emoji_dog">Куче</string>
     <string name="verification_emoji_cat">Котка</string>
     <string name="verification_emoji_lion">Лъв</string>
     <string name="verification_emoji_horse">Кон</string>

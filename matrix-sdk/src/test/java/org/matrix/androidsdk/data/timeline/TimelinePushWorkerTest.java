@@ -83,7 +83,7 @@ public class TimelinePushWorkerTest {
         final Event event = new Event();
         Map<String, String> contentMap = new HashMap<>();
         contentMap.put("lifetime", "10000");
-        event.content = gson.toJsonTree(contentMap);
+        event.contentJson = gson.toJsonTree(contentMap);
         event.originServerTs = System.currentTimeMillis() - 50000;
         final RoomState roomState = new RoomState();
         mTimelinePushWorker.triggerPush(roomState, event);
