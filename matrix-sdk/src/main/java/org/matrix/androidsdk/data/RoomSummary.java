@@ -121,6 +121,18 @@ public class RoomSummary implements java.io.Serializable {
 
     private int mInvitedMembersCountFromSyncRoomSummary;
 
+    public interface RoomSummaryListener {
+        /**
+         * Test if the event can be summarized (i.e. used as the last event of the room).
+         * When the listener is defined this method overrides the default one.
+         *
+         * @param event the event to test.
+         * @return true if the event can be summarized
+         */
+        boolean isSupportedEvent(Event event);
+    }
+    private static @Nullable RoomSummaryListener mRoomSummaryListener;
+
     public RoomSummary() {
     }
 
@@ -177,6 +189,15 @@ public class RoomSummary implements java.io.Serializable {
     }
 
     /**
+     * Set the listener of the RoomSummary class.
+     *
+     * @param roomSummaryListener the listener
+     */
+    public static void setRoomSummaryListener(@Nullable RoomSummaryListener roomSummaryListener) {
+        mRoomSummaryListener = roomSummaryListener;
+    }
+
+    /**
      * Test if the event can be summarized.
      * Some event types are not yet supported.
      *
@@ -184,6 +205,21 @@ public class RoomSummary implements java.io.Serializable {
      * @return true if the event can be summarized
      */
     public static boolean isSupportedEvent(Event event) {
+        if (mRoomSummaryListener != null) {
+            return mRoomSummaryListener.isSupportedEvent(event);
+        } else {
+            return isSupportedEventDefaultImplementation(event);
+        }
+    }
+
+    /**
+     * Test if the event can be summarized.
+     * Default implementation (used when no listener as been defined to RoomSummary class)
+     *
+     * @param event the event to test.
+     * @return true if the event can be summarized
+     */
+    public static boolean isSupportedEventDefaultImplementation(Event event) {
         String type = event.getType();
         boolean isSupported = false;
 

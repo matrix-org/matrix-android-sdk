@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - RoomSummary: Add a listener to override the method used to handle the last message of the rooms.
 
 Bugfix:
  - Fix replies showing mxids instead of display names (vector-im/riot-android#2468)
