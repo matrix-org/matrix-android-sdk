@@ -92,7 +92,7 @@
     </plurals>
 
 
-<string name="notice_event_redacted">Nachricht entfernt</string>
+    <string name="notice_event_redacted">Nachricht entfernt</string>
     <string name="notice_event_redacted_by">Nachricht entfernt von %1$s</string>
     <string name="notice_event_redacted_with_reason">Nachricht entfernt [Grund: %1$s]</string>
     <string name="notice_event_redacted_by_with_reason">Nachricht entfernt von %1$s [Grund: %2$s]</string>
@@ -105,4 +105,4 @@
     <string name="verification_emoji_pig">Schwein</string>
     <string name="verification_emoji_elephant">Elefant</string>
     <string name="verification_emoji_rabbit">Hase</string>
-    </resources>
+</resources>
