@@ -305,10 +305,12 @@ public class EventsThread extends Thread {
 
         mKilling = true;
 
-        if (mPaused) {
+        if (mPaused  || mIsNetworkSuspended || (null != mPendingDelayedIntent)) {
             Log.d(LOG_TAG, "killing : the thread was pause so wake it up");
 
             mPaused = false;
+            cancelSyncDelayTimer();
+
             synchronized (mSyncObject) {
                 mSyncObject.notify();
             }
@@ -530,36 +532,16 @@ public class EventsThread extends Thread {
                 }
             }
 
-            if (mPaused || mIsNetworkSuspended || (null != mPendingDelayedIntent)) {
-                if (null != mPendingDelayedIntent) {
-                    Log.d(LOG_TAG, "Event stream is paused because there is a timer delay.");
-                } else if (mIsNetworkSuspended) {
+            if (mPaused || mIsNetworkSuspended) {
+                if (mIsNetworkSuspended) {
                     Log.d(LOG_TAG, "Event stream is paused because there is no available network.");
                 } else {
                     Log.d(LOG_TAG, "Event stream is paused. Waiting.");
                 }
-
-                try {
-                    Log.d(LOG_TAG, "startSync : wait ...");
-
-                    synchronized (mSyncObject) {
-                        mSyncObject.wait();
-                    }
-
-                    if (null != mPendingDelayedIntent) {
-                        Log.d(LOG_TAG, "startSync : cancel mSyncDelayTimer");
-                        mAlarmManager.cancel(mPendingDelayedIntent);
-                        mPendingDelayedIntent.cancel();
-                        mPendingDelayedIntent = null;
-                    }
-
-                    Log.d(LOG_TAG, "Event stream woken from pause.");
-
-                    // perform a catchup asap
-                    serverTimeout = 0;
-                } catch (InterruptedException e) {
-                    Log.e(LOG_TAG, "Unexpected interruption while paused: " + e.getMessage(), e);
-                }
+                // Suspend the event stream
+                suspendSync();
+                // Perform a catchup asap when the event stream is resumed
+                serverTimeout = 0;
             }
 
             // the service could have been killed while being paused.
@@ -688,6 +670,14 @@ public class EventsThread extends Thread {
                 }
             }
             serverTimeout = mNextServerTimeoutms;
+
+            if (null != mPendingDelayedIntent) {
+                Log.d(LOG_TAG, "Event stream is paused because there is a timer delay.");
+                // Suspend the event stream
+                suspendSync();
+                // Perform a catchup asap when the event stream is resumed
+                serverTimeout = 0;
+            }
         }
 
         if (null != mNetworkConnectivityReceiver) {
@@ -703,5 +693,36 @@ public class EventsThread extends Thread {
      */
     private boolean isInitialSyncDone() {
         return mCurrentToken != null;
+    }
+
+    /**
+     * Suspend the events sync.
+     */
+    private void suspendSync() {
+        try {
+            Log.d(LOG_TAG, "suspendSync");
+
+            synchronized (mSyncObject) {
+                mSyncObject.wait();
+            }
+
+            cancelSyncDelayTimer();
+
+            Log.d(LOG_TAG, "suspendSync: Event stream woken from pause.");
+        } catch (InterruptedException e) {
+            Log.e(LOG_TAG, "suspendSync: unexpected interruption: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Cancel the potential sync timer delay
+     */
+    private void cancelSyncDelayTimer() {
+        if (null != mPendingDelayedIntent) {
+            Log.d(LOG_TAG, "cancelSyncDelayTimer");
+            mAlarmManager.cancel(mPendingDelayedIntent);
+            mPendingDelayedIntent.cancel();
+            mPendingDelayedIntent = null;
+        }
     }
 }

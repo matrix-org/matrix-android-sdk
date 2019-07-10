@@ -10,6 +10,7 @@ Improvements:
 Bugfix:
  - Fix replies showing mxids instead of display names (vector-im/riot-android#2468)
  - Fix / SAS, don't error if we don't know about some keys (vector-im/riot-android#3184)
+ - F-Droid: sync once before suspend the events stream when a minimum delay is defined between 2 sync requests.
 
 API Change:
  -
