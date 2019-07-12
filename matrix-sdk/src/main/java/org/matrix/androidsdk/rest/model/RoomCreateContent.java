@@ -27,15 +27,19 @@ public class RoomCreateContent implements Serializable {
 
     public String creator;
 
-    // Not used for the moment
-    // @SerializedName("room_version")
-    // public String roomVersion;
+    @SerializedName("room_version")
+    public String roomVersion;
+
+    @SerializedName("m.federate")
+    public Boolean isFederated;
 
     public Predecessor predecessor;
 
     public RoomCreateContent deepCopy() {
         final RoomCreateContent copy = new RoomCreateContent();
         copy.creator = creator;
+        copy.roomVersion = roomVersion;
+        copy.isFederated = isFederated;
         copy.predecessor = predecessor != null ? predecessor.deepCopy() : null;
         return copy;
     }
