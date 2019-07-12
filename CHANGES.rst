@@ -6,6 +6,7 @@ Features:
 
 Improvements:
  - RoomSummary: Add a listener to override the method used to handle the last message of the rooms.
+ - RoomCreateContent: Add missing fields (room_version and m.federate)
 
 Bugfix:
  - Fix replies showing mxids instead of display names (vector-im/riot-android#2468)
