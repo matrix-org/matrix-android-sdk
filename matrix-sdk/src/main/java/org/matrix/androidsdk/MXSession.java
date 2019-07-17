@@ -1424,9 +1424,12 @@ public class MXSession implements CryptoSession {
      * Join a room by its roomAlias
      *
      * @param roomIdOrAlias the room alias
+     * @param viaServers    The servers to attempt to join the room through. One of the servers must be participating in the room. Can be null.
      * @param callback      the async callback once the room is joined. The RoomId is provided.
      */
-    public void joinRoom(String roomIdOrAlias, List<String> viaServers, final ApiCallback<String> callback) {
+    public void joinRoom(String roomIdOrAlias,
+                         @Nullable List<String> viaServers,
+                         final ApiCallback<String> callback) {
         checkIfAlive();
 
         // sanity check
