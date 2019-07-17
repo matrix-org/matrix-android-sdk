@@ -1417,31 +1417,44 @@ public class MXSession implements CryptoSession {
      * @param callback      the async callback once the room is joined. The RoomId is provided.
      */
     public void joinRoom(String roomIdOrAlias, final ApiCallback<String> callback) {
+        joinRoom(roomIdOrAlias, null, callback);
+    }
+
+    /**
+     * Join a room by its roomAlias
+     *
+     * @param roomIdOrAlias the room alias
+     * @param callback      the async callback once the room is joined. The RoomId is provided.
+     */
+    public void joinRoom(String roomIdOrAlias, List<String> viaServers, final ApiCallback<String> callback) {
         checkIfAlive();
 
         // sanity check
         if ((null != mDataHandler) && (null != roomIdOrAlias)) {
-            mDataRetriever.getRoomsRestClient().joinRoom(roomIdOrAlias, new SimpleApiCallback<RoomResponse>(callback) {
-                @Override
-                public void onSuccess(final RoomResponse roomResponse) {
-                    final String roomId = roomResponse.roomId;
-                    Room joinedRoom = mDataHandler.getRoom(roomId);
+            mDataRetriever.getRoomsRestClient().joinRoom(roomIdOrAlias,
+                    viaServers,
+                    null,
+                    new SimpleApiCallback<RoomResponse>(callback) {
+                        @Override
+                        public void onSuccess(final RoomResponse roomResponse) {
+                            final String roomId = roomResponse.roomId;
+                            Room joinedRoom = mDataHandler.getRoom(roomId);
 
-                    // wait until the initial sync is done
-                    if (!joinedRoom.isJoined()) {
-                        joinedRoom.setOnInitialSyncCallback(new SimpleApiCallback<Void>(callback) {
-                            @Override
-                            public void onSuccess(Void info) {
+                            // wait until the initial sync is done
+                            if (!joinedRoom.isJoined()) {
+                                joinedRoom.setOnInitialSyncCallback(new SimpleApiCallback<Void>(callback) {
+                                    @Override
+                                    public void onSuccess(Void info) {
+                                        callback.onSuccess(roomId);
+                                    }
+                                });
+                            } else {
+                                // to initialise the notification counters
+                                joinedRoom.markAllAsRead(null);
                                 callback.onSuccess(roomId);
                             }
-                        });
-                    } else {
-                        // to initialise the notification counters
-                        joinedRoom.markAllAsRead(null);
-                        callback.onSuccess(roomId);
-                    }
-                }
-            });
+                        }
+                    });
         }
     }
 

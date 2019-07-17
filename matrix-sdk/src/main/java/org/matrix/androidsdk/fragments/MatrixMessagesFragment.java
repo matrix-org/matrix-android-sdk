@@ -612,7 +612,7 @@ public class MatrixMessagesFragment extends Fragment {
 
         Log.d(LOG_TAG, "joinRoom " + mRoom.getRoomId());
 
-        mRoom.join(new SimpleApiCallback<Void>(getActivity()) {
+        mRoom.join(mRoom.getRoomId(), null, null, new SimpleApiCallback<Void>(getActivity()) {
             @Override
             public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "joinRoom succeeds");

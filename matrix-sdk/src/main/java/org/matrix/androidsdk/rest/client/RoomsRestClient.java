@@ -52,7 +52,9 @@ import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -231,30 +233,26 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     }
 
     /**
-     * Join a room by its roomAlias or its roomId.
-     *
-     * @param roomIdOrAlias the room id or the room alias
-     * @param callback      the async callback
-     */
-    public void joinRoom(final String roomIdOrAlias, final ApiCallback<RoomResponse> callback) {
-        joinRoom(roomIdOrAlias, null, callback);
-    }
-
-    /**
      * Join a room by its roomAlias or its roomId with some parameters.
      *
      * @param roomIdOrAlias the room id or the room alias
-     * @param params        the joining parameters.
+     * @param viaServers    The servers to attempt to join the room through. One of the servers must be participating in the room. Can be null.
+     * @param params        the joining parameters. Can be null.
      * @param callback      the async callback
      */
-    public void joinRoom(final String roomIdOrAlias, final Map<String, Object> params, final ApiCallback<RoomResponse> callback) {
+    public void joinRoom(final String roomIdOrAlias,
+                         @Nullable final List<String> viaServers,
+                         @Nullable final Map<String, Object> params,
+                         final ApiCallback<RoomResponse> callback) {
         final String description = "joinRoom : roomId " + roomIdOrAlias;
 
-        mApi.joinRoomByAliasOrId(roomIdOrAlias, (null == params) ? new HashMap<String, Object>() : params)
-                .enqueue(new RestAdapterCallback<RoomResponse>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+        mApi.joinRoomByAliasOrId(roomIdOrAlias,
+                (null == viaServers) ? new ArrayList<>() : viaServers,
+                (null == params) ? new HashMap<>() : params)
+                .enqueue(new RestAdapterCallback<>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        joinRoom(roomIdOrAlias, params, callback);
+                        joinRoom(roomIdOrAlias, viaServers, params, callback);
                     }
                 }));
     }

@@ -2,7 +2,7 @@ Changes to Matrix Android SDK in 0.9.24 (2019-XX-XX)
 =======================================================
 
 Features:
- -
+ - Add "server_name" parameter to the join room request (vector-im/riot-android#3204)
 
 Improvements:
  - RoomSummary: Add a listener to override the method used to handle the last message of the rooms.

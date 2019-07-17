@@ -140,4 +140,24 @@ public class MXPatterns {
     public static boolean isGroupId(@Nullable final String str) {
         return str != null && PATTERN_CONTAIN_MATRIX_GROUP_IDENTIFIER.matcher(str).matches();
     }
+
+    /**
+     * Extract server name from a matrix id
+     *
+     * @param matrixId
+     * @return null if not found or if matrixId is null
+     */
+    public static String extractServerNameFromId(@Nullable String matrixId) {
+        if (matrixId == null) {
+            return null;
+        }
+
+        int index = matrixId.lastIndexOf(":");
+
+        if (index == -1) {
+            return null;
+        }
+
+        return matrixId.substring(index + 1);
+    }
 }
