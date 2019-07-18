@@ -229,6 +229,13 @@ public class MxPatternsTest {
         }
     }
 
+    @Test
+    public void MxPatterns_extractServer() {
+        Assert.assertNull(MXPatterns.extractServerNameFromId(null));
+        Assert.assertNull(MXPatterns.extractServerNameFromId("!GptcCLkPQiNdyDSgbJ"));
+        Assert.assertEquals("vector.modular.im", MXPatterns.extractServerNameFromId("!GptcCLkPQiNdyDSgbJ:vector.modular.im"));
+    }
+
     /* ==========================================================================================
      * Private methods
      * ========================================================================================== */

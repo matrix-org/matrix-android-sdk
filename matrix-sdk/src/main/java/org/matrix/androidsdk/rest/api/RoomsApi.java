@@ -39,6 +39,7 @@ import org.matrix.androidsdk.rest.model.UserIdAndReason;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
+import java.util.List;
 import java.util.Map;
 
 import retrofit2.Call;
@@ -147,22 +148,16 @@ public interface RoomsApi {
     Call<Void> invite(@Path("roomId") String roomId, @Body Map<String, String> params);
 
     /**
-     * Join the given room.
-     *
-     * @param roomId  the room id
-     * @param content the request body
-     */
-    @POST("rooms/{roomId}/join")
-    Call<Void> join(@Path("roomId") String roomId, @Body JsonObject content);
-
-    /**
      * Join the room with a room id or an alias.
      *
      * @param roomAliasOrId a room alias (or room id)
+     * @param viaServers    The servers to attempt to join the room through. One of the servers must be participating in the room.
      * @param params        the extra join param
      */
     @POST("join/{roomAliasOrId}")
-    Call<RoomResponse> joinRoomByAliasOrId(@Path("roomAliasOrId") String roomAliasOrId, @Body Map<String, Object> params);
+    Call<RoomResponse> joinRoomByAliasOrId(@Path("roomAliasOrId") String roomAliasOrId,
+                                           @Query("server_name") List<String> viaServers,
+                                           @Body Map<String, Object> params);
 
     /**
      * Leave the given room.

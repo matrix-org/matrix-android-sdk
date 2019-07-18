@@ -698,7 +698,7 @@ public class Room implements CryptoRoom {
                     if (null != map) {
                         Map<String, Object> joinMap = new HashMap<>();
                         joinMap.put("third_party_signed", map);
-                        join(alias, joinMap, callback);
+                        join(alias, null, joinMap, callback);
                     } else {
                         join(callback);
                     }
@@ -739,7 +739,7 @@ public class Room implements CryptoRoom {
      * @param callback the callback for when done
      */
     public void join(final ApiCallback<Void> callback) {
-        join(null, null, callback);
+        join(null, null, null, callback);
     }
 
     /**
@@ -749,76 +749,83 @@ public class Room implements CryptoRoom {
      * @param callback  the callback for when done
      */
     private void join(String roomAlias, ApiCallback<Void> callback) {
-        join(roomAlias, null, callback);
+        join(roomAlias, null, null, callback);
     }
 
     /**
      * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
      *
      * @param roomAlias   the room alias
+     * @param viaServers  The servers to attempt to join the room through. One of the servers must be participating in the room.
      * @param extraParams the join extra params
      * @param callback    the callback for when done
      */
-    private void join(final String roomAlias, final Map<String, Object> extraParams, final ApiCallback<Void> callback) {
+    public void join(final String roomAlias,
+                     final List<String> viaServers,
+                     final Map<String, Object> extraParams,
+                     final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "Join the room " + getRoomId() + " with alias " + roomAlias);
 
         mDataHandler.getDataRetriever().getRoomsRestClient()
-                .joinRoom((null != roomAlias) ? roomAlias : getRoomId(), extraParams, new SimpleApiCallback<RoomResponse>(callback) {
-                    @Override
-                    public void onSuccess(final RoomResponse aResponse) {
-                        try {
-                            // the join request did not get the room initial history
-                            if (!isJoined()) {
-                                Log.d(LOG_TAG, "the room " + getRoomId() + " is joined but wait after initial sync");
+                .joinRoom((null != roomAlias) ? roomAlias : getRoomId(),
+                        viaServers,
+                        extraParams,
+                        new SimpleApiCallback<RoomResponse>(callback) {
+                            @Override
+                            public void onSuccess(final RoomResponse aResponse) {
+                                try {
+                                    // the join request did not get the room initial history
+                                    if (!isJoined()) {
+                                        Log.d(LOG_TAG, "the room " + getRoomId() + " is joined but wait after initial sync");
 
-                                // wait the server sends the events chunk before calling the callback
-                                setOnInitialSyncCallback(callback);
-                            } else {
-                                Log.d(LOG_TAG, "the room " + getRoomId() + " is joined : the initial sync has been done");
-                                // to initialise the notification counters
-                                markAllAsRead(null);
-                                // already got the initial sync
-                                callback.onSuccess(null);
+                                        // wait the server sends the events chunk before calling the callback
+                                        setOnInitialSyncCallback(callback);
+                                    } else {
+                                        Log.d(LOG_TAG, "the room " + getRoomId() + " is joined : the initial sync has been done");
+                                        // to initialise the notification counters
+                                        markAllAsRead(null);
+                                        // already got the initial sync
+                                        callback.onSuccess(null);
+                                    }
+                                } catch (Exception e) {
+                                    Log.e(LOG_TAG, "join exception " + e.getMessage(), e);
+                                }
                             }
-                        } catch (Exception e) {
-                            Log.e(LOG_TAG, "join exception " + e.getMessage(), e);
-                        }
-                    }
 
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "join onNetworkError " + e.getMessage(), e);
-                        callback.onNetworkError(e);
-                    }
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                Log.e(LOG_TAG, "join onNetworkError " + e.getMessage(), e);
+                                callback.onNetworkError(e);
+                            }
 
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "join onMatrixError " + e.getMessage());
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                Log.e(LOG_TAG, "join onMatrixError " + e.getMessage());
 
-                        if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
-                            // It can happen when user wants to join a room he was invited to, but the inviter has left
-                            // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
-                            // 'Error when trying to join an empty room should be more explicit
-                            e.error = getStore().getContext().getString(R.string.room_error_join_failed_empty_room);
-                        }
+                                if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
+                                    // It can happen when user wants to join a room he was invited to, but the inviter has left
+                                    // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
+                                    // 'Error when trying to join an empty room should be more explicit
+                                    e.error = getStore().getContext().getString(R.string.room_error_join_failed_empty_room);
+                                }
 
-                        // if the alias is not found
-                        // try with the room id
-                        if ((e.mStatus == 404) && !TextUtils.isEmpty(roomAlias)) {
-                            Log.e(LOG_TAG, "Retry without the room alias");
-                            join(null, extraParams, callback);
-                            return;
-                        }
+                                // if the alias is not found
+                                // try with the room id
+                                if ((e.mStatus == 404) && !TextUtils.isEmpty(roomAlias)) {
+                                    Log.e(LOG_TAG, "Retry without the room alias");
+                                    join(null, viaServers, extraParams, callback);
+                                    return;
+                                }
 
-                        callback.onMatrixError(e);
-                    }
+                                callback.onMatrixError(e);
+                            }
 
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "join onUnexpectedError " + e.getMessage(), e);
-                        callback.onUnexpectedError(e);
-                    }
-                });
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                Log.e(LOG_TAG, "join onUnexpectedError " + e.getMessage(), e);
+                                callback.onUnexpectedError(e);
+                            }
+                        });
     }
 
     //================================================================================
