@@ -19,9 +19,9 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.core.callback.ApiCallback;
+import org.matrix.androidsdk.core.rest.DefaultRetrofit2CallbackWrapper;
 import org.matrix.androidsdk.rest.api.CallRulesApi;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.DefaultRetrofit2CallbackWrapper;
 
 public class CallRestClient extends RestClient<CallRulesApi> {
 

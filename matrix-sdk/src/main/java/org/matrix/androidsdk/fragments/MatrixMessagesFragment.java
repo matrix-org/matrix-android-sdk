@@ -29,21 +29,21 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import org.matrix.androidsdk.MXSession;
+import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.callback.ApiCallback;
+import org.matrix.androidsdk.core.callback.SimpleApiCallback;
+import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomPreviewData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 import org.matrix.androidsdk.rest.model.sync.RoomSync;
 import org.matrix.androidsdk.rest.model.sync.RoomSyncState;
 import org.matrix.androidsdk.rest.model.sync.RoomSyncTimeline;
-import org.matrix.androidsdk.util.Log;
 
 import java.util.List;
 
@@ -612,7 +612,7 @@ public class MatrixMessagesFragment extends Fragment {
 
         Log.d(LOG_TAG, "joinRoom " + mRoom.getRoomId());
 
-        mRoom.join(new SimpleApiCallback<Void>(getActivity()) {
+        mRoom.join(mRoom.getRoomId(), null, null, new SimpleApiCallback<Void>(getActivity()) {
             @Override
             public void onSuccess(Void info) {
                 Log.d(LOG_TAG, "joinRoom succeeds");

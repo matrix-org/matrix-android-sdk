@@ -27,9 +27,12 @@ android {
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 28
-        versionCode 923
-        versionName "0.9.23"
+        versionCode 924
+        versionName "0.9.24"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        // Enable multi dex for test
+        multiDexEnabled true
     }
 
     compileOptions {
@@ -71,9 +74,6 @@ android {
             resValue "string", "git_sdk_revision_unix_date", "\"${gitRevisionUnixDate()}\""
             resValue "string", "git_sdk_revision_date", "\"${gitRevisionDate()}\""
 
-            // Set to BODY instead of NONE to enable logging
-            buildConfigField "okhttp3.logging.HttpLoggingInterceptor.Level", "OKHTTP_LOGGING_LEVEL", "okhttp3.logging.HttpLoggingInterceptor.Level.NONE"
-
             minifyEnabled false
         }
 
@@ -81,8 +81,6 @@ android {
             resValue "string", "git_sdk_revision", "\"${gitRevision()}\""
             resValue "string", "git_sdk_revision_unix_date", "\"${gitRevisionUnixDate()}\""
             resValue "string", "git_sdk_revision_date", "\"${gitRevisionDate()}\""
-
-            buildConfigField "okhttp3.logging.HttpLoggingInterceptor.Level", "OKHTTP_LOGGING_LEVEL", "okhttp3.logging.HttpLoggingInterceptor.Level.NONE"
 
             libraryVariants.all { variant ->
                 variant.outputs.each { output ->
@@ -127,12 +125,6 @@ android {
         error 'UseValueOf'
     }
 
-    repositories {
-        flatDir {
-            dir 'libs'
-        }
-    }
-
     testOptions {
         unitTests {
             includeAndroidResources = true
@@ -160,15 +152,19 @@ static def gitRevisionDate() {
 }
 
 dependencies {
+    // Modules
+    implementation project(':matrix-sdk-core')
+    implementation project(':matrix-sdk-crypto')
+
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
-    implementation 'com.android.support:appcompat-v7:28.0.0'
-    implementation 'com.android.support:preference-v7:28.0.0'
+    implementation "com.android.support:appcompat-v7:$support_lib_version"
+    implementation "com.android.support:preference-v7:$support_lib_version"
 
     implementation 'com.squareup.retrofit2:retrofit:2.4.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
-    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation "com.google.code.gson:gson:$gson_version"
     implementation 'com.squareup.okhttp3:okhttp:3.11.0'
     implementation 'com.squareup.okhttp3:logging-interceptor:3.10.0'
     implementation 'com.facebook.stetho:stetho:1.5.0'
@@ -181,9 +177,7 @@ dependencies {
     kapt 'dk.ilios:realmfieldnameshelper:1.1.1'
 
     // WebRTC
-    // react-native-webrtc uses v0.59, which is not found, so force using the version 0.59.2 of react-native
-    implementation('com.facebook.react:react-native:0.59.2')
-    implementation('com.facebook.react:react-native-webrtc:1.69.0-jitsi-799011')
+    implementation('com.facebook.react:react-native-webrtc:1.69.0-jitsi-799011@aar')
 
     // Test
     testImplementation 'com.android.support.test:runner:1.0.2'
@@ -196,7 +190,10 @@ dependencies {
 
     // Robolectric
     androidTestImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support:support-annotations:28.0.0'
+    androidTestImplementation "com.android.support:support-annotations:$support_lib_version"
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test:rules:1.0.2'
+
+    // Enable multi dex for test
+    implementation 'com.android.support:multidex:1.0.3'
 }

@@ -29,18 +29,39 @@ import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 
+import org.jetbrains.annotations.NotNull;
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.core.BingRulesManager;
+import org.matrix.androidsdk.core.ContentManager;
+import org.matrix.androidsdk.core.FileContentUtils;
+import org.matrix.androidsdk.core.FilterUtil;
+import org.matrix.androidsdk.core.JsonUtils;
+import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.PolymorphicRequestBodyConverter;
+import org.matrix.androidsdk.core.UnsentEventsManager;
+import org.matrix.androidsdk.core.VersionsUtil;
+import org.matrix.androidsdk.core.callback.ApiCallback;
+import org.matrix.androidsdk.core.callback.ApiFailureCallback;
+import org.matrix.androidsdk.core.callback.SimpleApiCallback;
+import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.crypto.MXCrypto;
 import org.matrix.androidsdk.crypto.MXCryptoConfig;
+import org.matrix.androidsdk.crypto.cryptostore.IMXCryptoStore;
+import org.matrix.androidsdk.crypto.cryptostore.MXFileCryptoStore;
+import org.matrix.androidsdk.crypto.cryptostore.db.RealmCryptoStore;
+import org.matrix.androidsdk.crypto.interfaces.CryptoSession;
+import org.matrix.androidsdk.crypto.internal.MXCryptoImpl;
+import org.matrix.androidsdk.crypto.model.rest.DeleteDeviceAuth;
+import org.matrix.androidsdk.crypto.model.rest.DeleteDeviceParams;
+import org.matrix.androidsdk.crypto.model.rest.DevicesListResponse;
+import org.matrix.androidsdk.crypto.rest.CryptoRestClient;
+import org.matrix.androidsdk.crypto.rest.RoomKeysRestClient;
 import org.matrix.androidsdk.data.DataRetriever;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.RoomTag;
 import org.matrix.androidsdk.data.comparator.RoomComparatorWithTag;
-import org.matrix.androidsdk.data.cryptostore.IMXCryptoStore;
-import org.matrix.androidsdk.data.cryptostore.MXFileCryptoStore;
-import org.matrix.androidsdk.data.cryptostore.db.RealmCryptoStore;
 import org.matrix.androidsdk.data.metrics.MetricsListener;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
@@ -48,12 +69,8 @@ import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.ApiFailureCallback;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
 import org.matrix.androidsdk.rest.client.CallRestClient;
-import org.matrix.androidsdk.rest.client.CryptoRestClient;
 import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.FilterRestClient;
 import org.matrix.androidsdk.rest.client.GroupsRestClient;
@@ -63,13 +80,11 @@ import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushRulesRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
-import org.matrix.androidsdk.rest.client.RoomKeysRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -84,24 +99,13 @@ import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.rest.model.login.ThreePidCredentials;
 import org.matrix.androidsdk.rest.model.message.MediaMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
-import org.matrix.androidsdk.rest.model.pid.DeleteDeviceAuth;
-import org.matrix.androidsdk.rest.model.pid.DeleteDeviceParams;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;
 import org.matrix.androidsdk.rest.model.search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
-import org.matrix.androidsdk.rest.model.sync.DevicesListResponse;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 import org.matrix.androidsdk.sync.DefaultEventsThreadListener;
 import org.matrix.androidsdk.sync.EventsThread;
 import org.matrix.androidsdk.sync.EventsThreadListener;
-import org.matrix.androidsdk.util.BingRulesManager;
-import org.matrix.androidsdk.util.ContentManager;
-import org.matrix.androidsdk.util.ContentUtils;
-import org.matrix.androidsdk.util.FilterUtil;
-import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.androidsdk.util.Log;
-import org.matrix.androidsdk.util.UnsentEventsManager;
-import org.matrix.androidsdk.util.VersionsUtil;
 import org.matrix.olm.OlmManager;
 
 import java.io.File;
@@ -121,7 +125,7 @@ import java.util.Set;
  * Class that represents one user's session with a particular home server.
  * There can potentially be multiple sessions for handling multiple accounts.
  */
-public class MXSession {
+public class MXSession implements CryptoSession {
     private static final String LOG_TAG = MXSession.class.getSimpleName();
 
     private DataRetriever mDataRetriever;
@@ -139,12 +143,10 @@ public class MXSession {
     private final ThirdPidRestClient mThirdPidRestClient;
     private final CallRestClient mCallRestClient;
     private final AccountDataRestClient mAccountDataRestClient;
-    private final CryptoRestClient mCryptoRestClient;
     private final LoginRestClient mLoginRestClient;
     private final GroupsRestClient mGroupsRestClient;
     private final MediaScanRestClient mMediaScanRestClient;
     private final FilterRestClient mFilterRestClient;
-    private final RoomKeysRestClient mRoomKeysRestClient;
 
     private ApiFailureCallback mFailureCallback;
 
@@ -227,12 +229,10 @@ public class MXSession {
         mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
         mCallRestClient = new CallRestClient(hsConfig);
         mAccountDataRestClient = new AccountDataRestClient(hsConfig);
-        mCryptoRestClient = new CryptoRestClient(hsConfig);
         mLoginRestClient = new LoginRestClient(hsConfig);
         mGroupsRestClient = new GroupsRestClient(hsConfig);
         mMediaScanRestClient = new MediaScanRestClient(hsConfig);
         mFilterRestClient = new FilterRestClient(hsConfig);
-        mRoomKeysRestClient = new RoomKeysRestClient(hsConfig);
     }
 
     /**
@@ -350,7 +350,6 @@ public class MXSession {
         mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mAccountDataRestClient.setUnsentEventsManager(mUnsentEventsManager);
-        mCryptoRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mLoginRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mGroupsRestClient.setUnsentEventsManager(mUnsentEventsManager);
 
@@ -434,6 +433,7 @@ public class MXSession {
      *
      * @return the data handler.
      */
+    @Override
     public MXDataHandler getDataHandler() {
         checkIfAlive();
         return mDataHandler;
@@ -491,7 +491,7 @@ public class MXSession {
      */
     public RoomKeysRestClient getRoomKeysRestClient() {
         checkIfAlive();
-        return mRoomKeysRestClient;
+        return mCrypto.getKeysBackup().getRoomKeysRestClient();
     }
 
     /**
@@ -548,9 +548,24 @@ public class MXSession {
         return mPushersRestClient;
     }
 
+    // TODO Check if it is used by clients of the SDK
     public CryptoRestClient getCryptoRestClient() {
         checkIfAlive();
-        return mCryptoRestClient;
+        return mCrypto.getCryptoRestClient();
+    }
+
+    @VisibleForTesting
+    public CryptoRestClient getCryptoRestClientForTest() {
+        checkIfAlive();
+        if (mCrypto != null) {
+            return mCrypto.getCryptoRestClient();
+        } else {
+            // Create a client, for test only
+            return new CryptoRestClient(
+                    mHsConfig.getHomeserverUri().toString(),
+                    mCredentials.accessToken,
+                    PolymorphicRequestBodyConverter.FACTORY);
+        }
     }
 
     public HomeServerConnectionConfig getHomeServerConfig() {
@@ -618,7 +633,7 @@ public class MXSession {
         AsyncTask<Void, Void, Long> task = new AsyncTask<Void, Void, Long>() {
             @Override
             protected Long doInBackground(Void... params) {
-                return ContentUtils.getDirectorySize(context, context.getApplicationContext().getFilesDir().getParentFile(), 5);
+                return FileContentUtils.getDirectorySize(context, context.getApplicationContext().getFilesDir().getParentFile(), 5);
             }
 
             @Override
@@ -797,7 +812,7 @@ public class MXSession {
 
                     if (null != logFiles) {
                         for (File file : logFiles) {
-                            if (ContentUtils.getLastAccessTime(file) < timestamp) {
+                            if (FileContentUtils.getLastAccessTime(file) < timestamp) {
                                 length += file.length();
                                 file.delete();
                             }
@@ -1402,31 +1417,47 @@ public class MXSession {
      * @param callback      the async callback once the room is joined. The RoomId is provided.
      */
     public void joinRoom(String roomIdOrAlias, final ApiCallback<String> callback) {
+        joinRoom(roomIdOrAlias, null, callback);
+    }
+
+    /**
+     * Join a room by its roomAlias
+     *
+     * @param roomIdOrAlias the room alias
+     * @param viaServers    The servers to attempt to join the room through. One of the servers must be participating in the room. Can be null.
+     * @param callback      the async callback once the room is joined. The RoomId is provided.
+     */
+    public void joinRoom(String roomIdOrAlias,
+                         @Nullable List<String> viaServers,
+                         final ApiCallback<String> callback) {
         checkIfAlive();
 
         // sanity check
         if ((null != mDataHandler) && (null != roomIdOrAlias)) {
-            mDataRetriever.getRoomsRestClient().joinRoom(roomIdOrAlias, new SimpleApiCallback<RoomResponse>(callback) {
-                @Override
-                public void onSuccess(final RoomResponse roomResponse) {
-                    final String roomId = roomResponse.roomId;
-                    Room joinedRoom = mDataHandler.getRoom(roomId);
+            mDataRetriever.getRoomsRestClient().joinRoom(roomIdOrAlias,
+                    viaServers,
+                    null,
+                    new SimpleApiCallback<RoomResponse>(callback) {
+                        @Override
+                        public void onSuccess(final RoomResponse roomResponse) {
+                            final String roomId = roomResponse.roomId;
+                            Room joinedRoom = mDataHandler.getRoom(roomId);
 
-                    // wait until the initial sync is done
-                    if (!joinedRoom.isJoined()) {
-                        joinedRoom.setOnInitialSyncCallback(new SimpleApiCallback<Void>(callback) {
-                            @Override
-                            public void onSuccess(Void info) {
+                            // wait until the initial sync is done
+                            if (!joinedRoom.isJoined()) {
+                                joinedRoom.setOnInitialSyncCallback(new SimpleApiCallback<Void>(callback) {
+                                    @Override
+                                    public void onSuccess(Void info) {
+                                        callback.onSuccess(roomId);
+                                    }
+                                });
+                            } else {
+                                // to initialise the notification counters
+                                joinedRoom.markAllAsRead(null);
                                 callback.onSuccess(roomId);
                             }
-                        });
-                    } else {
-                        // to initialise the notification counters
-                        joinedRoom.markAllAsRead(null);
-                        callback.onSuccess(roomId);
-                    }
-                }
-            });
+                        }
+                    });
         }
     }
 
@@ -2299,6 +2330,12 @@ public class MXSession {
         return mCrypto;
     }
 
+    @NotNull
+    @Override
+    public MXCrypto requireCrypto() {
+        return mCrypto;
+    }
+
     /**
      * @return true if the crypto is enabled
      */
@@ -2380,7 +2417,12 @@ public class MXSession {
                 return;
             }
 
-            mCrypto = new MXCrypto(this, mCryptoStore, sCryptoConfig);
+            mCrypto = new MXCryptoImpl(this,
+                    mCryptoStore,
+                    sCryptoConfig,
+                    mHsConfig.getHomeserverUri().toString(),
+                    mCredentials.accessToken,
+                    PolymorphicRequestBodyConverter.FACTORY);
             mDataHandler.setCrypto(mCrypto);
             // the room summaries are not stored with decrypted content
             decryptRoomSummaries();
@@ -2403,7 +2445,12 @@ public class MXSession {
             if (cryptoEnabled) {
                 Log.d(LOG_TAG, "Crypto is enabled");
                 mCryptoStore.open();
-                mCrypto = new MXCrypto(this, mCryptoStore, sCryptoConfig);
+                mCrypto = new MXCryptoImpl(this,
+                        mCryptoStore,
+                        sCryptoConfig,
+                        mHsConfig.getHomeserverUri().toString(),
+                        mCredentials.accessToken,
+                        PolymorphicRequestBodyConverter.FACTORY);
                 mCrypto.start(true, new SimpleApiCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void info) {
@@ -2441,7 +2488,7 @@ public class MXSession {
      * @param callback the asynchronous callback
      */
     public void getDevicesList(ApiCallback<DevicesListResponse> callback) {
-        mCryptoRestClient.getDevices(callback);
+        mCrypto.getCryptoRestClient().getDevices(callback);
     }
 
     /**
@@ -2452,7 +2499,7 @@ public class MXSession {
      * @param callback   the asynchronous callback
      */
     public void setDeviceName(final String deviceId, final String deviceName, final ApiCallback<Void> callback) {
-        mCryptoRestClient.setDeviceName(deviceId, deviceName, callback);
+        mCrypto.getCryptoRestClient().setDeviceName(deviceId, deviceName, callback);
     }
 
     /**
@@ -2463,7 +2510,7 @@ public class MXSession {
      * @param callback the asynchronous callback.
      */
     public void deleteDevice(final String deviceId, final String password, final ApiCallback<Void> callback) {
-        mCryptoRestClient.deleteDevice(deviceId, new DeleteDeviceParams(), new SimpleApiCallback<Void>(callback) {
+        mCrypto.getCryptoRestClient().deleteDevice(deviceId, new DeleteDeviceParams(), new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 // should never happen
@@ -2533,7 +2580,7 @@ public class MXSession {
         params.auth.type = stages.get(0);
         stages.remove(0);
 
-        mCryptoRestClient.deleteDevice(deviceId, params, new SimpleApiCallback<Void>(callback) {
+        mCrypto.getCryptoRestClient().deleteDevice(deviceId, params, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 if (null != callback) {
@@ -2574,6 +2621,17 @@ public class MXSession {
      */
     public GroupsManager getGroupsManager() {
         return mGroupsManager;
+    }
+
+    @NotNull
+    @Override
+    public String getDeviceId() {
+        return getCredentials().deviceId;
+    }
+
+    @Override
+    public void setDeviceId(@NotNull String deviceId) {
+        getCredentials().deviceId = deviceId;
     }
 
     /* ==========================================================================================

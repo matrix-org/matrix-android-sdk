@@ -23,11 +23,11 @@ import android.text.TextUtils;
 import com.google.gson.annotations.SerializedName;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
-import org.matrix.androidsdk.MXPatterns;
+import org.matrix.androidsdk.core.JsonUtils;
+import org.matrix.androidsdk.core.MXPatterns;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.pid.Invite3Pid;
 import org.matrix.androidsdk.rest.model.pid.ThreePid;
-import org.matrix.androidsdk.util.JsonUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -132,7 +132,8 @@ public class CreateRoomParams {
 
             Map<String, String> contentMap = new HashMap<>();
             contentMap.put("algorithm", algorithm);
-            algoEvent.content = JsonUtils.getGson(false).toJsonTree(contentMap);
+            algoEvent.updateContent(JsonUtils.getGson(false).toJsonTree(contentMap));
+            algoEvent.stateKey = "";
 
             if (null == initialStates) {
                 initialStates = Arrays.asList(algoEvent);
@@ -169,7 +170,8 @@ public class CreateRoomParams {
 
             Map<String, String> contentMap = new HashMap<>();
             contentMap.put("history_visibility", historyVisibility);
-            historyVisibilityEvent.content = JsonUtils.getGson(false).toJsonTree(contentMap);
+            historyVisibilityEvent.updateContent(JsonUtils.getGson(false).toJsonTree(contentMap));
+            historyVisibilityEvent.stateKey = "";
 
             if (null == initialStates) {
                 initialStates = Arrays.asList(historyVisibilityEvent);

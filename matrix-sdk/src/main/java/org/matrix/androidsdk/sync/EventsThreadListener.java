@@ -17,7 +17,7 @@
  */
 package org.matrix.androidsdk.sync;
 
-import org.matrix.androidsdk.rest.model.MatrixError;
+import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.rest.model.sync.SyncResponse;
 
 /**

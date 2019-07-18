@@ -28,14 +28,15 @@ import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.common.CommonTestHelper
 import org.matrix.androidsdk.common.CryptoTestHelper
 import org.matrix.androidsdk.common.TestApiCallback
+import org.matrix.androidsdk.core.JsonUtils
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap
+import org.matrix.androidsdk.crypto.interfaces.CryptoEvent
+import org.matrix.androidsdk.crypto.rest.model.crypto.KeyVerificationAccept
+import org.matrix.androidsdk.crypto.rest.model.crypto.KeyVerificationCancel
+import org.matrix.androidsdk.crypto.rest.model.crypto.KeyVerificationStart
 import org.matrix.androidsdk.listeners.MXEventListener
 import org.matrix.androidsdk.rest.model.Event
-import org.matrix.androidsdk.rest.model.crypto.KeyVerificationAccept
-import org.matrix.androidsdk.rest.model.crypto.KeyVerificationCancel
-import org.matrix.androidsdk.rest.model.crypto.KeyVerificationStart
-import org.matrix.androidsdk.util.JsonUtils
 import java.util.*
 import java.util.concurrent.CountDownLatch
 
@@ -152,7 +153,7 @@ class SASTest {
         val cancelLatch = CountDownLatch(1)
         bobSession!!.dataHandler.addListener(object : MXEventListener() {
             override fun onToDeviceEvent(event: Event?) {
-                if (event!!.getType() == Event.EVENT_TYPE_KEY_VERIFICATION_CANCEL) {
+                if (event!!.getType() == CryptoEvent.EVENT_TYPE_KEY_VERIFICATION_CANCEL) {
                     if (event.contentAsJsonObject?.get("transaction_id")?.asString == tid) {
                         canceledToDeviceEvent = event
                         cancelLatch.countDown()
@@ -209,7 +210,7 @@ class SASTest {
         val cancelLatch = CountDownLatch(1)
         bobSession!!.dataHandler.addListener(object : MXEventListener() {
             override fun onToDeviceEvent(event: Event?) {
-                if (event!!.getType() == Event.EVENT_TYPE_KEY_VERIFICATION_CANCEL) {
+                if (event!!.getType() == CryptoEvent.EVENT_TYPE_KEY_VERIFICATION_CANCEL) {
                     if (event.contentAsJsonObject?.get("transaction_id")?.asString == tid) {
                         canceledToDeviceEvent = event
                         cancelLatch.countDown()
@@ -252,7 +253,7 @@ class SASTest {
         val cancelLatch = CountDownLatch(1)
         bobSession!!.dataHandler.addListener(object : MXEventListener() {
             override fun onToDeviceEvent(event: Event?) {
-                if (event!!.getType() == Event.EVENT_TYPE_KEY_VERIFICATION_CANCEL) {
+                if (event!!.getType() == CryptoEvent.EVENT_TYPE_KEY_VERIFICATION_CANCEL) {
                     if (event.contentAsJsonObject?.get("transaction_id")?.asString == tid) {
                         canceledToDeviceEvent = event
                         cancelLatch.countDown()
@@ -300,7 +301,7 @@ class SASTest {
 
         val sendLatch = CountDownLatch(1)
         bobSession.cryptoRestClient.sendToDevice(
-                Event.EVENT_TYPE_KEY_VERIFICATION_START,
+                CryptoEvent.EVENT_TYPE_KEY_VERIFICATION_START,
                 contentMap,
                 tid,
                 TestApiCallback<Void>(sendLatch)

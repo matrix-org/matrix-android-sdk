@@ -15,15 +15,30 @@
  */
 package org.matrix.androidsdk.rest.model.sync;
 
+import org.jetbrains.annotations.NotNull;
+import org.matrix.androidsdk.crypto.interfaces.CryptoDeviceListResponse;
+
 import java.util.List;
 
 /**
  * This class describes the device list response from a sync request
  */
-public class DeviceListResponse {
+public class DeviceListResponse implements CryptoDeviceListResponse {
     // user ids list which have new crypto devices
     public List<String> changed;
 
     //  List of user ids who are no more tracked.
     public List<String> left;
+
+    @NotNull
+    @Override
+    public List<String> getChanged() {
+        return changed;
+    }
+
+    @NotNull
+    @Override
+    public List<String> getLeft() {
+        return left;
+    }
 }

@@ -40,7 +40,7 @@ public class EventMatchConditionTest {
         event.roomId = TEST_ROOM_ID;
         event.userId = TEST_USER_ID;
         String contentJson = "{'msgtype': 'm.text', 'body': 'Nice body!', 'other_field': 'other_value'}";
-        event.content = new JsonParser().parse(contentJson);
+        event.contentJson = new JsonParser().parse(contentJson);
     }
 
     @Test
@@ -123,29 +123,29 @@ public class EventMatchConditionTest {
         condition.pattern = "@room";
 
         // True cases
-        event.content = new JsonParser().parse("{'msgtype': 'm.text', 'body': '@room'}");
+        event.contentJson = new JsonParser().parse("{'msgtype': 'm.text', 'body': '@room'}");
         Assert.assertTrue(condition.isSatisfied(event));
 
-        event.content = new JsonParser().parse("{'msgtype': 'm.text', 'body': '@room:'}");
+        event.contentJson = new JsonParser().parse("{'msgtype': 'm.text', 'body': '@room:'}");
         Assert.assertTrue(condition.isSatisfied(event));
 
-        event.content = new JsonParser().parse("{'msgtype': 'm.text', 'body': '@room: '}");
+        event.contentJson = new JsonParser().parse("{'msgtype': 'm.text', 'body': '@room: '}");
         Assert.assertTrue(condition.isSatisfied(event));
 
-        event.content = new JsonParser().parse("{'msgtype': 'm.text', 'body': 'hello @room'}");
+        event.contentJson = new JsonParser().parse("{'msgtype': 'm.text', 'body': 'hello @room'}");
         Assert.assertTrue(condition.isSatisfied(event));
 
-        event.content = new JsonParser().parse("{'msgtype': 'm.text', 'body': 'hello @room after'}");
+        event.contentJson = new JsonParser().parse("{'msgtype': 'm.text', 'body': 'hello @room after'}");
         Assert.assertTrue(condition.isSatisfied(event));
 
         // False cases
-        event.content = new JsonParser().parse("{'msgtype': 'm.text', 'body': '_@room'}");
+        event.contentJson = new JsonParser().parse("{'msgtype': 'm.text', 'body': '_@room'}");
         Assert.assertFalse(condition.isSatisfied(event));
 
-        event.content = new JsonParser().parse("{'msgtype': 'm.text', 'body': '@room_'}");
+        event.contentJson = new JsonParser().parse("{'msgtype': 'm.text', 'body': '@room_'}");
         Assert.assertFalse(condition.isSatisfied(event));
 
-        event.content = new JsonParser().parse("{'msgtype': 'm.text', 'body': '_@room_'}");
+        event.contentJson = new JsonParser().parse("{'msgtype': 'm.text', 'body': '_@room_'}");
         Assert.assertFalse(condition.isSatisfied(event));
     }
 }

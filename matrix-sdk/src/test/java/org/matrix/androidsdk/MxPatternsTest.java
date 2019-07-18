@@ -21,6 +21,7 @@ import junit.framework.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import org.matrix.androidsdk.core.MXPatterns;
 
 import java.util.Arrays;
 import java.util.List;
@@ -226,6 +227,13 @@ public class MxPatternsTest {
 
             Assert.assertTrue(MXPatterns.isGroupId(value));
         }
+    }
+
+    @Test
+    public void MxPatterns_extractServer() {
+        Assert.assertNull(MXPatterns.extractServerNameFromId(null));
+        Assert.assertNull(MXPatterns.extractServerNameFromId("!GptcCLkPQiNdyDSgbJ"));
+        Assert.assertEquals("vector.modular.im", MXPatterns.extractServerNameFromId("!GptcCLkPQiNdyDSgbJ:vector.modular.im"));
     }
 
     /* ==========================================================================================

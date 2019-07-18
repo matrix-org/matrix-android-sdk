@@ -18,10 +18,13 @@
 
 package org.matrix.androidsdk.rest.model.sync;
 
+import org.matrix.androidsdk.crypto.interfaces.CryptoDeviceListResponse;
+import org.matrix.androidsdk.crypto.interfaces.CryptoDeviceOneTimeKeysCountSyncResponse;
+import org.matrix.androidsdk.crypto.interfaces.CryptoSyncResponse;
 import org.matrix.androidsdk.rest.model.group.GroupsSyncResponse;
 
 // SyncResponse represents the request response for server sync v2.
-public class SyncResponse {
+public class SyncResponse implements CryptoSyncResponse {
 
     /**
      * The user private data.
@@ -62,4 +65,14 @@ public class SyncResponse {
      * List of groups.
      */
     public GroupsSyncResponse groups;
+
+    @Override
+    public CryptoDeviceListResponse getDeviceLists() {
+        return deviceLists;
+    }
+
+    @Override
+    public CryptoDeviceOneTimeKeysCountSyncResponse getDeviceOneTimeKeysCount() {
+        return deviceOneTimeKeysCount;
+    }
 }

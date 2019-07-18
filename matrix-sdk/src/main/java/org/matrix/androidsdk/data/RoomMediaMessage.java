@@ -36,14 +36,14 @@ import android.text.TextUtils;
 import android.util.Pair;
 import android.webkit.MimeTypeMap;
 
+import org.matrix.androidsdk.core.FileUtilsKt;
+import org.matrix.androidsdk.core.JsonUtils;
+import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.ResourceUtils;
+import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.listeners.IMXMediaUploadListener;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.message.Message;
-import org.matrix.androidsdk.util.FileUtilsKt;
-import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.androidsdk.util.Log;
-import org.matrix.androidsdk.util.ResourceUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -197,7 +197,7 @@ public class RoomMediaMessage implements Parcelable {
     }
 
     @Override
-    public java.lang.String toString() {
+    public String toString() {
         String description = "";
 
         description += "mUri " + mUri;

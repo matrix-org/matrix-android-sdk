@@ -16,8 +16,8 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
+import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.data.Room;
-import org.matrix.androidsdk.util.Log;
 
 public class RoomMemberCountCondition extends Condition {
 

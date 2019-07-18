@@ -17,10 +17,10 @@
  */
 package org.matrix.androidsdk.listeners;
 
+import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 
@@ -103,9 +103,10 @@ public interface IMXEventListener {
     /**
      * An event has been decrypted
      *
-     * @param event the decrypted event
+     * @param roomId  the room id this event belong to
+     * @param eventId the decrypted event id
      */
-    void onEventDecrypted(Event event);
+    void onEventDecrypted(String roomId, String eventId);
 
     /**
      * The bing rules have been updated

@@ -16,7 +16,7 @@
  */
 package org.matrix.androidsdk.rest.model;
 
-import org.matrix.androidsdk.interfaces.DatedObject;
+import org.matrix.androidsdk.core.interfaces.DatedObject;
 
 public class ReceiptData implements java.io.Serializable, DatedObject {
 

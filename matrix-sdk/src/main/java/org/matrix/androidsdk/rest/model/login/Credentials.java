@@ -19,14 +19,16 @@ import android.text.TextUtils;
 
 import com.google.gson.annotations.SerializedName;
 
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.matrix.androidsdk.crypto.interfaces.CryptoCredentials;
 import org.matrix.androidsdk.rest.model.WellKnown;
 
 /**
  * The user's credentials.
  */
-public class Credentials {
+public class Credentials implements CryptoCredentials {
     @SerializedName("user_id")
     public String userId;
 
@@ -92,5 +94,29 @@ public class Credentials {
                 ", refreshToken.length='" + (refreshToken != null ? refreshToken.length() : "null") + '\'' +
                 ", accessToken.length='" + (accessToken != null ? accessToken.length() : "null") + '\'' +
                 '}';
+    }
+
+    @Nullable
+    @Override
+    public String getUserId() {
+        return userId;
+    }
+
+    @Nullable
+    @Override
+    public String getHomeServer() {
+        return homeServer;
+    }
+
+    @Nullable
+    @Override
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    @Nullable
+    @Override
+    public String getDeviceId() {
+        return deviceId;
     }
 }

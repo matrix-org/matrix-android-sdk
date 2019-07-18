@@ -27,13 +27,14 @@ import android.text.TextUtils;
 
 import com.google.gson.Gson;
 
-import org.matrix.androidsdk.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.core.JsonUtils;
+import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.PolymorphicRequestBodyConverter;
+import org.matrix.androidsdk.core.UnsentEventsManager;
+import org.matrix.androidsdk.core.listeners.IMXNetworkEventListener;
+import org.matrix.androidsdk.crypto.rest.ParentRestClient;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.model.login.Credentials;
-import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.androidsdk.util.Log;
-import org.matrix.androidsdk.util.PolymorphicRequestBodyConverter;
-import org.matrix.androidsdk.util.UnsentEventsManager;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -256,6 +257,8 @@ public class RestClient<T> {
                     "; Flavour " + flavorDescription +
                     "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
         }
+
+        ParentRestClient.initUserAgent(sUserAgent);
     }
 
     /**

@@ -4,7 +4,11 @@
 
 steps:
   - label: "Assemble Debug version"
-    command: "./gradlew clean assembleDebug"
+    agents:
+    # We use a medium sized instance instead of the normal small ones because
+    # gradle build is long
+      queue: "medium"
+    command: "./gradlew clean lintRelease test assembleDebug assembleAndroidTest --stacktrace"
     artifact_paths: "matrix-sdk/build/outputs/aar/*.aar"
     branches: "develop feature/*"
     plugins:

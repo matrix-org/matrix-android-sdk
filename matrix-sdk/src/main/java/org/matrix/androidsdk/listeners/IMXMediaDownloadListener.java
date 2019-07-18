@@ -62,7 +62,7 @@ public interface IMXMediaDownloadListener {
         public int mBitRate;
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             String res = "";
 
             res += "mProgress : " + mProgress + "%\n";

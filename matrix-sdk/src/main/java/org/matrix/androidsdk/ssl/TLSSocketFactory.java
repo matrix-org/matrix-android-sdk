@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.ssl;
 
-import org.matrix.androidsdk.util.Log;
+import org.matrix.androidsdk.core.Log;
 
 import java.io.IOException;
 import java.net.InetAddress;

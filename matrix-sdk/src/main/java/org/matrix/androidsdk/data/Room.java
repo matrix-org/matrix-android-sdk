@@ -37,11 +37,21 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
+import org.jetbrains.annotations.NotNull;
 import org.matrix.androidsdk.MXDataHandler;
-import org.matrix.androidsdk.MXPatterns;
+import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.call.MXCallsManager;
+import org.matrix.androidsdk.core.ImageUtils;
+import org.matrix.androidsdk.core.JsonUtils;
+import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.MXPatterns;
+import org.matrix.androidsdk.core.callback.ApiCallback;
+import org.matrix.androidsdk.core.callback.SimpleApiCallback;
+import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.crypto.data.MXEncryptEventContentResult;
+import org.matrix.androidsdk.crypto.interfaces.CryptoRoom;
+import org.matrix.androidsdk.crypto.interfaces.CryptoRoomMember;
 import org.matrix.androidsdk.data.room.RoomAvatarResolver;
 import org.matrix.androidsdk.data.room.RoomDisplayNameResolver;
 import org.matrix.androidsdk.data.store.IMXStore;
@@ -51,13 +61,10 @@ import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.listeners.MXRoomEventListener;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
-import org.matrix.androidsdk.rest.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
 import org.matrix.androidsdk.rest.client.UrlPostTask;
 import org.matrix.androidsdk.rest.model.CreatedEvent;
 import org.matrix.androidsdk.rest.model.Event;
-import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
@@ -77,9 +84,6 @@ import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 import org.matrix.androidsdk.rest.model.sync.RoomSync;
-import org.matrix.androidsdk.util.ImageUtils;
-import org.matrix.androidsdk.util.JsonUtils;
-import org.matrix.androidsdk.util.Log;
 
 import java.io.File;
 import java.lang.reflect.Type;
@@ -94,7 +98,7 @@ import java.util.Set;
 /**
  * Class representing a room and the interactions we have with it.
  */
-public class Room {
+public class Room implements CryptoRoom {
 
     private static final String LOG_TAG = Room.class.getSimpleName();
 
@@ -192,6 +196,7 @@ public class Room {
      *
      * @return true if we should encrypt messages for invited users.
      */
+    @Override
     public boolean shouldEncryptForInvitedMembers() {
         String historyVisibility = getState().history_visibility;
         return !TextUtils.equals(historyVisibility, RoomState.HISTORY_VISIBILITY_JOINED);
@@ -422,6 +427,7 @@ public class Room {
     // Getters / setters
     //================================================================================
 
+    @Override
     public String getRoomId() {
         return getState().roomId;
     }
@@ -434,6 +440,7 @@ public class Room {
         return mAccountData;
     }
 
+    @Override
     public RoomState getState() {
         return mTimeline.getState();
     }
@@ -490,6 +497,19 @@ public class Room {
         });
     }
 
+    // This should not be necessary, but I haven't found any other solution for the moment.
+    @Override
+    public void getActiveMembersAsyncCrypto(@NotNull ApiCallback<List<CryptoRoomMember>> callback) {
+        getActiveMembersAsync(new SimpleApiCallback<List<RoomMember>>(callback) {
+            @Override
+            public void onSuccess(List<RoomMember> info) {
+                // Copy the list to get the correct type...
+                List<CryptoRoomMember> list2 = new ArrayList<>(info);
+                callback.onSuccess(list2);
+            }
+        });
+    }
+
     /**
      * Get the list of the members who have joined the room.
      *
@@ -508,6 +528,19 @@ public class Room {
                 }
 
                 callback.onSuccess(joinedMembersList);
+            }
+        });
+    }
+
+    // This should not be necessary, but I haven't found any other solution for the moment.
+    @Override
+    public void getJoinedMembersAsyncCrypto(@NotNull ApiCallback<List<CryptoRoomMember>> callback) {
+        getJoinedMembersAsync(new SimpleApiCallback<List<RoomMember>>(callback) {
+            @Override
+            public void onSuccess(List<RoomMember> info) {
+                // Copy the list to get the correct type...
+                List<CryptoRoomMember> list2 = new ArrayList<>(info);
+                callback.onSuccess(list2);
             }
         });
     }
@@ -665,7 +698,7 @@ public class Room {
                     if (null != map) {
                         Map<String, Object> joinMap = new HashMap<>();
                         joinMap.put("third_party_signed", map);
-                        join(alias, joinMap, callback);
+                        join(alias, null, joinMap, callback);
                     } else {
                         join(callback);
                     }
@@ -706,7 +739,7 @@ public class Room {
      * @param callback the callback for when done
      */
     public void join(final ApiCallback<Void> callback) {
-        join(null, null, callback);
+        join(null, null, null, callback);
     }
 
     /**
@@ -716,76 +749,83 @@ public class Room {
      * @param callback  the callback for when done
      */
     private void join(String roomAlias, ApiCallback<Void> callback) {
-        join(roomAlias, null, callback);
+        join(roomAlias, null, null, callback);
     }
 
     /**
      * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
      *
      * @param roomAlias   the room alias
+     * @param viaServers  The servers to attempt to join the room through. One of the servers must be participating in the room.
      * @param extraParams the join extra params
      * @param callback    the callback for when done
      */
-    private void join(final String roomAlias, final Map<String, Object> extraParams, final ApiCallback<Void> callback) {
+    public void join(final String roomAlias,
+                     final List<String> viaServers,
+                     final Map<String, Object> extraParams,
+                     final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "Join the room " + getRoomId() + " with alias " + roomAlias);
 
         mDataHandler.getDataRetriever().getRoomsRestClient()
-                .joinRoom((null != roomAlias) ? roomAlias : getRoomId(), extraParams, new SimpleApiCallback<RoomResponse>(callback) {
-                    @Override
-                    public void onSuccess(final RoomResponse aResponse) {
-                        try {
-                            // the join request did not get the room initial history
-                            if (!isJoined()) {
-                                Log.d(LOG_TAG, "the room " + getRoomId() + " is joined but wait after initial sync");
+                .joinRoom((null != roomAlias) ? roomAlias : getRoomId(),
+                        viaServers,
+                        extraParams,
+                        new SimpleApiCallback<RoomResponse>(callback) {
+                            @Override
+                            public void onSuccess(final RoomResponse aResponse) {
+                                try {
+                                    // the join request did not get the room initial history
+                                    if (!isJoined()) {
+                                        Log.d(LOG_TAG, "the room " + getRoomId() + " is joined but wait after initial sync");
 
-                                // wait the server sends the events chunk before calling the callback
-                                setOnInitialSyncCallback(callback);
-                            } else {
-                                Log.d(LOG_TAG, "the room " + getRoomId() + " is joined : the initial sync has been done");
-                                // to initialise the notification counters
-                                markAllAsRead(null);
-                                // already got the initial sync
-                                callback.onSuccess(null);
+                                        // wait the server sends the events chunk before calling the callback
+                                        setOnInitialSyncCallback(callback);
+                                    } else {
+                                        Log.d(LOG_TAG, "the room " + getRoomId() + " is joined : the initial sync has been done");
+                                        // to initialise the notification counters
+                                        markAllAsRead(null);
+                                        // already got the initial sync
+                                        callback.onSuccess(null);
+                                    }
+                                } catch (Exception e) {
+                                    Log.e(LOG_TAG, "join exception " + e.getMessage(), e);
+                                }
                             }
-                        } catch (Exception e) {
-                            Log.e(LOG_TAG, "join exception " + e.getMessage(), e);
-                        }
-                    }
 
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "join onNetworkError " + e.getMessage(), e);
-                        callback.onNetworkError(e);
-                    }
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                Log.e(LOG_TAG, "join onNetworkError " + e.getMessage(), e);
+                                callback.onNetworkError(e);
+                            }
 
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "join onMatrixError " + e.getMessage());
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                Log.e(LOG_TAG, "join onMatrixError " + e.getMessage());
 
-                        if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
-                            // It can happen when user wants to join a room he was invited to, but the inviter has left
-                            // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
-                            // 'Error when trying to join an empty room should be more explicit
-                            e.error = getStore().getContext().getString(org.matrix.androidsdk.R.string.room_error_join_failed_empty_room);
-                        }
+                                if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
+                                    // It can happen when user wants to join a room he was invited to, but the inviter has left
+                                    // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
+                                    // 'Error when trying to join an empty room should be more explicit
+                                    e.error = getStore().getContext().getString(R.string.room_error_join_failed_empty_room);
+                                }
 
-                        // if the alias is not found
-                        // try with the room id
-                        if ((e.mStatus == 404) && !TextUtils.isEmpty(roomAlias)) {
-                            Log.e(LOG_TAG, "Retry without the room alias");
-                            join(null, extraParams, callback);
-                            return;
-                        }
+                                // if the alias is not found
+                                // try with the room id
+                                if ((e.mStatus == 404) && !TextUtils.isEmpty(roomAlias)) {
+                                    Log.e(LOG_TAG, "Retry without the room alias");
+                                    join(null, viaServers, extraParams, callback);
+                                    return;
+                                }
 
-                        callback.onMatrixError(e);
-                    }
+                                callback.onMatrixError(e);
+                            }
 
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "join onUnexpectedError " + e.getMessage(), e);
-                        callback.onUnexpectedError(e);
-                    }
-                });
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                Log.e(LOG_TAG, "join onUnexpectedError " + e.getMessage(), e);
+                                callback.onUnexpectedError(e);
+                            }
+                        });
     }
 
     //================================================================================
@@ -1223,30 +1263,34 @@ public class Room {
             }.getType();
             Map<String, Map<String, Map<String, Map<String, Object>>>> receiptsDict = JsonUtils.getGson(false).fromJson(event.getContent(), type);
 
-            for (String eventId : receiptsDict.keySet()) {
-                Map<String, Map<String, Map<String, Object>>> receiptDict = receiptsDict.get(eventId);
+            if (receiptsDict != null) {
+                for (String eventId : receiptsDict.keySet()) {
+                    Map<String, Map<String, Map<String, Object>>> receiptDict = receiptsDict.get(eventId);
 
-                for (String receiptType : receiptDict.keySet()) {
-                    // only the read receipts are managed
-                    if (TextUtils.equals(receiptType, "m.read")) {
-                        Map<String, Map<String, Object>> userIdsDict = receiptDict.get(receiptType);
+                    for (String receiptType : receiptDict.keySet()) {
+                        // only the read receipts are managed
+                        if (TextUtils.equals(receiptType, "m.read")) {
+                            Map<String, Map<String, Object>> userIdsDict = receiptDict.get(receiptType);
 
-                        for (String userID : userIdsDict.keySet()) {
-                            Map<String, Object> paramsDict = userIdsDict.get(userID);
+                            for (String userID : userIdsDict.keySet()) {
+                                Map<String, Object> paramsDict = userIdsDict.get(userID);
 
-                            for (String paramName : paramsDict.keySet()) {
-                                if (TextUtils.equals("ts", paramName)) {
-                                    Double value = (Double) paramsDict.get(paramName);
-                                    long ts = value.longValue();
+                                for (String paramName : paramsDict.keySet()) {
+                                    if (TextUtils.equals("ts", paramName)) {
+                                        Double value = (Double) paramsDict.get(paramName);
+                                        long ts = value.longValue();
 
-                                    if (handleReceiptData(new ReceiptData(userID, eventId, ts))) {
-                                        senderIDs.add(userID);
+                                        if (handleReceiptData(new ReceiptData(userID, eventId, ts))) {
+                                            senderIDs.add(userID);
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
+            } else {
+                Log.w(LOG_TAG, "receiptsDict is null");
             }
         } catch (Exception e) {
             Log.e(LOG_TAG, "handleReceiptEvent : failed: " + e.getMessage(), e);

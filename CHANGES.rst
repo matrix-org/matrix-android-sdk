@@ -1,3 +1,25 @@
+Changes to Matrix Android SDK in 0.9.24 (2019-07-18)
+=======================================================
+
+Features:
+ - Add "server_name" parameter to the join room request (vector-im/riot-android#3204)
+
+Improvements:
+ - RoomSummary: Add a listener to override the method used to handle the last message of the rooms.
+ - RoomCreateContent: Add missing fields (room_version and m.federate)
+
+Bugfix:
+ - Fix replies showing mxids instead of display names (vector-im/riot-android#2468)
+ - Fix / SAS, don't error if we don't know about some keys (vector-im/riot-android#3184)
+
+Others:
+ - SDK has been splitted into 3 modules, to help extracting the crypto part.
+ - Rewrite react-native-webrtc dependency to remove the additional react-native dependency.
+
+Build:
+ - Upgrade gradle version from 4.10.1 to 5.4.1
+ - Ensure Olm library is downloaded from the jitpack repository
+
 Changes to Matrix Android SDK in 0.9.23 (2019-05-03)
 =======================================================
 

@@ -20,11 +20,11 @@ import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import org.matrix.androidsdk.interceptors.CurlLoggingInterceptor
-import org.matrix.androidsdk.interceptors.FormattedJsonHttpLogger
+import org.matrix.androidsdk.core.Log
+import org.matrix.androidsdk.core.interceptors.CurlLoggingInterceptor
+import org.matrix.androidsdk.core.interceptors.FormattedJsonHttpLogger
 import org.matrix.androidsdk.rest.client.MXRestExecutorService
 import org.matrix.androidsdk.ssl.CertUtil
-import org.matrix.androidsdk.util.Log
 import java.util.concurrent.TimeUnit
 
 
@@ -46,7 +46,7 @@ class RestClientHttpClientFactory(private val testInterceptor: Interceptor? = nu
 
         if (BuildConfig.DEBUG) {
             val loggingInterceptor = HttpLoggingInterceptor(FormattedJsonHttpLogger())
-            loggingInterceptor.level = BuildConfig.OKHTTP_LOGGING_LEVEL
+            loggingInterceptor.level = org.matrix.androidsdk.core.BuildConfig.OKHTTP_LOGGING_LEVEL
 
 
             okHttpClientBuilder

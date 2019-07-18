@@ -15,10 +15,10 @@
  */
 package org.matrix.androidsdk.rest.model.bingrules;
 
+import org.matrix.androidsdk.core.EventUtils;
+import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.message.Message;
-import org.matrix.androidsdk.util.EventUtils;
-import org.matrix.androidsdk.util.JsonUtils;
 
 /**
  * Bing rule condition that is satisfied when a message body contains the user's current display name.

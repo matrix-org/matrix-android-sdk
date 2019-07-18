@@ -26,12 +26,16 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.core.CompatUtil;
+import org.matrix.androidsdk.core.FileContentUtils;
+import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.MXOsHandler;
+import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.data.RoomAccountData;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.RoomSummary;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
-import org.matrix.androidsdk.rest.callback.ApiCallback;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomMember;
@@ -40,10 +44,6 @@ import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.group.Group;
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.sync.AccountData;
-import org.matrix.androidsdk.util.CompatUtil;
-import org.matrix.androidsdk.util.ContentUtils;
-import org.matrix.androidsdk.util.Log;
-import org.matrix.androidsdk.util.MXOsHandler;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -684,7 +684,7 @@ public class MXFileStore extends MXMemoryStore {
     private void deleteAllData(boolean init) {
         // delete the dedicated directories
         try {
-            ContentUtils.deleteDirectory(mStoreFolderFile);
+            FileContentUtils.deleteDirectory(mStoreFolderFile);
             if (init) {
                 createDirTree(mCredentials.userId);
             }

@@ -24,7 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
 import org.matrix.androidsdk.common.assertByteArrayNotEqual
-import org.matrix.androidsdk.listeners.ProgressListener
+import org.matrix.androidsdk.core.listeners.ProgressListener
 import org.matrix.olm.OlmManager
 import org.matrix.olm.OlmPkDecryption
 
