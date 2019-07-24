@@ -20,7 +20,7 @@ Others:
  -
 
 Build:
- -
+ - Upgraded okhttp to 3.12.1 using global $okhttp_version settings
 
 Test:
  -
