@@ -1,3 +1,10 @@
+Changes to Matrix Android SDK in 0.9.26 (2019-07-24)
+=======================================================
+
+Build:
+ - Downgrade $okhttp_version in config file
+
+
 Changes to Matrix Android SDK in 0.9.25 (2019-07-24)
 =======================================================
 
