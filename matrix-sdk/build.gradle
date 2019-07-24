@@ -27,8 +27,8 @@ android {
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 28
-        versionCode 924
-        versionName "0.9.24"
+        versionCode 925
+        versionName "0.9.25"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
         // Enable multi dex for test
@@ -165,7 +165,7 @@ dependencies {
     implementation 'com.squareup.retrofit2:retrofit:2.4.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
     implementation "com.google.code.gson:gson:$gson_version"
-    implementation 'com.squareup.okhttp3:okhttp:3.11.0'
+    implementation "com.squareup.okhttp3:okhttp:$okhttp_version"
     implementation 'com.squareup.okhttp3:logging-interceptor:3.10.0'
     implementation 'com.facebook.stetho:stetho:1.5.0'
     implementation 'com.facebook.stetho:stetho-okhttp3:1.5.0'
