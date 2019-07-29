@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - VoIP: Stop falling back to Google for STUN (vector-im/riot-android/issues/3223).
 
 API Change:
  -
