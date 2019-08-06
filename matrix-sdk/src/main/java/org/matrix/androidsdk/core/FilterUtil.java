@@ -134,6 +134,16 @@ public class FilterUtil {
     }
 
     /**
+     * Patch the roomEventFilter to enable or disable the lazy loading
+     *
+     * @param roomEventFilter the roomEventFilter to patch
+     * @param useLazyLoading  true to enable lazy loading
+     */
+    public static void enableLazyLoading(@NonNull RoomEventFilter roomEventFilter, boolean useLazyLoading) {
+        roomEventFilter.lazyLoadMembers = useLazyLoading;
+    }
+
+    /**
      * Create a RoomEventFilter
      *
      * @param withLazyLoading true when lazy loading is enabled

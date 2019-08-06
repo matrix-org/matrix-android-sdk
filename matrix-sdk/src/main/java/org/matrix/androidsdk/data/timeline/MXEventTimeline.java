@@ -685,7 +685,7 @@ class MXEventTimeline implements EventTimeline {
             return true;
         }
 
-        mDataHandler.getDataRetriever().backPaginate(mStore, mRoomId, getBackState().getToken(), eventCount, mDataHandler.isLazyLoadingEnabled(),
+        mDataHandler.getDataRetriever().backPaginate(mStore, mRoomId, getBackState().getToken(), eventCount, mDataHandler.getPaginationFilter(),
                 new SimpleApiCallback<TokensChunkEvents>(callback) {
                     @Override
                     public void onSuccess(TokensChunkEvents response) {
@@ -780,7 +780,7 @@ class MXEventTimeline implements EventTimeline {
 
         mIsForwardPaginating = true;
 
-        mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS, mDataHandler.isLazyLoadingEnabled(),
+        mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS, mDataHandler.getPaginationFilter(),
                 new SimpleApiCallback<TokensChunkEvents>(callback) {
                     @Override
                     public void onSuccess(TokensChunkEvents response) {
