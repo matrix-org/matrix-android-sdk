@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- - VoIP: Stop falling back to Google for STUN (vector-im/riot-android/issues/3223).
+ - VoIP: Stop falling back to Google for STUN (vector-im/riot-android#3223).
  - EventIDs: Add regex to match eventIDs for v4 and v5 rooms
 
 API Change:
@@ -18,7 +18,7 @@ Translations:
  -
 
 Others:
- -
+ - Remove useless log (vector-im/riot-android#3236)
 
 Build:
  -

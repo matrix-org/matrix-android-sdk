@@ -565,8 +565,6 @@ public class RoomState implements Externalizable, CryptoRoomState {
         }
 
         if (member == null) {
-            Log.w(LOG_TAG, "## Null member '" + userId);
-
             if (TextUtils.equals(getDataHandler().getUserId(), userId)) {
                 // This should never happen
                 Log.e(LOG_TAG, "## Null current user '" + userId);
