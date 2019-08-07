@@ -150,7 +150,7 @@
     <string name="verification_emoji_folder">Karpeta</string>
     <string name="verification_emoji_pin">Txintxeta</string>
 
-<string name="initial_sync_start_importing_account">Hasierako sinkronizazioa:
+    <string name="initial_sync_start_importing_account">Hasierako sinkronizazioa:
 \nKontua inportatzen…</string>
     <string name="initial_sync_start_importing_account_crypto">Hasierako sinkronizazioa:
 \nZifratzea inportatzen</string>

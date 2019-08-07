@@ -150,7 +150,7 @@
     <string name="verification_emoji_folder">Dossier</string>
     <string name="verification_emoji_pin">Épingle</string>
 
-<string name="initial_sync_start_importing_account">Synchronisation initiale :
+    <string name="initial_sync_start_importing_account">Synchronisation initiale :
 \nImportation du compte…</string>
     <string name="initial_sync_start_importing_account_crypto">Synchronisation initiale :
 \nImportation de la cryptographie</string>

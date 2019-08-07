@@ -150,7 +150,7 @@
     <string name="verification_emoji_folder">Cartella</string>
     <string name="verification_emoji_pin">Spillo</string>
 
-<string name="initial_sync_start_importing_account">Sync iniziale:
+    <string name="initial_sync_start_importing_account">Sync iniziale:
 \nImportazione account…</string>
     <string name="initial_sync_start_importing_account_crypto">Sync iniziale:
 \nImportazione cifratura</string>

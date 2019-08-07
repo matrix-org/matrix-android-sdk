@@ -150,7 +150,7 @@
     <string name="verification_emoji_folder">Mappe</string>
     <string name="verification_emoji_pin">Pinne</string>
 
-<string name="initial_sync_start_importing_account">Initiële synchronisoatie:
+    <string name="initial_sync_start_importing_account">Initiële synchronisoatie:
 \nAccount wor geïmporteerd…</string>
     <string name="initial_sync_start_importing_account_crypto">Initiële synchronisoatie:
 \nCrypto wor geïmporteerd</string>

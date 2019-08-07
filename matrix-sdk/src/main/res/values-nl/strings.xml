@@ -159,7 +159,7 @@
     <string name="verification_emoji_folder">Map</string>
     <string name="verification_emoji_pin">Speld</string>
 
-<string name="initial_sync_start_importing_account">Initiële synchronisatie:
+    <string name="initial_sync_start_importing_account">Initiële synchronisatie:
 \nAccount wordt geïmporteerd…</string>
     <string name="initial_sync_start_importing_account_crypto">Initiële synchronisatie:
 \nCrypto wordt geïmporteerd</string>

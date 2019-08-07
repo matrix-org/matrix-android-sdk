@@ -149,7 +149,7 @@
     <string name="verification_emoji_folder">Mappa</string>
     <string name="verification_emoji_pin">Tű</string>
 
-<string name="initial_sync_start_importing_account">Induló szinkronizáció:
+    <string name="initial_sync_start_importing_account">Induló szinkronizáció:
 \nFiók betöltése…</string>
     <string name="initial_sync_start_importing_account_crypto">Induló szinkronizáció:
 \nTitkosítás betöltése</string>

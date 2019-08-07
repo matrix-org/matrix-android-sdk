@@ -151,7 +151,7 @@
     <string name="verification_emoji_folder">Kansio</string>
     <string name="verification_emoji_pin">Nuppineula</string>
 
-<string name="initial_sync_start_importing_account">Alkusynkronointi:
+    <string name="initial_sync_start_importing_account">Alkusynkronointi:
 \nTuodaan tiliä…</string>
     <string name="initial_sync_start_importing_account_crypto">Alkusynkronointi:
 \nTuodaan kryptoa</string>

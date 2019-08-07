@@ -150,7 +150,7 @@
     <string name="verification_emoji_folder">Папка</string>
     <string name="verification_emoji_pin">Карфица</string>
 
-<string name="initial_sync_start_importing_account">Начална синхронизация:
+    <string name="initial_sync_start_importing_account">Начална синхронизация:
 \nИмпортиране на профил…</string>
     <string name="initial_sync_start_importing_account_crypto">Начална синхронизация:
 \nИмпортиране на данни за шифроване</string>
