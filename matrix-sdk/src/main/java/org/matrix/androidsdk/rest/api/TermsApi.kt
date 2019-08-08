@@ -18,10 +18,18 @@ package org.matrix.androidsdk.rest.api
 
 import org.matrix.androidsdk.rest.model.terms.TermsResponse
 import retrofit2.Call
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Url
 
 interface TermsApi {
+
     @GET
     fun getTerms(@Url url: String): Call<TermsResponse>
+
+    @POST
+    fun agreeToTerms(@Url url: String, @Body params: @JvmSuppressWildcards Map<String, Any>): Call<TermsResponse>
+
+
 }

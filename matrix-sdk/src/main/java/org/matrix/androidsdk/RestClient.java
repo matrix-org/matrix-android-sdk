@@ -62,6 +62,7 @@ public class RestClient<T> {
      * Prefix used in path of identity server API requests.
      */
     public static final String URI_IDENTITY_PATH = "_matrix/identity/api/v1";
+    public static final String URI_IDENTITY_PATH_V2 = "_matrix/identity/v2/";
     public static final String URI_API_PREFIX_IDENTITY = URI_IDENTITY_PATH + "/";
 
     /**

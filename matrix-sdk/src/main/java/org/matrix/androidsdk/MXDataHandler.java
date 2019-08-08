@@ -1033,6 +1033,9 @@ public class MXDataHandler implements CryptoDataHandler {
                 } else if (AccountDataElement.ACCOUNT_DATA_TYPE_WIDGETS.equals(accountDataElement.type)) {
                     // User widgets
                     manageUserWidgets(accountDataElement);
+                } else if (AccountDataElement.ACCOUNT_DATA_ACCEPTED_TERMS.equals(accountDataElement.type)) {
+                    // User widgets
+                    manageAcceptedTerms(accountDataElement);
                 }
             }
         } catch (Exception e) {
@@ -1055,6 +1058,10 @@ public class MXDataHandler implements CryptoDataHandler {
 
         // warn the client that the push rules have been updated
         onBingRulesUpdate();
+    }
+
+    private void manageAcceptedTerms(AccountDataElement accountDataElement) {
+        //TODO
     }
 
     /**
