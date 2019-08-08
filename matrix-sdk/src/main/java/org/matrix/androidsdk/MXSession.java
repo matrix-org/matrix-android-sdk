@@ -93,6 +93,7 @@ import org.matrix.androidsdk.rest.model.Versions;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.filter.FilterBody;
 import org.matrix.androidsdk.rest.model.filter.FilterResponse;
+import org.matrix.androidsdk.rest.model.filter.RoomEventFilter;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.LoginFlow;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
@@ -1066,6 +1067,17 @@ public class MXSession implements CryptoSession {
         FilterUtil.enableLazyLoading(mCurrentFilter, mDataHandler.isLazyLoadingEnabled());
 
         convertFilterToFilterId();
+    }
+
+    /**
+     * Allows setting the filter used for the pagination
+     * The lazyLoading attribute will be overidden by the Matrix SDK, you do not have to take care of it
+     *
+     * @param filter the content of the filter param on pagination requests. Null to reset the filter.
+     */
+    public void setPaginationFilter(@Nullable RoomEventFilter filter) {
+        Log.d(LOG_TAG, "setPaginationFilter ## " + filter);
+        mDataHandler.setPaginationFilter(filter);
     }
 
     /**

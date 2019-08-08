@@ -180,6 +180,10 @@ public class MXDataHandler implements CryptoDataHandler {
     // tell if the lazy loading is enabled
     private boolean mIsLazyLoadingEnabled;
 
+    // Filter for pagination
+    @Nullable
+    private RoomEventFilter mCustomPaginationFilter;
+
     /**
      * Default constructor.
      *
@@ -1753,6 +1757,26 @@ public class MXDataHandler implements CryptoDataHandler {
         FilterUtil.enableLazyLoading(filterBody, isLazyLoadingEnabled());
 
         return filterBody.toJSONString();
+    }
+
+    /* package */
+    void setPaginationFilter(@Nullable RoomEventFilter paginationFilter) {
+        mCustomPaginationFilter = paginationFilter;
+    }
+
+    /**
+     * Get the pagination filter, which can be customized by the client. Lazy loading param is managed here.
+     *
+     * @return the RoomEventFilter to use for pagination
+     */
+    public RoomEventFilter getPaginationFilter() {
+        if (mCustomPaginationFilter != null) {
+            // Ensure lazy loading param is correct
+            FilterUtil.enableLazyLoading(mCustomPaginationFilter, isLazyLoadingEnabled());
+            return mCustomPaginationFilter;
+        } else {
+            return FilterUtil.createRoomEventFilter(isLazyLoadingEnabled());
+        }
     }
 
     /*

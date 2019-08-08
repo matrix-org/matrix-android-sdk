@@ -2,7 +2,7 @@ Changes to Matrix Android SDK in 0.9.X (2018-XX-XX)
 =======================================================
 
 Features:
- -
+ - Allow Matrix SDK client to configure the filter used for pagination (vector-im/riot-android#3237)
 
 Improvements:
  -

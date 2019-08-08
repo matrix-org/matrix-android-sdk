@@ -407,7 +407,7 @@ public class Room implements CryptoRoom {
                                          final int paginationCount,
                                          final ApiCallback<TokensChunkEvents> callback) {
         mDataHandler.getDataRetriever()
-                .requestServerRoomHistory(getRoomId(), token, paginationCount, mDataHandler.isLazyLoadingEnabled(),
+                .requestServerRoomHistory(getRoomId(), token, paginationCount, mDataHandler.getPaginationFilter(),
                         new SimpleApiCallback<TokensChunkEvents>(callback) {
                             @Override
                             public void onSuccess(TokensChunkEvents info) {
