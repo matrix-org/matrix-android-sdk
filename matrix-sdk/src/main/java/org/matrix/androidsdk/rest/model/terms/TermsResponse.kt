@@ -28,7 +28,7 @@ data class TermsResponse(
         val policies: Map<String, *>? = null
 ) {
 
-    fun getLocalizedTermOfServices(userLanguage: String = "en",
+    fun getLocalizedTermOfServices(userLanguage: String,
                                    defaultLanguage: String = "en"): LocalizedFlowDataLoginTerms? {
         return (policies?.get(TERMS_OF_SERVICE) as? Map<*, *>)?.let { tos ->
             ((tos[userLanguage] ?: tos[defaultLanguage]) as? Map<*, *>)?.let { termsMap ->
@@ -44,7 +44,7 @@ data class TermsResponse(
         }
     }
 
-    fun getLocalizedPrivacyPolicies(userLanguage: String = "en",
+    fun getLocalizedPrivacyPolicies(userLanguage: String,
                                     defaultLanguage: String = "en"): LocalizedFlowDataLoginTerms? {
         return (policies?.get(PRIVACY_POLICY) as? Map<*, *>)?.let { tos ->
             ((tos[userLanguage] ?: tos[defaultLanguage]) as? Map<*, *>)?.let { termsMap ->
