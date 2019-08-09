@@ -1034,7 +1034,7 @@ public class MXDataHandler implements CryptoDataHandler {
                     // User widgets
                     manageUserWidgets(accountDataElement);
                 } else if (AccountDataElement.ACCOUNT_DATA_ACCEPTED_TERMS.equals(accountDataElement.type)) {
-                    // User widgets
+                    // Accepted terms
                     manageAcceptedTerms(accountDataElement);
                 }
             }

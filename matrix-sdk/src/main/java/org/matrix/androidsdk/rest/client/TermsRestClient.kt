@@ -21,38 +21,21 @@ import org.matrix.androidsdk.RestClient
 import org.matrix.androidsdk.core.callback.ApiCallback
 import org.matrix.androidsdk.core.rest.DefaultRetrofit2CallbackWrapper
 import org.matrix.androidsdk.rest.api.TermsApi
+import org.matrix.androidsdk.rest.model.terms.AcceptTermsBody
 import org.matrix.androidsdk.rest.model.terms.TermsResponse
 
-class TermsRestClient :
-        RestClient<TermsApi>(HomeServerConnectionConfig.Builder().withHomeServerUri(Uri.parse("https://foo.bar")).build(),
+internal class TermsRestClient :
+        RestClient<TermsApi>(HomeServerConnectionConfig.Builder()
+                .withHomeServerUri(Uri.parse("https://foo.bar"))
+                .build(),
                 TermsApi::class.java, "") {
 
     fun get(prefix: String, callback: ApiCallback<TermsResponse>) {
         mApi.getTerms("$prefix/terms").enqueue(DefaultRetrofit2CallbackWrapper(callback))
     }
 
-    fun agreeToTerms(prefix: String, agreedUrls: List<String>, callback: ApiCallback<TermsResponse>) {
-        val map = HashMap<String, Any>().apply {
-            put("user_accepts", agreedUrls)
-        }
-        mApi.agreeToTerms("$prefix/terms", map).enqueue(DefaultRetrofit2CallbackWrapper(callback))
-
-    }
-
-    companion object {
-
-        enum class ServiceType {
-            IntegrationManager,
-            IdentityService
-        }
-
-        fun termsUrlForService(serviceType: ServiceType, baseUrl: String): String {
-            return when (serviceType) {
-                Companion.ServiceType.IdentityService -> "$baseUrl/$URI_IDENTITY_PATH_V2/terms"
-                ServiceType.IntegrationManager        -> "$baseUrl/_matrix/integrations/v1/terms"
-            }
-        }
-
+    fun agreeToTerms(prefix: String, agreedUrls: List<String>, callback: ApiCallback<Unit>) {
+        mApi.agreeToTerms("$prefix/terms", AcceptTermsBody(agreedUrls)).enqueue(DefaultRetrofit2CallbackWrapper(callback))
     }
 
 }

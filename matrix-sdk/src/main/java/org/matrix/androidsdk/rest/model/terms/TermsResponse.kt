@@ -22,12 +22,11 @@ import org.matrix.androidsdk.rest.model.login.LocalizedFlowDataLoginTerms
 /**
  * This class represent a localized privacy policy for registration Flow.
  */
-class TermsResponse {
-
-    @JvmField
-    @SerializedName("policies")
-    var policies: Map<String, *>? = null
-
+data class TermsResponse(
+        @JvmField
+        @SerializedName("policies")
+        val policies: Map<String, *>? = null
+) {
 
     fun getLocalizedTermOfServices(userLanguage: String = "en",
                                    defaultLanguage: String = "en"): LocalizedFlowDataLoginTerms? {

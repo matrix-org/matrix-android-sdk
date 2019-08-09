@@ -14,23 +14,11 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.rest.api
+package org.matrix.androidsdk.features.terms
 
-import org.matrix.androidsdk.rest.model.terms.AcceptTermsBody
 import org.matrix.androidsdk.rest.model.terms.TermsResponse
-import retrofit2.Call
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Url
 
-interface TermsApi {
-
-    @GET
-    fun getTerms(@Url url: String): Call<TermsResponse>
-
-    @POST
-    fun agreeToTerms(@Url url: String, @Body params: AcceptTermsBody): Call<Unit>
-
-
-}
+data class GetTermsResponse(
+        val serverResponse: TermsResponse,
+        val alreadyAcceptedTermUrls: Set<String>
+)

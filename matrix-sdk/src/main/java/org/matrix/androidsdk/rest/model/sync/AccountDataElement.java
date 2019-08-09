@@ -37,6 +37,7 @@ public class AccountDataElement implements Serializable {
      */
     public static final String ACCOUNT_DATA_KEY_IGNORED_USERS = "ignored_users";
     public static final String ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE = "disable";
+    public static final String ACCOUNT_DATA_KEY_ACCEPTED_TERMS = "accepted";
 
     // Type of account data element
     public String type;
