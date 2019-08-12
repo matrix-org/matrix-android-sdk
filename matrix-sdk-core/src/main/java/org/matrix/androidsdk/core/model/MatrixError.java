@@ -125,6 +125,8 @@ public class MatrixError implements java.io.Serializable {
             localizedMessage = error;
         } else if (!TextUtils.isEmpty(errcode)) {
             localizedMessage = errcode;
+        } else if (!TextUtils.isEmpty(mErrorBodyAsString)) {
+            localizedMessage = mErrorBodyAsString;
         }
 
         return localizedMessage;
