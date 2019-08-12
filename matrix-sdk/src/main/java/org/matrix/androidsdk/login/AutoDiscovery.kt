@@ -18,7 +18,6 @@ package org.matrix.androidsdk.login
 
 import android.net.Uri
 import com.google.gson.stream.MalformedJsonException
-import org.json.JSONObject
 import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.core.callback.ApiCallback
 import org.matrix.androidsdk.core.callback.SimpleApiCallback
@@ -156,8 +155,8 @@ class AutoDiscovery {
                 .withIdentityServerUri(Uri.parse(wellKnown.identityServer!!.baseURL!!))
                 .build()
 
-        IdentityPingRestClient(hsConfig).ping(object : ApiCallback<JSONObject> {
-            override fun onSuccess(info: JSONObject?) {
+        IdentityPingRestClient(hsConfig).ping(object : ApiCallback<Void> {
+            override fun onSuccess(info: Void?) {
                 callback.onSuccess(DiscoveredClientConfig(Action.PROMPT, wellKnown))
             }
 

@@ -31,11 +31,11 @@ internal class TermsRestClient :
                 TermsApi::class.java, "") {
 
     fun get(prefix: String, callback: ApiCallback<TermsResponse>) {
-        mApi.getTerms("$prefix/terms").enqueue(DefaultRetrofit2CallbackWrapper(callback))
+        mApi.getTerms("${prefix}terms").enqueue(DefaultRetrofit2CallbackWrapper(callback))
     }
 
     fun agreeToTerms(prefix: String, agreedUrls: List<String>, callback: ApiCallback<Unit>) {
-        mApi.agreeToTerms("$prefix/terms", AcceptTermsBody(agreedUrls)).enqueue(DefaultRetrofit2CallbackWrapper(callback))
+        mApi.agreeToTerms("${prefix}terms", AcceptTermsBody(agreedUrls)).enqueue(DefaultRetrofit2CallbackWrapper(callback))
     }
 
 }

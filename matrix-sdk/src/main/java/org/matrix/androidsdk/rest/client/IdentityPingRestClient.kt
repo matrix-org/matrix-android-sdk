@@ -15,7 +15,6 @@
  */
 package org.matrix.androidsdk.rest.client
 
-import org.json.JSONObject
 import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.RestClient
 import org.matrix.androidsdk.core.JsonUtils
@@ -26,7 +25,7 @@ import org.matrix.androidsdk.rest.api.IdentityPingApi
 class IdentityPingRestClient(hsConfig: HomeServerConnectionConfig) :
         RestClient<IdentityPingApi>(hsConfig, IdentityPingApi::class.java, "", JsonUtils.getGson(false), true) {
 
-    fun ping(callback: ApiCallback<JSONObject>) {
-        mApi.ping().enqueue(DefaultRetrofit2CallbackWrapper<JSONObject>(callback))
+    fun ping(callback: ApiCallback<Void>) {
+        mApi.ping().enqueue(DefaultRetrofit2CallbackWrapper<Void>(callback))
     }
 }
