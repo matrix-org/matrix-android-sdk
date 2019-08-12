@@ -34,13 +34,6 @@ class TermsManager(private val mxSession: MXSession) {
         IdentityService
     }
 
-    fun termsUrlForService(serviceType: ServiceType, baseUrl: String): String {
-        return when (serviceType) {
-            ServiceType.IntegrationManager -> "$baseUrl/${RestClient.URI_INTEGRATION_MANAGER_PATH}/terms"
-            ServiceType.IdentityService    -> "$baseUrl/${RestClient.URI_IDENTITY_PATH_V2}/terms"
-        }
-    }
-
     fun get(serviceType: ServiceType, baseUrl: String, callback: ApiCallback<GetTermsResponse>) {
         val url = when (serviceType) {
             ServiceType.IntegrationManager -> "$baseUrl${RestClient.URI_INTEGRATION_MANAGER_PATH}"
