@@ -29,12 +29,15 @@ public class AccountDataElement implements Serializable {
     public static final String ACCOUNT_DATA_TYPE_PREVIEW_URLS = "org.matrix.preview_urls";
     public static final String ACCOUNT_DATA_TYPE_WIDGETS = "m.widgets";
     public static final String ACCOUNT_DATA_TYPE_PUSH_RULES = "m.push_rules";
+    public static final String ACCOUNT_DATA_ACCEPTED_TERMS = "m.accepted_terms";
+
 
     /**
      * Account data known possible values for key in {@link #content}
      */
     public static final String ACCOUNT_DATA_KEY_IGNORED_USERS = "ignored_users";
     public static final String ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE = "disable";
+    public static final String ACCOUNT_DATA_KEY_ACCEPTED_TERMS = "accepted";
 
     // Type of account data element
     public String type;

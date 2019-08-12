@@ -5,7 +5,7 @@ Features:
  - Allow Matrix SDK client to configure the filter used for pagination (vector-im/riot-android#3237)
 
 Improvements:
- -
+ - Add a TermsManager (vector-im/riot-android#3225)
 
 Bugfix:
  - VoIP: Stop falling back to Google for STUN (vector-im/riot-android#3223).

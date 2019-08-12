@@ -67,6 +67,7 @@ import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediaCache;
+import org.matrix.androidsdk.features.terms.TermsManager;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
@@ -81,6 +82,7 @@ import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushRulesRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
+import org.matrix.androidsdk.rest.client.TermsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
@@ -165,6 +167,8 @@ public class MXSession implements CryptoSession {
     private MXMediaCache mMediaCache;
 
     private BingRulesManager mBingRulesManager = null;
+
+    private TermsManager termsManager;
 
     private boolean mIsAliveSession = true;
 
@@ -364,6 +368,8 @@ public class MXSession implements CryptoSession {
 
         mGroupsManager = new GroupsManager(mDataHandler, mGroupsRestClient);
         mDataHandler.setGroupsManager(mGroupsManager);
+
+        termsManager = new TermsManager(this);
     }
 
     private void checkIfAlive() {
@@ -493,6 +499,16 @@ public class MXSession implements CryptoSession {
     public RoomKeysRestClient getRoomKeysRestClient() {
         checkIfAlive();
         return mCrypto.getKeysBackup().getRoomKeysRestClient();
+    }
+
+    /**
+     * Get the TermsManager.
+     *
+     * @return the TermsManager
+     */
+    public TermsManager getTermsManager() {
+        checkIfAlive();
+        return termsManager;
     }
 
     /**
