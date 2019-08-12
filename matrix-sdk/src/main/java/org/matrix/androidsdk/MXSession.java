@@ -77,6 +77,7 @@ import org.matrix.androidsdk.rest.client.FilterRestClient;
 import org.matrix.androidsdk.rest.client.GroupsRestClient;
 import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.client.MediaScanRestClient;
+import org.matrix.androidsdk.rest.client.OpenIdRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushRulesRestClient;
@@ -103,6 +104,7 @@ import org.matrix.androidsdk.rest.model.login.ThreePidCredentials;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 import org.matrix.androidsdk.rest.model.message.MediaMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;
 import org.matrix.androidsdk.rest.model.search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
@@ -147,6 +149,7 @@ public class MXSession implements CryptoSession {
     private final ThirdPidRestClient mThirdPidRestClient;
     private final CallRestClient mCallRestClient;
     private final AccountDataRestClient mAccountDataRestClient;
+    private final OpenIdRestClient mOpenIdRestClient;
     private final LoginRestClient mLoginRestClient;
     private final GroupsRestClient mGroupsRestClient;
     private final MediaScanRestClient mMediaScanRestClient;
@@ -235,6 +238,7 @@ public class MXSession implements CryptoSession {
         mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
         mCallRestClient = new CallRestClient(hsConfig);
         mAccountDataRestClient = new AccountDataRestClient(hsConfig);
+        mOpenIdRestClient = new OpenIdRestClient(hsConfig);
         mLoginRestClient = new LoginRestClient(hsConfig);
         mGroupsRestClient = new GroupsRestClient(hsConfig);
         mMediaScanRestClient = new MediaScanRestClient(hsConfig);
@@ -2634,8 +2638,8 @@ public class MXSession implements CryptoSession {
      *
      * @param callback the asynchronous callback called when finished
      */
-    public void openIdToken(final ApiCallback<Map<Object, Object>> callback) {
-        mAccountDataRestClient.openIdToken(getMyUserId(), callback);
+    public void openIdToken(final ApiCallback<RequestOpenIdTokenResponse> callback) {
+        mOpenIdRestClient.requestToken(getMyUserId(), callback);
     }
 
     /**

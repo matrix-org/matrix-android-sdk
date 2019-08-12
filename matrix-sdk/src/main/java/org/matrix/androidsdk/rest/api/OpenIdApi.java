@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 OpenMarket Ltd
+ * Copyright 2019 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,21 +15,25 @@
  */
 package org.matrix.androidsdk.rest.api;
 
+import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse;
+
+import java.util.Map;
+
 import retrofit2.Call;
 import retrofit2.http.Body;
-import retrofit2.http.PUT;
+import retrofit2.http.POST;
 import retrofit2.http.Path;
 
-public interface AccountDataApi {
+public interface OpenIdApi {
 
     /**
-     * Set some account_data for the client.
+     * Gets a bearer token from the homeserver that the user can
+     * present to a third party in order to prove their ownership
+     * of the Matrix account they are logged into.
      *
      * @param userId the user id
-     * @param type   the type
-     * @param params the put params
+     * @param body   the body content
      */
-    @PUT("user/{userId}/account_data/{type}")
-    Call<Void> setAccountData(@Path("userId") String userId, @Path("type") String type, @Body Object params);
-
+    @POST("user/{userId}/openid/request_token")
+    Call<RequestOpenIdTokenResponse> requestToken(@Path("userId") String userId, @Body Map<Object, Object> body);
 }
