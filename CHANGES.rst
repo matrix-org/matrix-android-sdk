@@ -13,6 +13,7 @@ Bugfix:
 
 API Change:
  - `MXSession.openIdToken()` callback has a more typed parameter
+ - DefaultRetrofit2CallbackWrapper has been removed because it does not manage MatrixError. Use RestAdapterCallback instead.
 
 Translations:
  -

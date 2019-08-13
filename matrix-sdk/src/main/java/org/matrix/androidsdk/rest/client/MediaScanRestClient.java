@@ -24,13 +24,11 @@ import org.matrix.androidsdk.core.JsonUtility;
 import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
-import org.matrix.androidsdk.core.model.HttpError;
-import org.matrix.androidsdk.core.model.HttpException;
 import org.matrix.androidsdk.core.model.MatrixError;
-import org.matrix.androidsdk.core.rest.DefaultRetrofit2CallbackWrapper;
 import org.matrix.androidsdk.crypto.model.crypto.EncryptedBodyFileInfo;
 import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.rest.api.MediaScanApi;
+import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.EncryptedMediaScanBody;
 import org.matrix.androidsdk.rest.model.EncryptedMediaScanEncryptedBody;
 import org.matrix.androidsdk.rest.model.MediaScanError;
@@ -85,33 +83,37 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
         if (keyFromCache != null) {
             callback.onSuccess(keyFromCache);
         } else {
-            mApi.getServerPublicKey().enqueue(new DefaultRetrofit2CallbackWrapper<>(new SimpleApiCallback<MediaScanPublicKeyResult>(callback) {
-                @Override
-                public void onSuccess(MediaScanPublicKeyResult info) {
-                    // Store the key in cache for next times
-                    mMxStore.setAntivirusServerPublicKey(info.mCurve25519PublicKey);
+            mApi.getServerPublicKey()
+                    .enqueue(new RestAdapterCallback<>("getServerPublicKey",
+                            null,
+                            new SimpleApiCallback<MediaScanPublicKeyResult>(callback) {
+                                @Override
+                                public void onSuccess(MediaScanPublicKeyResult info) {
+                                    // Store the key in cache for next times
+                                    mMxStore.setAntivirusServerPublicKey(info.mCurve25519PublicKey);
 
-                    // Note: for some reason info.mCurve25519PublicKey may be null
-                    if (info.mCurve25519PublicKey != null) {
-                        callback.onSuccess(info.mCurve25519PublicKey);
-                    } else {
-                        callback.onUnexpectedError(new Exception("Unable to get server public key from Json"));
-                    }
-                }
+                                    // Note: for some reason info.mCurve25519PublicKey may be null
+                                    if (info.mCurve25519PublicKey != null) {
+                                        callback.onSuccess(info.mCurve25519PublicKey);
+                                    } else {
+                                        callback.onUnexpectedError(new Exception("Unable to get server public key from Json"));
+                                    }
+                                }
 
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    // Old Antivirus scanner instance will return a 404
-                    if (e.mStatus == HttpURLConnection.HTTP_NOT_FOUND) {
-                        // On 404 consider the public key is not available, so do not encrypt body
-                        mMxStore.setAntivirusServerPublicKey("");
+                                @Override
+                                public void onMatrixError(MatrixError e) {
+                                    // Old Antivirus scanner instance will return a 404
+                                    if (e.mStatus == HttpURLConnection.HTTP_NOT_FOUND) {
+                                        // On 404 consider the public key is not available, so do not encrypt body
+                                        mMxStore.setAntivirusServerPublicKey("");
 
-                        callback.onSuccess("");
-                    } else {
-                        super.onMatrixError(e);
-                    }
-                }
-            }));
+                                        callback.onSuccess("");
+                                    } else {
+                                        super.onMatrixError(e);
+                                    }
+                                }
+                            },
+                            null));
         }
     }
 
@@ -132,7 +134,11 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
      * @param callback on success callback containing a MediaScanResult object
      */
     public void scanUnencryptedFile(final String domain, final String mediaId, final ApiCallback<MediaScanResult> callback) {
-        mApi.scanUnencrypted(domain, mediaId).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+        mApi.scanUnencrypted(domain, mediaId)
+                .enqueue(new RestAdapterCallback<>("scanUnencryptedFile",
+                        null,
+                        callback,
+                        null));
     }
 
     /**
@@ -173,35 +179,34 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
                 }
 
                 if (request != null) {
-                    request.enqueue(new DefaultRetrofit2CallbackWrapper<>(new SimpleApiCallback<MediaScanResult>(callback) {
-                        @Override
-                        public void onSuccess(MediaScanResult scanResult) {
-                            callback.onSuccess(scanResult);
-                        }
-
-                        @Override
-                        public void onNetworkError(Exception exception) {
-                            // Check whether the provided encrypted_body could not be decrypted.
-                            if (exception instanceof HttpException) {
-                                HttpError error = ((HttpException) exception).getHttpError();
-                                if (error.getHttpCode() == HttpURLConnection.HTTP_FORBIDDEN) {
-                                    MediaScanError mcsError;
-                                    try {
-                                        String bodyAsString = error.getErrorBody();
-                                        mcsError = JsonUtils.getGson(false).fromJson(bodyAsString, MediaScanError.class);
-                                    } catch (Exception e) {
-                                        mcsError = null;
-                                    }
-                                    if (mcsError != null && MediaScanError.MCS_BAD_DECRYPTION.equals(mcsError.reason)) {
-                                        // The client should request again the public key of the server.
-                                        resetServerPublicKey();
-                                    }
+                    request.enqueue(new RestAdapterCallback<>("scanEncryptedFile",
+                            null,
+                            new SimpleApiCallback<MediaScanResult>(callback) {
+                                @Override
+                                public void onSuccess(MediaScanResult scanResult) {
+                                    callback.onSuccess(scanResult);
                                 }
-                            }
 
-                            super.onNetworkError(exception);
-                        }
-                    }));
+                                @Override
+                                public void onMatrixError(MatrixError e) {
+                                    // Check whether the provided encrypted_body could not be decrypted.
+                                    if (e.mStatus == HttpURLConnection.HTTP_FORBIDDEN) {
+                                        MediaScanError mcsError;
+                                        try {
+                                            mcsError = JsonUtils.getGson(false).fromJson(e.mErrorBodyAsString, MediaScanError.class);
+                                        } catch (Exception exc) {
+                                            mcsError = null;
+                                        }
+                                        if (mcsError != null && MediaScanError.MCS_BAD_DECRYPTION.equals(mcsError.reason)) {
+                                            // The client should request again the public key of the server.
+                                            resetServerPublicKey();
+                                        }
+                                    }
+
+                                    super.onMatrixError(e);
+                                }
+                            },
+                            null));
                 }
             }
         });

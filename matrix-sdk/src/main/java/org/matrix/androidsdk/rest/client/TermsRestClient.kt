@@ -19,8 +19,8 @@ import android.net.Uri
 import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.RestClient
 import org.matrix.androidsdk.core.callback.ApiCallback
-import org.matrix.androidsdk.core.rest.DefaultRetrofit2CallbackWrapper
 import org.matrix.androidsdk.rest.api.TermsApi
+import org.matrix.androidsdk.rest.callback.RestAdapterCallback
 import org.matrix.androidsdk.rest.model.terms.AcceptTermsBody
 import org.matrix.androidsdk.rest.model.terms.TermsResponse
 
@@ -31,11 +31,13 @@ internal class TermsRestClient :
                 TermsApi::class.java, "") {
 
     fun get(prefix: String, callback: ApiCallback<TermsResponse>) {
-        mApi.getTerms("${prefix}terms").enqueue(DefaultRetrofit2CallbackWrapper(callback))
+        mApi.getTerms("${prefix}terms")
+                .enqueue(RestAdapterCallback("getTerms", null, callback, null))
     }
 
     fun agreeToTerms(prefix: String, agreedUrls: List<String>, callback: ApiCallback<Unit>) {
-        mApi.agreeToTerms("${prefix}terms", AcceptTermsBody(agreedUrls)).enqueue(DefaultRetrofit2CallbackWrapper(callback))
+        mApi.agreeToTerms("${prefix}terms", AcceptTermsBody(agreedUrls))
+                .enqueue(RestAdapterCallback("agreeToTerms", null, callback, null))
     }
 
 }
