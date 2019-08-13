@@ -24,7 +24,10 @@ interface IdentityPingApi {
     /**
      * https://matrix.org/docs/spec/client_server/r0.4.0.html#server-discovery
      * Simple ping call to check if server alive
-     * @return
+     *
+     * Ref: https://matrix.org/docs/spec/identity_service/unstable#status-check
+     *
+     * @return 200 in case of success
      */
     @GET(RestClient.URI_API_PREFIX_IDENTITY)
     fun ping(): Call<Void>

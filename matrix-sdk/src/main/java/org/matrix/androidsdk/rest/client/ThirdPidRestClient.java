@@ -21,34 +21,30 @@ import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
-import org.matrix.androidsdk.core.model.HttpError;
-import org.matrix.androidsdk.core.model.HttpException;
-import org.matrix.androidsdk.core.rest.DefaultRetrofit2ResponseHandler;
+import org.matrix.androidsdk.core.callback.SimpleApiCallback;
+import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.rest.api.ThirdPidApi;
+import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.BulkLookupParams;
 import org.matrix.androidsdk.rest.model.BulkLookupResponse;
+import org.matrix.androidsdk.rest.model.SuccessResult;
 import org.matrix.androidsdk.rest.model.pid.PidResponse;
 
-import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
+// FIXME Stop sending the matrix token for this request...
 public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
-
-    private static final String KEY_SUBMIT_TOKEN_SUCCESS = "success";
 
     /**
      * {@inheritDoc}
      */
     public ThirdPidRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, ThirdPidApi.class, URI_API_PREFIX_IDENTITY, JsonUtils.getGson(false), true);
+        super(hsConfig, ThirdPidApi.class, "", false, true);
     }
 
     /**
@@ -59,44 +55,40 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * @param callback the 3rd party callback
      */
     public void lookup3Pid(String address, String medium, final ApiCallback<String> callback) {
-        mApi.lookup3Pid(address, medium).enqueue(new Callback<PidResponse>() {
-            @Override
-            public void onResponse(Call<PidResponse> call, Response<PidResponse> response) {
-                try {
-                    handleLookup3PidResponse(response, callback);
-                } catch (IOException e) {
-                    onFailure(call, e);
-                }
-            }
+        mApi.lookup3PidV2(address, medium)
+                .enqueue(new RestAdapterCallback<>("lookup3Pid",
+                        null,
+                        new SimpleApiCallback<PidResponse>(callback) {
+                            @Override
+                            public void onSuccess(PidResponse info) {
+                                callback.onSuccess((null == info.mxid) ? "" : info.mxid);
+                            }
 
-            @Override
-            public void onFailure(Call<PidResponse> call, Throwable t) {
-                callback.onUnexpectedError((Exception) t);
-            }
-        });
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                if (e.mStatus == HttpURLConnection.HTTP_NOT_FOUND /*404*/) {
+                                    // Use legacy request
+                                    lookup3PidLegacy(address, medium, callback);
+                                } else {
+                                    super.onMatrixError(e);
+                                }
+                            }
+                        },
+                        null));
     }
 
-    private void handleLookup3PidResponse(
-            Response<PidResponse> response,
-            final ApiCallback<String> callback
-    ) throws IOException {
-        DefaultRetrofit2ResponseHandler.handleResponse(
-                response,
-                new DefaultRetrofit2ResponseHandler.Listener<PidResponse>() {
-                    @Override
-                    public void onSuccess(Response<PidResponse> response) {
-                        PidResponse pidResponse = response.body();
-                        callback.onSuccess((null == pidResponse.mxid) ? "" : pidResponse.mxid);
-                    }
-
-                    @Override
-                    public void onHttpError(HttpError httpError) {
-                        callback.onNetworkError(new HttpException(httpError));
-                    }
-                }
-        );
+    private void lookup3PidLegacy(String address, String medium, final ApiCallback<String> callback) {
+        mApi.lookup3Pid(address, medium)
+                .enqueue(new RestAdapterCallback<>("lookup3PidLegacy",
+                        null,
+                        new SimpleApiCallback<PidResponse>(callback) {
+                            @Override
+                            public void onSuccess(PidResponse info) {
+                                callback.onSuccess((null == info.mxid) ? "" : info.mxid);
+                            }
+                        },
+                        null));
     }
-
 
     /**
      * Request the ownership validation of an email address or a phone number previously set
@@ -113,46 +105,43 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
                                       final String clientSecret,
                                       final String sid,
                                       final ApiCallback<Boolean> callback) {
-        mApi.requestOwnershipValidation(medium, token, clientSecret, sid).enqueue(new Callback<Map<String, Object>>() {
-            @Override
-            public void onResponse(Call<Map<String, Object>> call, Response<Map<String, Object>> response) {
-                try {
-                    handleSubmitValidationTokenResponse(response, callback);
-                } catch (IOException e) {
-                    callback.onUnexpectedError(e);
-                }
-            }
+        mApi.requestOwnershipValidationV2(medium, token, clientSecret, sid)
+                .enqueue(new RestAdapterCallback<>("submitValidationToken",
+                        null,
+                        new SimpleApiCallback<SuccessResult>(callback) {
+                            @Override
+                            public void onSuccess(SuccessResult info) {
+                                callback.onSuccess(info.success);
+                            }
 
-            @Override
-            public void onFailure(Call<Map<String, Object>> call, Throwable t) {
-                callback.onUnexpectedError((Exception) t);
-            }
-        });
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                if (e.mStatus == HttpURLConnection.HTTP_NOT_FOUND /*404*/) {
+                                    // Use legacy request
+                                    submitValidationTokenLegacy(medium, token, clientSecret, sid, callback);
+                                } else {
+                                    super.onMatrixError(e);
+                                }
+                            }
+                        },
+                        null));
     }
 
-    private void handleSubmitValidationTokenResponse(
-            Response<Map<String, Object>> response,
-            final ApiCallback<Boolean> callback
-    ) throws IOException {
-        DefaultRetrofit2ResponseHandler.handleResponse(
-                response,
-                new DefaultRetrofit2ResponseHandler.Listener<Map<String, Object>>() {
-                    @Override
-                    public void onSuccess(Response<Map<String, Object>> response) {
-                        Map<String, Object> aDataRespMap = response.body();
-                        if (aDataRespMap.containsKey(KEY_SUBMIT_TOKEN_SUCCESS)) {
-                            callback.onSuccess((Boolean) aDataRespMap.get(KEY_SUBMIT_TOKEN_SUCCESS));
-                        } else {
-                            callback.onSuccess(false);
-                        }
-                    }
-
-                    @Override
-                    public void onHttpError(HttpError httpError) {
-                        callback.onNetworkError(new HttpException(httpError));
-                    }
-                }
-        );
+    private void submitValidationTokenLegacy(final String medium,
+                                             final String token,
+                                             final String clientSecret,
+                                             final String sid,
+                                             final ApiCallback<Boolean> callback) {
+        mApi.requestOwnershipValidation(medium, token, clientSecret, sid)
+                .enqueue(new RestAdapterCallback<>("submitValidationTokenLegacy",
+                        null,
+                        new SimpleApiCallback<SuccessResult>(callback) {
+                            @Override
+                            public void onSuccess(SuccessResult info) {
+                                callback.onSuccess(info.success);
+                            }
+                        },
+                        null));
     }
 
     /**
@@ -171,7 +160,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 
         // nothing to check
         if (0 == mediums.size()) {
-            callback.onSuccess(new ArrayList<String>());
+            callback.onSuccess(new ArrayList<>());
             return;
         }
 
@@ -185,50 +174,43 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 
         threePidsParams.threepids = list;
 
-        mApi.bulkLookup(threePidsParams).enqueue(new Callback<BulkLookupResponse>() {
-            @Override
-            public void onResponse(Call<BulkLookupResponse> call, Response<BulkLookupResponse> response) {
-                try {
-                    handleBulkLookupResponse(response, addresses, callback);
-                } catch (IOException e) {
-                    callback.onUnexpectedError(e);
-                }
-            }
+        mApi.bulkLookupV2(threePidsParams).enqueue(new RestAdapterCallback<>("lookup3Pids",
+                null,
+                new SimpleApiCallback<BulkLookupResponse>(callback) {
+                    @Override
+                    public void onSuccess(BulkLookupResponse info) {
+                        handleBulkLookupSuccess(info, addresses, callback);
+                    }
 
-            @Override
-            public void onFailure(Call<BulkLookupResponse> call, Throwable t) {
-                callback.onUnexpectedError((Exception) t);
-            }
-        });
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        if (e.mStatus == HttpURLConnection.HTTP_NOT_FOUND /*404*/) {
+                            // Use legacy request
+                            lookup3PidsLegacy(addresses, threePidsParams, callback);
+                        } else {
+                            super.onMatrixError(e);
+                        }
+                    }
+                },
+                null));
     }
 
-    private void handleBulkLookupResponse(
-            Response<BulkLookupResponse> response,
-            final List<String> addresses,
-            final ApiCallback<List<String>> callback
-    ) throws IOException {
-        DefaultRetrofit2ResponseHandler.handleResponse(
-                response,
-                new DefaultRetrofit2ResponseHandler.Listener<BulkLookupResponse>() {
+    private void lookup3PidsLegacy(final List<String> addresses, final BulkLookupParams threePidsParams, final ApiCallback<List<String>> callback) {
+        mApi.bulkLookup(threePidsParams).enqueue(new RestAdapterCallback<>("lookup3PidsLegacy",
+                null,
+                new SimpleApiCallback<BulkLookupResponse>(callback) {
                     @Override
-                    public void onSuccess(Response<BulkLookupResponse> response) {
-                        handleBulkLookupSuccess(response, addresses, callback);
+                    public void onSuccess(BulkLookupResponse info) {
+                        handleBulkLookupSuccess(info, addresses, callback);
                     }
-
-                    @Override
-                    public void onHttpError(HttpError httpError) {
-                        callback.onNetworkError(new HttpException(httpError));
-                    }
-                }
-        );
+                },
+                null));
     }
 
     private void handleBulkLookupSuccess(
-            Response<BulkLookupResponse> response,
+            BulkLookupResponse bulkLookupResponse,
             List<String> addresses,
-            ApiCallback<List<String>> callback
-    ) {
-        BulkLookupResponse bulkLookupResponse = response.body();
+            ApiCallback<List<String>> callback) {
         Map<String, String> mxidByAddress = new HashMap<>();
 
         if (null != bulkLookupResponse.threepids) {
