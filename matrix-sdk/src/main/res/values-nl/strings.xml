@@ -176,4 +176,9 @@
     <string name="initial_sync_start_importing_account_data">Initiële synchronisatie:
 \nAccountgegevens worden geïmporteerd</string>
 
+<string name="notice_room_update">%s heeft deze kamer geupgrade.</string>
+
+    <string name="event_status_sending_message">Versturen van het bericht…</string>
+    <string name="clear_timeline_send_queue">Leeg de uitgaande wachtrij</string>
+
 </resources>
