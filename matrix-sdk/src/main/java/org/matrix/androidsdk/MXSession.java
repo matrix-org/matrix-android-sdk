@@ -100,6 +100,7 @@ import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.LoginFlow;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.rest.model.login.ThreePidCredentials;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 import org.matrix.androidsdk.rest.model.message.MediaMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;
@@ -973,9 +974,9 @@ public class MXSession implements CryptoSession {
     public void refreshToken() {
         checkIfAlive();
 
-        mProfileRestClient.refreshTokens(new ApiCallback<Credentials>() {
+        mProfileRestClient.refreshTokens(getCredentials().refreshToken, new ApiCallback<TokenRefreshResponse>() {
             @Override
-            public void onSuccess(Credentials info) {
+            public void onSuccess(TokenRefreshResponse info) {
                 Log.d(LOG_TAG, "refreshToken : succeeds.");
             }
 

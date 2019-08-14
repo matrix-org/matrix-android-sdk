@@ -2011,7 +2011,7 @@ public class Room implements CryptoRoom {
     private void addTag(String tag, Double order, final ApiCallback<Void> callback) {
         // sanity check
         if ((null != tag) && (null != order)) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().addTag(getRoomId(), tag, order, callback);
+            mDataHandler.getDataRetriever().getRoomsRestClient().addTag(mMyUserId, getRoomId(), tag, order, callback);
         } else {
             if (null != callback) {
                 callback.onSuccess(null);
@@ -2028,7 +2028,7 @@ public class Room implements CryptoRoom {
     private void removeTag(String tag, final ApiCallback<Void> callback) {
         // sanity check
         if (null != tag) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().removeTag(getRoomId(), tag, callback);
+            mDataHandler.getDataRetriever().getRoomsRestClient().removeTag(mMyUserId, getRoomId(), tag, callback);
         } else {
             if (null != callback) {
                 callback.onSuccess(null);
@@ -2082,7 +2082,7 @@ public class Room implements CryptoRoom {
      * @param callback the asynchronous callback
      */
     public void setIsURLPreviewAllowedByUser(boolean status, ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateURLPreviewStatus(getRoomId(), status, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateURLPreviewStatus(mMyUserId, getRoomId(), status, callback);
     }
 
     //==============================================================================================================

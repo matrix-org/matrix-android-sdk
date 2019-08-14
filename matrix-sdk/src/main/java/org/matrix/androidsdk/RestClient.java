@@ -81,7 +81,7 @@ public class RestClient<T> {
 
     protected static final int CONNECTION_TIMEOUT_MS = 30000;
 
-    private Credentials mCredentials;
+    private String mAccessToken;
 
     protected T mApi;
 
@@ -96,7 +96,7 @@ public class RestClient<T> {
     private static String sUserAgent = null;
 
     // http client
-    private OkHttpClient mOkHttpClient = new OkHttpClient();
+    private OkHttpClient mOkHttpClient;
 
     public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix) {
         this(hsConfig, type, uriPrefix, JsonUtils.getKotlinGson(), EndPointServer.HOME_SERVER);
@@ -135,7 +135,13 @@ public class RestClient<T> {
     // Private constructor with Gson instance as a parameter
     private RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, Gson gson, EndPointServer endPointServer) {
         mHsConfig = hsConfig;
-        mCredentials = hsConfig.getCredentials();
+
+        if (endPointServer == EndPointServer.HOME_SERVER) {
+            Credentials credentials = hsConfig.getCredentials();
+            if (credentials != null) {
+                mAccessToken = credentials.accessToken;
+            }
+        }
 
         Interceptor authenticationInterceptor = new Interceptor() {
 
@@ -149,8 +155,8 @@ public class RestClient<T> {
                 }
 
                 // Add the access token to all requests if it is set
-                if ((mCredentials != null) && (mCredentials.accessToken != null)) {
-                    newRequestBuilder.addHeader("Authorization", "Bearer " + mCredentials.accessToken);
+                if (mAccessToken != null) {
+                    newRequestBuilder.addHeader("Authorization", "Bearer " + mAccessToken);
                 }
 
                 request = newRequestBuilder.build();
@@ -352,21 +358,12 @@ public class RestClient<T> {
     }
 
     /**
-     * Get the user's credentials. Typically for saving them somewhere persistent.
+     * Update the Access Token of the Rest Client. To be called after login or registration.
      *
-     * @return the user credentials
+     * @param newAccessToken the new Access Token
      */
-    public Credentials getCredentials() {
-        return mCredentials;
-    }
-
-    /**
-     * Provide the user's credentials. To be called after login or registration.
-     *
-     * @param credentials the user credentials
-     */
-    public void setCredentials(Credentials credentials) {
-        mCredentials = credentials;
+    public void setAccessToken(String newAccessToken) {
+        mAccessToken = newAccessToken;
     }
 
 }

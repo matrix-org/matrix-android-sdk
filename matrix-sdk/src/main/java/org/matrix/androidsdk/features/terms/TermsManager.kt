@@ -22,7 +22,6 @@ import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.callback.ApiCallback
 import org.matrix.androidsdk.core.callback.SimpleApiCallback
 import org.matrix.androidsdk.rest.client.TermsRestClient
-import org.matrix.androidsdk.rest.model.login.Credentials
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement
 import org.matrix.androidsdk.rest.model.terms.TermsResponse
 
@@ -48,11 +47,7 @@ class TermsManager(private val mxSession: MXSession) {
     }
 
     fun agreeToTerms(serviceType: ServiceType, baseUrl: String, agreedUrls: List<String>, token: String?, callback: ApiCallback<Unit>) {
-        if (token != null) {
-            termsRestClient.credentials = Credentials().apply { accessToken = token }
-        } else {
-            termsRestClient.credentials = null
-        }
+        termsRestClient.setAccessToken(token)
 
         val url = when (serviceType) {
             ServiceType.IntegrationManager -> "$baseUrl${RestClient.URI_INTEGRATION_MANAGER_PATH}"

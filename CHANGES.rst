@@ -1,6 +1,10 @@
 Changes to Matrix Android SDK in 0.9.X (2018-XX-XX)
 =======================================================
 
+/!\ Security:
+ - The homeserver access token was incorrectly included in requests sent to the Identity Server, a separate service.
+   The client should prompt the user to logout and login again to renew the token, unless the user is happy to trust the Identity Server provider with their access token (e.g. if the homeserver and identity server are operated by the same provider).
+
 Features:
  - Allow Matrix SDK client to configure the filter used for pagination (vector-im/riot-android#3237)
 
@@ -8,6 +12,7 @@ Improvements:
  - Add a TermsManager (vector-im/riot-android#3225)
 
 Bugfix:
+ - Stop sending the access token of the homeserver to the identity server
  - VoIP: Stop falling back to Google for STUN (vector-im/riot-android#3223).
  - EventIDs: Add regex to match eventIDs for v4 and v5 rooms
  - Failed to send a message in a new joined room (invited by email)
