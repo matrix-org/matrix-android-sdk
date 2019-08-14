@@ -19,6 +19,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import androidx.annotation.Nullable;
+import android.net.Uri;
 import android.text.TextUtils;
 
 import com.google.gson.JsonElement;
@@ -32,6 +33,7 @@ import org.matrix.androidsdk.core.callback.SimpleApiCallback;
 import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
+import org.matrix.androidsdk.features.identityserver.IdentityServerNotConfiguredException;
 import org.matrix.androidsdk.rest.api.RoomsApi;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.ChunkEvents;
@@ -211,7 +213,13 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         final String description = "inviteThreePidToRoom : medium " + medium + " roomId " + roomId;
 
         // This request must not have the protocol part
-        String identityServer = mHsConfig.getIdentityServerUri().toString();
+        Uri identityServerUri = mHsConfig.getIdentityServerUri();
+        if (identityServerUri == null) {
+            callback.onUnexpectedError(new IdentityServerNotConfiguredException());
+            return;
+        }
+
+        String identityServer = identityServerUri.toString();
 
         if (identityServer.startsWith("http://")) {
             identityServer = identityServer.substring("http://".length());

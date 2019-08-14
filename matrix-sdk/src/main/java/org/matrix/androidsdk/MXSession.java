@@ -67,6 +67,7 @@ import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediaCache;
+import org.matrix.androidsdk.features.identityserver.IdentityServerNotConfiguredException;
 import org.matrix.androidsdk.features.terms.TermsManager;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -83,7 +84,6 @@ import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushRulesRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
-import org.matrix.androidsdk.rest.client.TermsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
@@ -1366,9 +1366,14 @@ public class MXSession implements CryptoSession {
 
             params.addCryptoAlgorithm(algorithm);
             params.setDirectMessage();
-            params.addParticipantIds(mHsConfig, Arrays.asList(aParticipantUserId));
 
-            createRoom(params, aCreateRoomCallBack);
+            boolean res = params.addParticipantIds(mHsConfig, Arrays.asList(aParticipantUserId));
+
+            if (res) {
+                aCreateRoomCallBack.onUnexpectedError(new IdentityServerNotConfiguredException());
+            } else {
+                createRoom(params, aCreateRoomCallBack);
+            }
         }
 
         return retCode;

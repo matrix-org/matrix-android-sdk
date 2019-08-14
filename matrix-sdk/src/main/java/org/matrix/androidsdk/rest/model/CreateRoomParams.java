@@ -18,6 +18,7 @@
 package org.matrix.androidsdk.rest.model;
 
 import androidx.annotation.Nullable;
+import android.net.Uri;
 import android.text.TextUtils;
 
 import com.google.gson.annotations.SerializedName;
@@ -235,8 +236,9 @@ public class CreateRoomParams {
      * ids might be a matrix id or an email address.
      *
      * @param ids the participant ids to add.
+     * @return true in case of error, which can happen when adding email and no identity server is configured, false in case of success
      */
-    public void addParticipantIds(HomeServerConnectionConfig hsConfig, List<String> ids) {
+    public boolean addParticipantIds(HomeServerConnectionConfig hsConfig, List<String> ids) {
         for (String id : ids) {
             if (android.util.Patterns.EMAIL_ADDRESS.matcher(id).matches()) {
                 if (null == invite3pids) {
@@ -244,7 +246,14 @@ public class CreateRoomParams {
                 }
 
                 Invite3Pid pid = new Invite3Pid();
-                pid.id_server = hsConfig.getIdentityServerUri().getHost();
+
+                Uri identityServerUri = hsConfig.getIdentityServerUri();
+                if (identityServerUri == null) {
+                    // Error
+                    return true;
+                }
+
+                pid.id_server = identityServerUri.getHost();
                 pid.medium = ThreePid.MEDIUM_EMAIL;
                 pid.address = id;
 
@@ -261,5 +270,8 @@ public class CreateRoomParams {
 
             } // TODO add phonenumbers when it will be available
         }
+
+        // No error
+        return false;
     }
 }

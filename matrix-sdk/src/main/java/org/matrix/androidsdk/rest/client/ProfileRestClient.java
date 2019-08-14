@@ -16,6 +16,7 @@
  */
 package org.matrix.androidsdk.rest.client;
 
+import android.net.Uri;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
@@ -23,6 +24,7 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
+import org.matrix.androidsdk.features.identityserver.IdentityServerNotConfiguredException;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
@@ -240,7 +242,14 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             forgetPasswordParams.email = email;
             forgetPasswordParams.client_secret = pid.clientSecret;
             forgetPasswordParams.send_attempt = 1;
-            forgetPasswordParams.id_server = mHsConfig.getIdentityServerUri().getHost();
+
+            Uri identityServerUri = mHsConfig.getIdentityServerUri();
+            if (identityServerUri == null) {
+                callback.onUnexpectedError(new IdentityServerNotConfiguredException());
+                return;
+            }
+
+            forgetPasswordParams.id_server = identityServerUri.getHost();
 
             mApi.forgetPassword(forgetPasswordParams)
                     .enqueue(new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback,
@@ -359,7 +368,14 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         params.email = address;
         params.clientSecret = clientSecret;
         params.sendAttempt = attempt;
-        params.id_server = mHsConfig.getIdentityServerUri().getHost();
+
+        Uri identityServerUri = mHsConfig.getIdentityServerUri();
+        if (identityServerUri == null) {
+            callback.onUnexpectedError(new IdentityServerNotConfiguredException());
+            return;
+        }
+
+        params.id_server = identityServerUri.getHost();
         if (!TextUtils.isEmpty(nextLink)) {
             params.next_link = nextLink;
         }
@@ -412,7 +428,14 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         params.country = countryCode;
         params.clientSecret = clientSecret;
         params.sendAttempt = attempt;
-        params.id_server = mHsConfig.getIdentityServerUri().getHost();
+
+        Uri identityServerUri = mHsConfig.getIdentityServerUri();
+        if (identityServerUri == null) {
+            callback.onUnexpectedError(new IdentityServerNotConfiguredException());
+            return;
+        }
+
+        params.id_server = identityServerUri.getHost();
 
         final RestAdapterCallback<RequestPhoneNumberValidationResponse> adapterCallback
                 = new RestAdapterCallback<RequestPhoneNumberValidationResponse>(description, mUnsentEventsManager, callback,
@@ -454,7 +477,13 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         AddThreePidsParams params = new AddThreePidsParams();
         params.three_pid_creds = new ThreePidCreds();
 
-        String identityServerHost = mHsConfig.getIdentityServerUri().toString();
+        Uri identityServerUri = mHsConfig.getIdentityServerUri();
+        if (identityServerUri == null) {
+            callback.onUnexpectedError(new IdentityServerNotConfiguredException());
+            return;
+        }
+
+        String identityServerHost = identityServerUri.toString();
         if (identityServerHost.startsWith("http://")) {
             identityServerHost = identityServerHost.substring("http://".length());
         } else if (identityServerHost.startsWith("https://")) {
