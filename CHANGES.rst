@@ -10,6 +10,7 @@ Improvements:
 Bugfix:
  - VoIP: Stop falling back to Google for STUN (vector-im/riot-android#3223).
  - EventIDs: Add regex to match eventIDs for v4 and v5 rooms
+ - Failed to send a message in a new joined room (invited by email)
 
 API Change:
  -
