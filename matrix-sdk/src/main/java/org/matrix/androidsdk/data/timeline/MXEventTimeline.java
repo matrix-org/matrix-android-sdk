@@ -432,10 +432,10 @@ class MXEventTimeline implements EventTimeline {
         // Update potentially the summary last event
         if (null != latestSupportedEvent) {
             RoomSummary summary = mStore.getSummary(mRoomId);
-            if (summary != null && !RoomSummary.isSupportedEvent(summary.getLatestReceivedEvent())) {
-                summary.setLatestReceivedEvent(latestSupportedEvent, getState());
-            } else {
+            if (summary == null) {
                 mStore.storeSummary(new RoomSummary(null, latestSupportedEvent, getState(), mDataHandler.getUserId()));
+            } else if (!RoomSummary.isSupportedEvent(summary.getLatestReceivedEvent())) {
+                summary.setLatestReceivedEvent(latestSupportedEvent, getState());
             }
         }
 
