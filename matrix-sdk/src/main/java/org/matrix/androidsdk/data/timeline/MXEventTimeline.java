@@ -429,12 +429,14 @@ class MXEventTimeline implements EventTimeline {
             mEventListeners.onEvent(snapshotedEvent.mEvent, Direction.BACKWARDS, snapshotedEvent.mState);
         }
 
-        // https://github.com/vector-im/vector-android/pull/354
-        // defines a new summary if the known is not supported
-        RoomSummary summary = mStore.getSummary(mRoomId);
-
-        if (null != latestSupportedEvent && (null == summary || !RoomSummary.isSupportedEvent(summary.getLatestReceivedEvent()))) {
-            mStore.storeSummary(new RoomSummary(null, latestSupportedEvent, getState(), mDataHandler.getUserId()));
+        // Update potentially the summary last event
+        if (null != latestSupportedEvent) {
+            RoomSummary summary = mStore.getSummary(mRoomId);
+            if (summary == null) {
+                mStore.storeSummary(new RoomSummary(null, latestSupportedEvent, getState(), mDataHandler.getUserId()));
+            } else if (!RoomSummary.isSupportedEvent(summary.getLatestReceivedEvent())) {
+                summary.setLatestReceivedEvent(latestSupportedEvent, getState());
+            }
         }
 
         Log.d(LOG_TAG, "manageEvents : commit");
