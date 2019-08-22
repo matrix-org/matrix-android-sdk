@@ -34,9 +34,11 @@ class TermsManager(private val mxSession: MXSession) {
     }
 
     fun get(serviceType: ServiceType, baseUrl: String, callback: ApiCallback<GetTermsResponse>) {
+        val sep = if (baseUrl.endsWith("/")) "" else "/"
+
         val url = when (serviceType) {
-            ServiceType.IntegrationManager -> "$baseUrl${RestClient.URI_INTEGRATION_MANAGER_PATH}"
-            ServiceType.IdentityService    -> "$baseUrl${RestClient.URI_IDENTITY_PATH_V2}"
+            ServiceType.IntegrationManager -> "$baseUrl$sep${RestClient.URI_INTEGRATION_MANAGER_PATH}"
+            ServiceType.IdentityService    -> "$baseUrl$sep${RestClient.URI_IDENTITY_PATH_V2}"
         }
 
         termsRestClient.get(url, object : SimpleApiCallback<TermsResponse>(callback) {
@@ -46,12 +48,14 @@ class TermsManager(private val mxSession: MXSession) {
         })
     }
 
-    fun agreeToTerms(serviceType: ServiceType, baseUrl: String, agreedUrls: List<String>, token: String?, callback: ApiCallback<Unit>) {
+    fun agreeToTerms(serviceType: ServiceType, baseUrl: String, agreedUrls: List<String>, token: String, callback: ApiCallback<Unit>) {
         termsRestClient.setAccessToken(token)
 
+        val sep = if (baseUrl.endsWith("/")) "" else "/"
+
         val url = when (serviceType) {
-            ServiceType.IntegrationManager -> "$baseUrl${RestClient.URI_INTEGRATION_MANAGER_PATH}"
-            ServiceType.IdentityService    -> "$baseUrl${RestClient.URI_IDENTITY_PATH_V2}"
+            ServiceType.IntegrationManager -> "$baseUrl$sep${RestClient.URI_INTEGRATION_MANAGER_PATH}"
+            ServiceType.IdentityService    -> "$baseUrl$sep${RestClient.URI_IDENTITY_PATH_V2}"
         }
 
         termsRestClient.agreeToTerms(url, agreedUrls, object : SimpleApiCallback<Unit>(callback) {

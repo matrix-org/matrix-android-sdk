@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.features.terms
+package org.matrix.androidsdk.rest.model.identityserver
 
-class TermsNotSignedException(val token: String) : Exception()
+import com.google.gson.annotations.SerializedName
+
+data class IdentityServerRegisterResponse(
+        @JvmField
+        @SerializedName("access_token")
+        val identityServerAccessToken: String
+)

@@ -380,7 +380,10 @@ public class HomeServerConnectionConfig {
          * @return this builder
          */
         public Builder withIdentityServerUri(@Nullable final Uri identityServerUri) {
-            if ((null != identityServerUri) && (!"http".equals(identityServerUri.getScheme()) && !"https".equals(identityServerUri.getScheme()))) {
+            if (identityServerUri != null
+                    && !identityServerUri.toString().isEmpty()
+                    && !"http".equals(identityServerUri.getScheme())
+                    && !"https".equals(identityServerUri.getScheme())) {
                 throw new RuntimeException("Invalid identity server URI: " + identityServerUri);
             }
 
@@ -393,7 +396,11 @@ public class HomeServerConnectionConfig {
                     throw new RuntimeException("Invalid identity server URI: " + identityServerUri);
                 }
             } else {
-                mHomeServerConnectionConfig.mIdentityServerUri = identityServerUri;
+                if (identityServerUri != null && identityServerUri.toString().isEmpty()) {
+                    mHomeServerConnectionConfig.mIdentityServerUri = null;
+                } else {
+                    mHomeServerConnectionConfig.mIdentityServerUri = identityServerUri;
+                }
             }
 
             return this;

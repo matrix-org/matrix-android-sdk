@@ -28,26 +28,26 @@ data class RequestOpenIdTokenResponse(
          */
         @JvmField
         @SerializedName("access_token")
-        val openIdToken: String? = null,
+        val openIdToken: String,
 
         /**
          * Required. The string Bearer.
          */
         @JvmField
         @SerializedName("token_type")
-        val tokenType: String? = null,
+        val tokenType: String,
 
         /**
          * Required. The homeserver domain the consumer should use when attempting to verify the user's identity.
          */
         @JvmField
         @SerializedName("matrix_server_name")
-        val matrixServerName: String? = null,
+        val matrixServerName: String,
 
         /**
          * Required. The number of seconds before this token expires and a new one must be generated.
          */
         @JvmField
         @SerializedName("expires_in")
-        val expiresIn: Int? = null
+        val expiresIn: Int
 )

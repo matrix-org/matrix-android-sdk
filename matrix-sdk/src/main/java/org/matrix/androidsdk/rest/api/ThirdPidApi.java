@@ -21,6 +21,9 @@ import org.matrix.androidsdk.rest.model.BulkLookupParams;
 import org.matrix.androidsdk.rest.model.BulkLookupResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationParams;
 import org.matrix.androidsdk.rest.model.SuccessResult;
+import org.matrix.androidsdk.rest.model.identityserver.HashDetailResponse;
+import org.matrix.androidsdk.rest.model.identityserver.LookUpV2Params;
+import org.matrix.androidsdk.rest.model.identityserver.LookUpV2Response;
 import org.matrix.androidsdk.rest.model.pid.PidResponse;
 
 import retrofit2.Call;
@@ -33,23 +36,18 @@ import retrofit2.http.Query;
 public interface ThirdPidApi {
 
     /**
-     * Get the 3rd party id from a medium
-     *
-     * @param address the address.
-     * @param medium  the medium.
+     * Request the hash detail to request a bunch of 3PIDs
      */
-    @GET(RestClient.URI_IDENTITY_PATH_V2 + "lookup")
-    Call<PidResponse> lookup3PidV2(@Query("address") String address,
-                                   @Query("medium") String medium);
+    @GET(RestClient.URI_IDENTITY_PATH_V2 + "hash_details")
+    Call<HashDetailResponse> hashDetails();
 
     /**
      * Request a bunch of 3PIDs
      *
      * @param body the body request
      */
-    @POST(RestClient.URI_IDENTITY_PATH_V2 + "bulk_lookup")
-    Call<BulkLookupResponse> bulkLookupV2(@Body BulkLookupParams body);
-
+    @POST(RestClient.URI_IDENTITY_PATH_V2 + "lookup")
+    Call<LookUpV2Response> bulkLookupV2(@Body LookUpV2Params body);
 
     /**
      * Request the ownership validation of an email address or a phone number previously set
@@ -69,18 +67,6 @@ public interface ThirdPidApi {
     /* ==========================================================================================
      * Legacy requests
      * ========================================================================================== */
-
-    /**
-     * Get the 3rd party id from a medium
-     * <p>
-     * Ref: https://matrix.org/docs/spec/identity_service/unstable#get-matrix-identity-api-v1-lookup
-     *
-     * @param address the address.
-     * @param medium  the medium.
-     */
-    @GET(RestClient.URI_IDENTITY_PATH + "lookup")
-    Call<PidResponse> lookup3Pid(@Query("address") String address,
-                                 @Query("medium") String medium);
 
     /**
      * Request a bunch of 3PIDs

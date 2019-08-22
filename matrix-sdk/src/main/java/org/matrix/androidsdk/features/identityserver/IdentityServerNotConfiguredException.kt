@@ -16,4 +16,4 @@
 
 package org.matrix.androidsdk.features.identityserver
 
-class IdentityServerNotConfiguredException() : Exception()
+class IdentityServerNotConfiguredException : Exception()

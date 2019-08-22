@@ -14,6 +14,23 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.features.terms
+package org.matrix.androidsdk.rest.model.identityserver
 
-class TermsNotSignedException(val token: String) : Exception()
+import com.google.gson.annotations.SerializedName
+
+/**
+ * Ref: https://github.com/matrix-org/matrix-doc/blob/hs/hash-identity/proposals/2134-identity-hash-lookup.md
+ */
+data class LookUpV2Params(
+        @JvmField
+        @SerializedName("addresses")
+        val hashedAddresses: List<String>,
+
+        @JvmField
+        @SerializedName("algorithm")
+        val algorithm: String,
+
+        @JvmField
+        @SerializedName("pepper")
+        val pepper: String
+)

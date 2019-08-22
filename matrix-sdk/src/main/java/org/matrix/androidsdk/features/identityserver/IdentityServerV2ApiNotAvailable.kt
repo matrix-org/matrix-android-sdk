@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.features.terms
+package org.matrix.androidsdk.features.identityserver
 
-class TermsNotSignedException(val token: String) : Exception()
+class IdentityServerV2ApiNotAvailable : Exception()

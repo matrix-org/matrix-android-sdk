@@ -20,15 +20,20 @@ package org.matrix.androidsdk.rest.client;
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.JsonUtils;
+import org.matrix.androidsdk.core.StringUtilsKt;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
 import org.matrix.androidsdk.core.model.MatrixError;
+import org.matrix.androidsdk.features.identityserver.IdentityServerV2ApiNotAvailable;
 import org.matrix.androidsdk.rest.api.ThirdPidApi;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.BulkLookupParams;
 import org.matrix.androidsdk.rest.model.BulkLookupResponse;
 import org.matrix.androidsdk.rest.model.SuccessResult;
-import org.matrix.androidsdk.rest.model.pid.PidResponse;
+import org.matrix.androidsdk.rest.model.identityserver.HashDetailResponse;
+import org.matrix.androidsdk.rest.model.identityserver.LookUpV2Params;
+import org.matrix.androidsdk.rest.model.identityserver.LookUpV2Response;
+import org.matrix.olm.OlmUtility;
 
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
@@ -44,49 +49,6 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      */
     public ThirdPidRestClient(HomeServerConnectionConfig hsConfig) {
         super(hsConfig, ThirdPidApi.class, "", false, true);
-    }
-
-    /**
-     * Retrieve user matrix id from a 3rd party id.
-     *
-     * @param address  3rd party id
-     * @param medium   the media.
-     * @param callback the 3rd party callback
-     */
-    public void lookup3Pid(String address, String medium, final ApiCallback<String> callback) {
-        mApi.lookup3PidV2(address, medium)
-                .enqueue(new RestAdapterCallback<>("lookup3Pid",
-                        null,
-                        new SimpleApiCallback<PidResponse>(callback) {
-                            @Override
-                            public void onSuccess(PidResponse info) {
-                                callback.onSuccess((null == info.mxid) ? "" : info.mxid);
-                            }
-
-                            @Override
-                            public void onMatrixError(MatrixError e) {
-                                if (e.mStatus == HttpURLConnection.HTTP_NOT_FOUND /*404*/) {
-                                    // Use legacy request
-                                    lookup3PidLegacy(address, medium, callback);
-                                } else {
-                                    super.onMatrixError(e);
-                                }
-                            }
-                        },
-                        null));
-    }
-
-    private void lookup3PidLegacy(String address, String medium, final ApiCallback<String> callback) {
-        mApi.lookup3Pid(address, medium)
-                .enqueue(new RestAdapterCallback<>("lookup3PidLegacy",
-                        null,
-                        new SimpleApiCallback<PidResponse>(callback) {
-                            @Override
-                            public void onSuccess(PidResponse info) {
-                                callback.onSuccess((null == info.mxid) ? "" : info.mxid);
-                            }
-                        },
-                        null));
     }
 
     /**
@@ -126,11 +88,11 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
                         null));
     }
 
-    private void submitValidationTokenLegacy(final String medium,
-                                             final String token,
-                                             final String clientSecret,
-                                             final String sid,
-                                             final ApiCallback<Boolean> callback) {
+    public void submitValidationTokenLegacy(final String medium,
+                                            final String token,
+                                            final String clientSecret,
+                                            final String sid,
+                                            final ApiCallback<Boolean> callback) {
         mApi.requestOwnershipValidation(medium, token, clientSecret, sid)
                 .enqueue(new RestAdapterCallback<>("submitValidationTokenLegacy",
                         null,
@@ -144,12 +106,104 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
     }
 
     /**
+     * Get the look up params
+     */
+    public void getLookupParam(final ApiCallback<HashDetailResponse> callback) {
+        mApi.hashDetails().enqueue(new RestAdapterCallback<>("getLookupParam",
+                null,
+                new SimpleApiCallback<HashDetailResponse>(callback) {
+                    @Override
+                    public void onSuccess(HashDetailResponse info) {
+                        callback.onSuccess(info);
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        if (e.mStatus == HttpURLConnection.HTTP_NOT_FOUND /*404*/) {
+                            callback.onUnexpectedError(new IdentityServerV2ApiNotAvailable());
+                        } else {
+                            super.onMatrixError(e);
+                        }
+                    }
+                },
+                null));
+    }
+
+    /**
      * Retrieve user matrix id from a 3rd party id.
      *
      * @param addresses 3rd party ids
      * @param mediums   the media.
      * @param callback  the 3rd parties callback
      */
+    public void lookup3PidsV2(final HashDetailResponse hashDetailResponse,
+                              final List<String> addresses,
+                              final List<String> mediums,
+                              final ApiCallback<List<String>> callback) {
+        // sanity checks
+        if ((null == addresses) || (null == mediums) || (addresses.size() != mediums.size())) {
+            callback.onUnexpectedError(new Exception("invalid params"));
+            return;
+        }
+
+        // nothing to check
+        if (0 == mediums.size()) {
+            callback.onSuccess(new ArrayList<>());
+            return;
+        }
+
+        // Check that hashDetailResponse support sha256
+        if (!hashDetailResponse.algorithms.contains("sha256")) {
+            // We wont do better on the legacy SDK, in particular, we do not support "none"
+            callback.onUnexpectedError(new Exception("sha256 is not supported"));
+            return;
+        }
+
+        OlmUtility olmUtility;
+
+        try {
+            olmUtility = new OlmUtility();
+        } catch (Exception e) {
+            callback.onUnexpectedError(e);
+            return;
+        }
+
+        final List<String> hashedPids = new ArrayList<>();
+
+        for (int i = 0; i < addresses.size(); i++) {
+            hashedPids.add(
+                    StringUtilsKt.base64ToBase64Url(
+                            olmUtility.sha256(addresses.get(i) + " " + mediums.get(i) + " " + hashDetailResponse.pepper)
+                    )
+            );
+        }
+
+        olmUtility.releaseUtility();
+
+        LookUpV2Params lookUpV2Params = new LookUpV2Params(hashedPids, "sha256", hashDetailResponse.pepper);
+
+        mApi.bulkLookupV2(lookUpV2Params).enqueue(new RestAdapterCallback<>("bulkLookupV2",
+                null,
+                new SimpleApiCallback<LookUpV2Response>(callback) {
+                    @Override
+                    public void onSuccess(LookUpV2Response info) {
+                        handleLookupV2Success(info, hashedPids, callback);
+                    }
+
+                    // Note that we request the pepper before each request, so for now we consider the pepper cannot be wrong.
+                },
+                null));
+    }
+
+    /**
+     * Retrieve user matrix id from a 3rd party id.
+     *
+     * @param addresses 3rd party ids
+     * @param mediums   the media.
+     * @param callback  the 3rd parties callback
+     * @Deprecated Try to use first v2 API
+     */
+    @Deprecated
     public void lookup3Pids(final List<String> addresses, final List<String> mediums, final ApiCallback<List<String>> callback) {
         // sanity checks
         if ((null == addresses) || (null == mediums) || (addresses.size() != mediums.size())) {
@@ -173,28 +227,6 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
 
         threePidsParams.threepids = list;
 
-        mApi.bulkLookupV2(threePidsParams).enqueue(new RestAdapterCallback<>("lookup3Pids",
-                null,
-                new SimpleApiCallback<BulkLookupResponse>(callback) {
-                    @Override
-                    public void onSuccess(BulkLookupResponse info) {
-                        handleBulkLookupSuccess(info, addresses, callback);
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        if (e.mStatus == HttpURLConnection.HTTP_NOT_FOUND /*404*/) {
-                            // Use legacy request
-                            lookup3PidsLegacy(addresses, threePidsParams, callback);
-                        } else {
-                            super.onMatrixError(e);
-                        }
-                    }
-                },
-                null));
-    }
-
-    private void lookup3PidsLegacy(final List<String> addresses, final BulkLookupParams threePidsParams, final ApiCallback<List<String>> callback) {
         mApi.bulkLookup(threePidsParams).enqueue(new RestAdapterCallback<>("lookup3PidsLegacy",
                 null,
                 new SimpleApiCallback<BulkLookupResponse>(callback) {
@@ -227,6 +259,23 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
         for (String address : addresses) {
             if (mxidByAddress.containsKey(address)) {
                 matrixIds.add(mxidByAddress.get(address));
+            } else {
+                matrixIds.add("");
+            }
+        }
+
+        callback.onSuccess(matrixIds);
+    }
+
+    private void handleLookupV2Success(
+            LookUpV2Response bulkLookupResponse,
+            List<String> hashedPids,
+            ApiCallback<List<String>> callback) {
+        List<String> matrixIds = new ArrayList<>();
+
+        for (int i = 0; i < hashedPids.size(); i++) {
+            if (bulkLookupResponse.mappings.get(hashedPids.get(i)) != null) {
+                matrixIds.add(bulkLookupResponse.mappings.get(hashedPids.get(i)));
             } else {
                 matrixIds.add("");
             }
