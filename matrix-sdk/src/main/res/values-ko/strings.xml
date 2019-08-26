@@ -8,8 +8,8 @@
 
     <string name="notice_room_invite">%1$s님이 %2$s님을 초대했습니다</string>
     <string name="notice_room_invite_you">%1$s님이 당신을 초대했습니다</string>
-    <string name="notice_room_join">%1$s님이 들어왔습니다</string>
-    <string name="notice_room_leave">%1$s님이 나갔습니다</string>
+    <string name="notice_room_join">%1$s님이 참가했습니다</string>
+    <string name="notice_room_leave">%1$s님이 떠났습니다</string>
     <string name="notice_room_reject">%1$s님이 초대를 거부했습니다</string>
     <string name="notice_room_kick">%1$s님이 %2$s님을 추방했습니다</string>
     <string name="notice_room_unban">%1$s님이 %2$s님의 차단을 풀었습니다</string>
@@ -26,9 +26,9 @@
     <string name="notice_answered_call">%s님이 전화를 받았습니다.</string>
     <string name="notice_ended_call">%s님이 전화를 끊었습니다.</string>
     <string name="notice_made_future_room_visibility">%1$s님이 %2$s님에게 미래 방 기록을 공개했습니다</string>
-    <string name="notice_room_visibility_invited">초대된 시점부터 모든 방 멤버.</string>
-    <string name="notice_room_visibility_joined">들어온 시점부터 모든 방 멤버.</string>
-    <string name="notice_room_visibility_shared">모든 방 멤버.</string>
+    <string name="notice_room_visibility_invited">초대된 시점부터 모든 방 구성원.</string>
+    <string name="notice_room_visibility_joined">들어온 시점부터 모든 방 구성원.</string>
+    <string name="notice_room_visibility_shared">모든 방 구성원.</string>
     <string name="notice_room_visibility_world_readable">누구나.</string>
     <string name="notice_room_visibility_unknown">알 수 없음 (%s).</string>
     <string name="notice_end_to_end">%1$s님이 종단 간 암호화를 켰습니다 (%2$s)</string>
@@ -38,7 +38,7 @@
     <string name="notice_voip_started">VoIP 회의가 시작했습니다</string>
     <string name="notice_voip_finished">VoIP 회의가 끝났습니다</string>
 
-    <string name="notice_avatar_changed_too">(아바타도 변경됩니다)</string>
+    <string name="notice_avatar_changed_too">(아바타도 변경됨)</string>
     <string name="notice_room_name_removed">%1$s님이 방 이름을 삭제했습니다</string>
     <string name="notice_room_topic_removed">%1$s님이 방 주제를 삭제했습니다</string>
     <string name="notice_event_redacted">메시지가 삭제되었습니다</string>
@@ -80,7 +80,7 @@
     <string name="room_displayname_two_members">%1$s님과 %2$s님</string>
 
     <plurals name="room_displayname_three_and_more_members">
-	<item quantity="other">%1$s님 외 다른 %2$d 명</item>
+	<item quantity="other">%1$s님 외 %2$d명</item>
 </plurals>
 
     <string name="room_displayname_empty_room">빈 방</string>
