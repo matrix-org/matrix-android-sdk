@@ -18,7 +18,7 @@
 
 package org.matrix.androidsdk.crypto
 
-import android.support.test.InstrumentationRegistry
+import androidx.test.InstrumentationRegistry
 import android.text.TextUtils
 import org.junit.Assert.*
 import org.junit.Before

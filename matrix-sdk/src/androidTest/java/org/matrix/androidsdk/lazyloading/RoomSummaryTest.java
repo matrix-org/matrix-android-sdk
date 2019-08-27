@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.lazyloading;
 
-import android.support.test.InstrumentationRegistry;
+import androidx.test.InstrumentationRegistry;
 
 import junit.framework.Assert;
 

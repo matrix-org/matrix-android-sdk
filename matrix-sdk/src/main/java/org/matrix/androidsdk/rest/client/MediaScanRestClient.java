@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.rest.client;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;

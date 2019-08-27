@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.interfaces;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.text.Html;
 
 public interface HtmlToolbox {

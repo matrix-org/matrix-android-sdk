@@ -22,7 +22,7 @@ Others:
  - Remove useless log (vector-im/riot-android#3236)
 
 Build:
- -
+ - Migrate to androidx (following https://developer.android.com/jetpack/androidx/migrate)
 
 Test:
  -

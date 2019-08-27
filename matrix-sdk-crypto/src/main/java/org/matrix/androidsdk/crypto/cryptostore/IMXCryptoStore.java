@@ -18,7 +18,7 @@
 package org.matrix.androidsdk.crypto.cryptostore;
 
 import android.content.Context;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import org.jetbrains.annotations.NotNull;
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;

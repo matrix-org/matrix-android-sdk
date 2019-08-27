@@ -16,7 +16,7 @@
 package org.matrix.androidsdk.rest.model.message;
 
 import android.content.ClipDescription;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 

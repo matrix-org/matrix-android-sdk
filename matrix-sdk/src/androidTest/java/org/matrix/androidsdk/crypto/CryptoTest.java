@@ -21,8 +21,8 @@ package org.matrix.androidsdk.crypto;
 
 import android.content.Context;
 import android.os.SystemClock;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.runner.AndroidJUnit4;
+import androidx.test.InstrumentationRegistry;
+import androidx.test.runner.AndroidJUnit4;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;

@@ -17,7 +17,7 @@
  */
 package org.matrix.androidsdk.crypto.model.rest;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import org.matrix.androidsdk.core.interfaces.DatedObject;
 
