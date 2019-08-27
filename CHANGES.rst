@@ -23,6 +23,7 @@ Others:
 
 Build:
  - Migrate to androidx (following https://developer.android.com/jetpack/androidx/migrate)
+ - WebRTC: upgrade webrtc library, using the one build along with Jitsi
 
 Test:
  -

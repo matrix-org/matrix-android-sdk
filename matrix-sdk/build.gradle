@@ -177,7 +177,7 @@ dependencies {
     kapt 'dk.ilios:realmfieldnameshelper:1.1.1'
 
     // WebRTC
-    implementation('com.facebook.react:react-native-webrtc:1.69.0-jitsi-799011@aar')
+    implementation('com.facebook.react:react-native-webrtc:1.69.2-jitsi-2062090@aar')
 
     // Test
     testImplementation 'androidx.test:runner:1.2.0'

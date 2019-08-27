@@ -20,11 +20,12 @@ package org.matrix.androidsdk.call;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import androidx.core.content.ContextCompat;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.RelativeLayout;
+
+import androidx.core.content.ContextCompat;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -41,6 +42,8 @@ import org.webrtc.Camera2Enumerator;
 import org.webrtc.CameraEnumerator;
 import org.webrtc.CameraVideoCapturer;
 import org.webrtc.DataChannel;
+import org.webrtc.DefaultVideoDecoderFactory;
+import org.webrtc.DefaultVideoEncoderFactory;
 import org.webrtc.EglBase;
 import org.webrtc.IceCandidate;
 import org.webrtc.MediaConstraints;
@@ -50,6 +53,7 @@ import org.webrtc.PeerConnectionFactory;
 import org.webrtc.RtpReceiver;
 import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
+import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
@@ -984,7 +988,12 @@ public class MXWebRtcCall extends MXCall {
                 Log.d(LOG_TAG, "createVideoTrack find a video capturer");
 
                 try {
-                    mVideoSource = mPeerConnectionFactory.createVideoSource(mCameraVideoCapturer);
+                    // Following instruction here: https://stackoverflow.com/questions/55085726/webrtc-create-peerconnectionfactory-object
+                    EglBase rootEglBase = EglUtils.getRootEglBase();
+                    SurfaceTextureHelper surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", rootEglBase.getEglBaseContext());
+                    mVideoSource = mPeerConnectionFactory.createVideoSource(mCameraVideoCapturer.isScreencast());
+                    mCameraVideoCapturer.initialize(surfaceTextureHelper, mContext, mVideoSource.getCapturerObserver());
+
                     mCameraVideoCapturer.startCapture(DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_FPS);
 
                     mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
@@ -1082,13 +1091,30 @@ public class MXWebRtcCall extends MXCall {
                         if (null == mPeerConnectionFactory) {
                             Log.d(LOG_TAG, "## initCallUI(): video call and no mPeerConnectionFactory");
 
-                            mPeerConnectionFactory = PeerConnectionFactory.builder().createPeerConnectionFactory();
+                            // Inspired from https://vivekc.xyz/getting-started-with-webrtc-part-4-de72b58ab31e
+                            //Create a new PeerConnectionFactory instance - using Hardware encoder and decoder.
+                            PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
+                            DefaultVideoEncoderFactory defaultVideoEncoderFactory =
+                                    new DefaultVideoEncoderFactory(
+                                            EglUtils.getRootEglBase().getEglBaseContext(),
+                                            /* enableIntelVp8Encoder */true,
+                                            /* enableH264HighProfile */true);
+                            DefaultVideoDecoderFactory defaultVideoDecoderFactory =
+                                    new DefaultVideoDecoderFactory(EglUtils.getRootEglBase().getEglBaseContext());
+
+                            mPeerConnectionFactory = PeerConnectionFactory.builder()
+                                    .setOptions(options)
+                                    .setVideoEncoderFactory(defaultVideoEncoderFactory)
+                                    .setVideoDecoderFactory(defaultVideoDecoderFactory)
+                                    .createPeerConnectionFactory();
 
                             // Initialize EGL contexts required for HW acceleration.
+                            /*
                             EglBase.Context eglContext = EglUtils.getRootEglBaseContext();
                             if (eglContext != null) {
                                 mPeerConnectionFactory.setVideoHwAccelerationOptions(eglContext, eglContext);
                             }
+                            */
 
                             createVideoTrack();
                             createAudioTrack();
