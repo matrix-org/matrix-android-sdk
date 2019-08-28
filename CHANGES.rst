@@ -1,4 +1,4 @@
-Changes to Matrix Android SDK in 0.9.X (2018-XX-XX)
+Changes to Matrix Android SDK in 0.9.27 (2018-08-28)
 =======================================================
 
 /!\ Security:
@@ -17,21 +17,12 @@ Bugfix:
  - EventIDs: Add regex to match eventIDs for v4 and v5 rooms
  - Failed to send a message in a new joined room (invited by email)
 
-API Change:
- -
-
-Translations:
- -
-
 Others:
  - Remove useless log (vector-im/riot-android#3236)
 
 Build:
  - Migrate to androidx (following https://developer.android.com/jetpack/androidx/migrate)
  - WebRTC: upgrade webrtc library, using the one build along with Jitsi
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.26 (2019-07-24)
 =======================================================
