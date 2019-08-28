@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.core;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import org.matrix.androidsdk.rest.model.Versions;
 

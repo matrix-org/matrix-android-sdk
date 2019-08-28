@@ -17,7 +17,7 @@
 
 package org.matrix.androidsdk.crypto.algorithms;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import org.matrix.androidsdk.crypto.IncomingRoomKeyRequest;
 import org.matrix.androidsdk.crypto.MXDecryptionException;

@@ -68,7 +68,7 @@ public class MyUser extends User {
      * @param callback    the async callback
      */
     public void updateDisplayName(final String displayName, final ApiCallback<Void> callback) {
-        mDataHandler.getProfileRestClient().updateDisplayname(displayName, new SimpleApiCallback<Void>(callback) {
+        mDataHandler.getProfileRestClient().updateDisplayname(user_id, displayName, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
@@ -87,7 +87,7 @@ public class MyUser extends User {
      * @param callback  the async callback
      */
     public void updateAvatarUrl(final String avatarUrl, final ApiCallback<Void> callback) {
-        mDataHandler.getProfileRestClient().updateAvatarUrl(avatarUrl, new SimpleApiCallback<Void>(callback) {
+        mDataHandler.getProfileRestClient().updateAvatarUrl(user_id, avatarUrl, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback

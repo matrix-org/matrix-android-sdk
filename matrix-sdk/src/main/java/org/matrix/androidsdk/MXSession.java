@@ -24,9 +24,9 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import android.text.TextUtils;
 
 import org.jetbrains.annotations.NotNull;
@@ -67,6 +67,7 @@ import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediaCache;
+import org.matrix.androidsdk.features.terms.TermsManager;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.client.AccountDataRestClient;
@@ -81,6 +82,7 @@ import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushRulesRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
+import org.matrix.androidsdk.rest.client.TermsRestClient;
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
@@ -93,10 +95,12 @@ import org.matrix.androidsdk.rest.model.Versions;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.filter.FilterBody;
 import org.matrix.androidsdk.rest.model.filter.FilterResponse;
+import org.matrix.androidsdk.rest.model.filter.RoomEventFilter;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.LoginFlow;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
 import org.matrix.androidsdk.rest.model.login.ThreePidCredentials;
+import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 import org.matrix.androidsdk.rest.model.message.MediaMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;
@@ -164,6 +168,8 @@ public class MXSession implements CryptoSession {
     private MXMediaCache mMediaCache;
 
     private BingRulesManager mBingRulesManager = null;
+
+    private TermsManager termsManager;
 
     private boolean mIsAliveSession = true;
 
@@ -363,6 +369,8 @@ public class MXSession implements CryptoSession {
 
         mGroupsManager = new GroupsManager(mDataHandler, mGroupsRestClient);
         mDataHandler.setGroupsManager(mGroupsManager);
+
+        termsManager = new TermsManager(this);
     }
 
     private void checkIfAlive() {
@@ -492,6 +500,16 @@ public class MXSession implements CryptoSession {
     public RoomKeysRestClient getRoomKeysRestClient() {
         checkIfAlive();
         return mCrypto.getKeysBackup().getRoomKeysRestClient();
+    }
+
+    /**
+     * Get the TermsManager.
+     *
+     * @return the TermsManager
+     */
+    public TermsManager getTermsManager() {
+        checkIfAlive();
+        return termsManager;
     }
 
     /**
@@ -956,9 +974,9 @@ public class MXSession implements CryptoSession {
     public void refreshToken() {
         checkIfAlive();
 
-        mProfileRestClient.refreshTokens(new ApiCallback<Credentials>() {
+        mProfileRestClient.refreshTokens(getCredentials().refreshToken, new ApiCallback<TokenRefreshResponse>() {
             @Override
-            public void onSuccess(Credentials info) {
+            public void onSuccess(TokenRefreshResponse info) {
                 Log.d(LOG_TAG, "refreshToken : succeeds.");
             }
 
@@ -1066,6 +1084,17 @@ public class MXSession implements CryptoSession {
         FilterUtil.enableLazyLoading(mCurrentFilter, mDataHandler.isLazyLoadingEnabled());
 
         convertFilterToFilterId();
+    }
+
+    /**
+     * Allows setting the filter used for the pagination
+     * The lazyLoading attribute will be overidden by the Matrix SDK, you do not have to take care of it
+     *
+     * @param filter the content of the filter param on pagination requests. Null to reset the filter.
+     */
+    public void setPaginationFilter(@Nullable RoomEventFilter filter) {
+        Log.d(LOG_TAG, "setPaginationFilter ## " + filter);
+        mDataHandler.setPaginationFilter(filter);
     }
 
     /**

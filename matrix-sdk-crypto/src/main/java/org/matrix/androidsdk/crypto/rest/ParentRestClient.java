@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.crypto.rest;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.text.TextUtils;
 
 import com.google.gson.Gson;

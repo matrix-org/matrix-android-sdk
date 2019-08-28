@@ -17,7 +17,7 @@
 package org.matrix.androidsdk.crypto
 
 import android.os.Handler
-import android.support.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting
 import com.google.gson.JsonElement
 import org.matrix.androidsdk.core.callback.ApiCallback
 import org.matrix.androidsdk.core.listeners.ProgressListener

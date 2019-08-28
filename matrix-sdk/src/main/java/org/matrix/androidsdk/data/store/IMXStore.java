@@ -19,7 +19,7 @@
 package org.matrix.androidsdk.data.store;
 
 import android.content.Context;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.crypto.interfaces.CryptoStore;

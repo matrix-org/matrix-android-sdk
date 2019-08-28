@@ -55,7 +55,7 @@ function MatrixCall(opts) {
 /** The length of time a call can be ringing for. */
 MatrixCall.CALL_TIMEOUT_MS = 120000;
 /** The fallback server to use for STUN. */
-MatrixCall.FALLBACK_STUN_SERVER = 'stun:stun.l.google.com:19302';
+MatrixCall.FALLBACK_STUN_SERVER = '';
 
 /**
  * update the matrix call state

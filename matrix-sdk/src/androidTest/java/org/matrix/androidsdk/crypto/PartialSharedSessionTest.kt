@@ -15,8 +15,8 @@
  */
 package org.matrix.androidsdk.crypto
 
-import android.support.test.InstrumentationRegistry
-import android.support.test.runner.AndroidJUnit4
+import androidx.test.InstrumentationRegistry
+import androidx.test.runner.AndroidJUnit4
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import okhttp3.Protocol

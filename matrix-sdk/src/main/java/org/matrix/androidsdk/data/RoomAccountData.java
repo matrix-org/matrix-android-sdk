@@ -18,7 +18,7 @@
 
 package org.matrix.androidsdk.data;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import org.matrix.androidsdk.rest.model.Event;
 

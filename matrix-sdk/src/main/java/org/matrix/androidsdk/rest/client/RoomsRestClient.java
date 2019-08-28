@@ -18,7 +18,7 @@
 
 package org.matrix.androidsdk.rest.client;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.JsonElement;
@@ -841,22 +841,23 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * Add a tag to a room.
      * Use this method to update the order of an existing tag.
      *
+     * @param userId   the userId
      * @param roomId   the roomId
      * @param tag      the new tag to add to the room.
      * @param order    the order.
      * @param callback the operation callback
      */
-    public void addTag(final String roomId, final String tag, final Double order, final ApiCallback<Void> callback) {
+    public void addTag(final String userId, final String roomId, final String tag, final Double order, final ApiCallback<Void> callback) {
         final String description = "addTag : roomId " + roomId + " - tag " + tag + " - order " + order;
 
         Map<String, Object> hashMap = new HashMap<>();
         hashMap.put("order", order);
 
-        mApi.addTag(getCredentials().userId, roomId, tag, hashMap)
+        mApi.addTag(userId, roomId, tag, hashMap)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        addTag(roomId, tag, order, callback);
+                        addTag(userId, roomId, tag, order, callback);
                     }
                 }));
     }
@@ -864,18 +865,19 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * Remove a tag to a room.
      *
+     * @param userId   the userId
      * @param roomId   the roomId
      * @param tag      the new tag to add to the room.
      * @param callback the operation callback
      */
-    public void removeTag(final String roomId, final String tag, final ApiCallback<Void> callback) {
+    public void removeTag(final String userId, final String roomId, final String tag, final ApiCallback<Void> callback) {
         final String description = "removeTag : roomId " + roomId + " - tag " + tag;
 
-        mApi.removeTag(getCredentials().userId, roomId, tag)
+        mApi.removeTag(userId, roomId, tag)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        removeTag(roomId, tag, callback);
+                        removeTag(userId, roomId, tag, callback);
                     }
                 }));
     }
@@ -883,21 +885,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * Update the URL preview status
      *
+     * @param userId   the userId
      * @param roomId   the roomId
      * @param status   the new status
      * @param callback the operation callback
      */
-    public void updateURLPreviewStatus(final String roomId, final boolean status, final ApiCallback<Void> callback) {
+    public void updateURLPreviewStatus(final String userId, final String roomId, final boolean status, final ApiCallback<Void> callback) {
         final String description = "updateURLPreviewStatus : roomId " + roomId + " - status " + status;
 
         Map<String, Object> params = new HashMap<>();
         params.put(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
 
-        mApi.updateAccountData(getCredentials().userId, roomId, Event.EVENT_TYPE_URL_PREVIEW, params)
+        mApi.updateAccountData(userId, roomId, Event.EVENT_TYPE_URL_PREVIEW, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        updateURLPreviewStatus(roomId, status, callback);
+                        updateURLPreviewStatus(userId, roomId, status, callback);
                     }
                 }));
     }

@@ -21,6 +21,7 @@ import android.text.TextUtils;
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.callback.ApiCallback;
+import org.matrix.androidsdk.core.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
@@ -35,7 +36,6 @@ import org.matrix.androidsdk.rest.model.ThreePidCreds;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.AuthParamsEmailIdentity;
 import org.matrix.androidsdk.rest.model.login.AuthParamsLoginPassword;
-import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.androidsdk.rest.model.login.ThreePidCredentials;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
@@ -89,10 +89,11 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     /**
      * Update this user's own display name.
      *
+     * @param userId   the userId
      * @param newName  the new name
      * @param callback the callback if the call succeeds
      */
-    public void updateDisplayname(final String newName, final ApiCallback<Void> callback) {
+    public void updateDisplayname(final String userId, final String newName, final ApiCallback<Void> callback) {
         // privacy
         //final String description = "updateDisplayname newName : " + newName;
         final String description = "update display name";
@@ -103,11 +104,11 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
 
         // don't retry if the network comes back
         // let the user chooses what he want to do
-        mApi.displayname(getCredentials().userId, user)
+        mApi.displayname(userId, user)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        updateDisplayname(newName, callback);
+                        updateDisplayname(userId, newName, callback);
                     }
                 }));
     }
@@ -139,10 +140,11 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     /**
      * Update this user's own avatar URL.
      *
+     * @param userId   the userId
      * @param newUrl   the new name
      * @param callback the callback if the call succeeds
      */
-    public void updateAvatarUrl(final String newUrl, final ApiCallback<Void> callback) {
+    public void updateAvatarUrl(final String userId, final String newUrl, final ApiCallback<Void> callback) {
         // privacy
         //final String description = "updateAvatarUrl newUrl : " + newUrl;
         final String description = "updateAvatarUrl";
@@ -151,11 +153,11 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         User user = new User();
         user.setAvatarUrl(newUrl);
 
-        mApi.avatarUrl(getCredentials().userId, user)
+        mApi.avatarUrl(userId, user)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        updateAvatarUrl(newUrl, callback);
+                        updateAvatarUrl(userId, newUrl, callback);
                     }
                 }));
     }
@@ -291,25 +293,28 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     /**
      * Refresh access/refresh tokens, using the current refresh token.
      *
-     * @param callback the callback success and failure callback
+     * @param refreshToken the refreshToken
+     * @param callback     the callback success and failure callback
      */
-    public void refreshTokens(final ApiCallback<Credentials> callback) {
+    public void refreshTokens(final String refreshToken, final ApiCallback<TokenRefreshResponse> callback) {
         final String description = "refreshTokens";
 
         TokenRefreshParams params = new TokenRefreshParams();
-        params.refresh_token = getCredentials().refreshToken;
+        params.refresh_token = refreshToken;
 
         mApi.tokenRefresh(params)
-                .enqueue(new RestAdapterCallback<TokenRefreshResponse>(description, mUnsentEventsManager, callback, null) {
-                    @Override
-                    public void success(TokenRefreshResponse tokenResponse, Response response) {
-                        onEventSent();
-                        getCredentials().refreshToken = tokenResponse.refreshToken;
-                        getCredentials().accessToken = tokenResponse.accessToken;
-                        if (null != callback) {
-                            callback.onSuccess(getCredentials());
-                        }
-                    }
+                .enqueue(new RestAdapterCallback<TokenRefreshResponse>(description,
+                        mUnsentEventsManager,
+                        new SimpleApiCallback<TokenRefreshResponse>(callback) {
+                            @Override
+                            public void onSuccess(TokenRefreshResponse info) {
+                                setAccessToken(info.accessToken);
+                                if (null != callback) {
+                                    callback.onSuccess(info);
+                                }
+                            }
+                        },
+                        null) {
                 });
     }
 

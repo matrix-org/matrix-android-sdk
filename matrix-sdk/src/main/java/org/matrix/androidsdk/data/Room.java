@@ -28,8 +28,8 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Pair;
 
@@ -407,7 +407,7 @@ public class Room implements CryptoRoom {
                                          final int paginationCount,
                                          final ApiCallback<TokensChunkEvents> callback) {
         mDataHandler.getDataRetriever()
-                .requestServerRoomHistory(getRoomId(), token, paginationCount, mDataHandler.isLazyLoadingEnabled(),
+                .requestServerRoomHistory(getRoomId(), token, paginationCount, mDataHandler.getPaginationFilter(),
                         new SimpleApiCallback<TokensChunkEvents>(callback) {
                             @Override
                             public void onSuccess(TokensChunkEvents info) {
@@ -2011,7 +2011,7 @@ public class Room implements CryptoRoom {
     private void addTag(String tag, Double order, final ApiCallback<Void> callback) {
         // sanity check
         if ((null != tag) && (null != order)) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().addTag(getRoomId(), tag, order, callback);
+            mDataHandler.getDataRetriever().getRoomsRestClient().addTag(mMyUserId, getRoomId(), tag, order, callback);
         } else {
             if (null != callback) {
                 callback.onSuccess(null);
@@ -2028,7 +2028,7 @@ public class Room implements CryptoRoom {
     private void removeTag(String tag, final ApiCallback<Void> callback) {
         // sanity check
         if (null != tag) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().removeTag(getRoomId(), tag, callback);
+            mDataHandler.getDataRetriever().getRoomsRestClient().removeTag(mMyUserId, getRoomId(), tag, callback);
         } else {
             if (null != callback) {
                 callback.onSuccess(null);
@@ -2082,7 +2082,7 @@ public class Room implements CryptoRoom {
      * @param callback the asynchronous callback
      */
     public void setIsURLPreviewAllowedByUser(boolean status, ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateURLPreviewStatus(getRoomId(), status, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateURLPreviewStatus(mMyUserId, getRoomId(), status, callback);
     }
 
     //==============================================================================================================

@@ -18,7 +18,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.os.Build;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
@@ -131,7 +131,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
                 .enqueue(new RestAdapterCallback<Credentials>(description, mUnsentEventsManager, new SimpleApiCallback<Credentials>(callback) {
                     @Override
                     public void onSuccess(Credentials info) {
-                        setCredentials(info);
+                        setAccessToken(info.accessToken);
                         callback.onSuccess(info);
                     }
                 }, new RestAdapterCallback.RequestRetryCallBack() {
@@ -275,7 +275,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
                 .enqueue(new RestAdapterCallback<Credentials>(description, mUnsentEventsManager, new SimpleApiCallback<Credentials>(callback) {
                     @Override
                     public void onSuccess(Credentials info) {
-                        setCredentials(info);
+                        setAccessToken(info.accessToken);
                         callback.onSuccess(info);
                     }
                 }, new RestAdapterCallback.RequestRetryCallBack() {
@@ -327,7 +327,7 @@ public class LoginRestClient extends RestClient<LoginApi> {
                 .enqueue(new RestAdapterCallback<Credentials>(description, mUnsentEventsManager, new SimpleApiCallback<Credentials>(callback) {
                     @Override
                     public void onSuccess(Credentials info) {
-                        setCredentials(info);
+                        setAccessToken(info.accessToken);
                         callback.onSuccess(info);
                     }
                 }, new RestAdapterCallback.RequestRetryCallBack() {

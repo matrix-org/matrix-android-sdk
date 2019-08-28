@@ -34,12 +34,13 @@ allprojects {
                 includeGroupByRegex "org\\.matrix\\.gitlab\\.matrix-org"
             }
         }
+        // Jitsi repo
+        maven {
+            url "https://github.com/vector-im/jitsi_libre_maven/raw/master/releases"
+        }
         google()
         jcenter()
         mavenCentral()
-        maven {
-            url "https://github.com/jitsi/jitsi-maven-repository/raw/master/releases"
-        }
     }
 }
 

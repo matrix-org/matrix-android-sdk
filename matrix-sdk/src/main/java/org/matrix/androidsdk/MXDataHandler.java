@@ -20,7 +20,7 @@ package org.matrix.androidsdk;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.Gson;
@@ -179,6 +179,10 @@ public class MXDataHandler implements CryptoDataHandler {
 
     // tell if the lazy loading is enabled
     private boolean mIsLazyLoadingEnabled;
+
+    // Filter for pagination
+    @Nullable
+    private RoomEventFilter mCustomPaginationFilter;
 
     /**
      * Default constructor.
@@ -1029,6 +1033,9 @@ public class MXDataHandler implements CryptoDataHandler {
                 } else if (AccountDataElement.ACCOUNT_DATA_TYPE_WIDGETS.equals(accountDataElement.type)) {
                     // User widgets
                     manageUserWidgets(accountDataElement);
+                } else if (AccountDataElement.ACCOUNT_DATA_ACCEPTED_TERMS.equals(accountDataElement.type)) {
+                    // Accepted terms
+                    manageAcceptedTerms(accountDataElement);
                 }
             }
         } catch (Exception e) {
@@ -1051,6 +1058,10 @@ public class MXDataHandler implements CryptoDataHandler {
 
         // warn the client that the push rules have been updated
         onBingRulesUpdate();
+    }
+
+    private void manageAcceptedTerms(AccountDataElement accountDataElement) {
+        //TODO
     }
 
     /**
@@ -1753,6 +1764,26 @@ public class MXDataHandler implements CryptoDataHandler {
         FilterUtil.enableLazyLoading(filterBody, isLazyLoadingEnabled());
 
         return filterBody.toJSONString();
+    }
+
+    /* package */
+    void setPaginationFilter(@Nullable RoomEventFilter paginationFilter) {
+        mCustomPaginationFilter = paginationFilter;
+    }
+
+    /**
+     * Get the pagination filter, which can be customized by the client. Lazy loading param is managed here.
+     *
+     * @return the RoomEventFilter to use for pagination
+     */
+    public RoomEventFilter getPaginationFilter() {
+        if (mCustomPaginationFilter != null) {
+            // Ensure lazy loading param is correct
+            FilterUtil.enableLazyLoading(mCustomPaginationFilter, isLazyLoadingEnabled());
+            return mCustomPaginationFilter;
+        } else {
+            return FilterUtil.createRoomEventFilter(isLazyLoadingEnabled());
+        }
     }
 
     /*

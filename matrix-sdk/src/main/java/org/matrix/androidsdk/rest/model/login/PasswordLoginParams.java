@@ -18,7 +18,7 @@
 package org.matrix.androidsdk.rest.model.login;
 
 import android.os.Build;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.rest.client.LoginRestClient;
