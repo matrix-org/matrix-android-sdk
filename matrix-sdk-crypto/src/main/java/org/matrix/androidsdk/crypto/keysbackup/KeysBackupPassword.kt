@@ -19,7 +19,7 @@
  */
 package org.matrix.androidsdk.crypto.keysbackup
 
-import android.support.annotation.WorkerThread
+import androidx.annotation.WorkerThread
 import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.listeners.ProgressListener
 import java.util.*

@@ -17,7 +17,7 @@
 
 package org.matrix.androidsdk.ssl;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Pair;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;

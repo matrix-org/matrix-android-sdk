@@ -17,7 +17,7 @@
 package org.matrix.androidsdk.data.room;
 
 import android.content.Context;
-import android.support.test.InstrumentationRegistry;
+import androidx.test.InstrumentationRegistry;
 
 import junit.framework.Assert;
 

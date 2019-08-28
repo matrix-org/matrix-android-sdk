@@ -16,7 +16,7 @@
  */
 package org.matrix.androidsdk.core.model;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.annotations.SerializedName;

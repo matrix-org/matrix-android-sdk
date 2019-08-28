@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.data.timeline;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.data.RoomState;

@@ -20,8 +20,8 @@
 package org.matrix.androidsdk.view;
 
 import android.content.Context;
-import android.support.annotation.ColorInt;
-import android.support.v4.content.ContextCompat;
+import androidx.annotation.ColorInt;
+import androidx.core.content.ContextCompat;
 import android.text.Editable;
 import android.text.Html;
 import android.text.Layout;

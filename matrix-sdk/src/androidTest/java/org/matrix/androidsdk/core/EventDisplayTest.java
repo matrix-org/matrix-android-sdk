@@ -17,7 +17,7 @@
 package org.matrix.androidsdk.core;
 
 import android.content.Context;
-import android.support.test.InstrumentationRegistry;
+import androidx.test.InstrumentationRegistry;
 import android.text.SpannableStringBuilder;
 
 import com.google.gson.JsonObject;

@@ -16,9 +16,9 @@
 
 package org.matrix.androidsdk.crypto.keysbackup
 
-import android.support.annotation.UiThread
-import android.support.annotation.VisibleForTesting
-import android.support.annotation.WorkerThread
+import androidx.annotation.UiThread
+import androidx.annotation.VisibleForTesting
+import androidx.annotation.WorkerThread
 import org.matrix.androidsdk.core.JsonUtility
 import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.callback.ApiCallback
