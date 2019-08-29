@@ -17,7 +17,7 @@
 package org.matrix.androidsdk.features.identityserver
 
 import android.content.Context
-import android.support.v7.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import org.matrix.androidsdk.core.JsonUtils
 
 class IdentityServerTokensStore(context: Context) {
