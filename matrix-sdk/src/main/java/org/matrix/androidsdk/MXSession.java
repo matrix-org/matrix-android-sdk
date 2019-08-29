@@ -24,10 +24,11 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
-import android.text.TextUtils;
 
 import org.jetbrains.annotations.NotNull;
 import org.matrix.androidsdk.call.MXCallsManager;
@@ -39,7 +40,7 @@ import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.core.PolymorphicRequestBodyConverter;
 import org.matrix.androidsdk.core.UnsentEventsManager;
-import org.matrix.androidsdk.core.VersionsUtil;
+import org.matrix.androidsdk.core.VersionsUtilKt;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.ApiFailureCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
@@ -2129,7 +2130,37 @@ public class MXSession implements CryptoSession {
             @Override
             public void onSuccess(Versions info) {
                 // Check if we can enable lazyLoading
-                callback.onSuccess(VersionsUtil.supportLazyLoadMembers(info));
+                callback.onSuccess(VersionsUtilKt.supportLazyLoadMembers(info));
+            }
+        });
+    }
+
+    /**
+     * Ask if the `id_access_token` parameter can be safely passed to the homeserver.
+     * Some homeservers may trigger errors if they are not prepared for the new parameter.
+     *
+     * @param callback the callback.
+     */
+    public void doesServerAcceptIdentityAccessToken(final ApiCallback<Boolean> callback) {
+        mLoginRestClient.getVersions(new SimpleApiCallback<Versions>(callback) {
+            @Override
+            public void onSuccess(Versions info) {
+                callback.onSuccess(VersionsUtilKt.doesServerAcceptIdentityAccessToken(info));
+            }
+        });
+    }
+
+    /**
+     * Ask the home server require identity server param
+     *
+     * @param callback the callback, true if the `id_server` parameter is required when registering with an 3pid,
+     *                 adding a 3pid or resetting password.
+     */
+    public void doesServerRequireIdentityServerParam(final ApiCallback<Boolean> callback) {
+        mLoginRestClient.getVersions(new SimpleApiCallback<Versions>(callback) {
+            @Override
+            public void onSuccess(Versions info) {
+                callback.onSuccess(VersionsUtilKt.doesServerRequireIdentityServerParam(info));
             }
         });
     }
