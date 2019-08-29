@@ -25,7 +25,7 @@
     <string name="notice_placed_voice_call">%s님이 음성 통화를 걸었습니다.</string>
     <string name="notice_answered_call">%s님이 전화를 받았습니다.</string>
     <string name="notice_ended_call">%s님이 전화를 끊었습니다.</string>
-    <string name="notice_made_future_room_visibility">%1$s님이 %2$s님에게 미래 방 기록을 공개했습니다</string>
+    <string name="notice_made_future_room_visibility">%1$s님이 이후 %2$s에게 방 기록을 공개했습니다</string>
     <string name="notice_room_visibility_invited">초대된 시점부터 모든 방 구성원.</string>
     <string name="notice_room_visibility_joined">들어온 시점부터 모든 방 구성원.</string>
     <string name="notice_room_visibility_shared">모든 방 구성원.</string>
@@ -52,7 +52,7 @@
     <string name="notice_crypto_unable_to_decrypt">** 암호를 해독할 수 없음: %s **</string>
     <string name="notice_crypto_error_unkwown_inbound_session_id">발신인의 기기에서 이 메시지의 키를 보내지 않았습니다.</string>
 
-    <string name="message_reply_to_prefix">답장하기</string>
+    <string name="message_reply_to_prefix">이 답장의 질문</string>
 
     <string name="could_not_redact">검열할 수 없습니다</string>
     <string name="unable_to_send_message">메시지를 보낼 수 없습니다</string>
