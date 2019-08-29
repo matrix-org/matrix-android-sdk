@@ -20,6 +20,8 @@ Translations:
 
 Others:
  - Remove ParentRestClient from crypto module and use a common parent Rest Client (dinsic-pim/tchap-android#539)
+ - MXSession: Add doesServerRequireIdentityServerParam() and doesServerAcceptIdentityAccessToken() methods.
+ - Remove the bind true flag from 3PID calls on registration (vector-im/riot-android#3252)
 
 Build:
  -

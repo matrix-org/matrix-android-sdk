@@ -30,12 +30,6 @@ public class RegistrationParams {
     // the account password
     public String password;
 
-    // With email
-    public Boolean bind_email;
-
-    // With phone_number
-    public Boolean bind_msisdn;
-
     // device name
     public String initial_device_display_name;
 
