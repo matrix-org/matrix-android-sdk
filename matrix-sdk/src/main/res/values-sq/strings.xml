@@ -146,7 +146,7 @@
     <string name="verification_emoji_anchor">Spirancë</string>
     <string name="verification_emoji_headphone">Kufje</string>
     <string name="verification_emoji_folder">Dosje</string>
-<string name="notice_room_update">%s e përmirësoi këtë dhomë.</string>
+    <string name="notice_room_update">%s e përmirësoi këtë dhomë.</string>
 
     <string name="initial_sync_start_importing_account">Njëkohësimi Fillestar:
 \nPo importohet llogaria…</string>

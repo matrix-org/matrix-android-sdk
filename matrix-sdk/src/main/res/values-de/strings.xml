@@ -105,7 +105,7 @@
     <string name="verification_emoji_pig">Schwein</string>
     <string name="verification_emoji_elephant">Elefant</string>
     <string name="verification_emoji_rabbit">Hase</string>
-<string name="notice_room_update">%s hat diesen Raum aufgewertet.</string>
+    <string name="notice_room_update">%s hat diesen Raum aufgewertet.</string>
 
     <string name="verification_emoji_panda">Panda</string>
     <string name="verification_emoji_rooster">Hahn</string>

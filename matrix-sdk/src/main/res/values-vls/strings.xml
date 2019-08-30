@@ -167,7 +167,7 @@
     <string name="initial_sync_start_importing_account_data">Initiële synchronisoasje: 
 \nAccountgegeevns wordn geïmporteerd</string>
 
-<string name="notice_room_update">%s èt da gesprek hier ipgewoardeerd.</string>
+    <string name="notice_room_update">%s èt da gesprek hier ipgewoardeerd.</string>
 
     <string name="event_status_sending_message">Bericht wor verstuurd…</string>
     <string name="clear_timeline_send_queue">Uutgoande wachtreeke leegn</string>
