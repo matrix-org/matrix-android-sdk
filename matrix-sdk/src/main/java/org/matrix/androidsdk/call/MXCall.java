@@ -22,6 +22,7 @@ import android.os.Handler;
 import android.text.TextUtils;
 import android.view.View;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -32,6 +33,7 @@ import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.Event;
+import org.webrtc.PeerConnection;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,6 +67,8 @@ public class MXCall implements IMXCall {
      * the turn servers
      */
     protected JsonElement mTurnServer;
+
+    protected PeerConnection.IceServer defaultIceServer;
 
     /**
      * The room in which the call is performed.
@@ -128,6 +132,43 @@ public class MXCall implements IMXCall {
      * Create the call view
      */
     public void createCallView() {
+    }
+
+    public List<PeerConnection.IceServer> getIceServers() {
+        List<PeerConnection.IceServer> iceServers = new ArrayList<>();
+
+        if (null != mTurnServer) {
+            try {
+                String username = null;
+                String password = null;
+                JsonObject object = mTurnServer.getAsJsonObject();
+
+                if (object.has("username")) {
+                    username = object.get("username").getAsString();
+                }
+
+                if (object.has("password")) {
+                    password = object.get("password").getAsString();
+                }
+
+                JsonArray uris = object.get("uris").getAsJsonArray();
+
+                for (int index = 0; index < uris.size(); index++) {
+                    String url = uris.get(index).getAsString();
+
+                    if ((null != username) && (null != password)) {
+                        iceServers.add(new PeerConnection.IceServer(url, username, password));
+                    } else {
+                        iceServers.add(new PeerConnection.IceServer(url));
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "## createLocalStream(): Exception in ICE servers list Msg=" + e.getMessage(), e);
+            }
+        }
+
+        Log.d(LOG_TAG, "## createLocalStream(): " + iceServers.size() + " known ice servers");
+        return iceServers;
     }
 
     /**

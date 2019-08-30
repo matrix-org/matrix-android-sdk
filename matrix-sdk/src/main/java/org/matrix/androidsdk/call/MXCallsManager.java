@@ -93,6 +93,8 @@ public class MXCallsManager {
     // UI handler
     private final Handler mUIThreadHandler;
 
+    public static String defaultStunServerUri;
+
     /**
      * To create an outgoing call
      * 1- CallsManager.createCallInRoom()
@@ -223,12 +225,10 @@ public class MXCallsManager {
         }*/
 
         // webrtc
-        if (null == call) {
-            try {
-                call = new MXWebRtcCall(mSession, mContext, getTurnServer());
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "createCall " + e.getMessage(), e);
-            }
+        try {
+            call = new MXWebRtcCall(mSession, mContext, getTurnServer(), defaultStunServerUri);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "createCall " + e.getMessage(), e);
         }
 
         // a valid callid is provided

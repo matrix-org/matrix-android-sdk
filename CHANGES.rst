@@ -6,6 +6,7 @@ Features:
 
 Improvements:
  - Display correctly the revoked third-party invites.
+ - Support optional default STUN server when no ICE provided by HS
 
 Bugfix:
  -
