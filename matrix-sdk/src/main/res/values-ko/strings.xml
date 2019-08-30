@@ -31,7 +31,7 @@
     <string name="notice_room_visibility_shared">모든 방 구성원.</string>
     <string name="notice_room_visibility_world_readable">누구나.</string>
     <string name="notice_room_visibility_unknown">알 수 없음 (%s).</string>
-    <string name="notice_end_to_end">%1$s님이 종단 간 암호화를 켰습니다 (%2$s)</string>
+    <string name="notice_end_to_end">%1$s님이 종단간 암호화를 켰습니다 (%2$s)</string>
     <string name="notice_room_update">%s님이 방을 업그레이드했습니다.</string>
 
     <string name="notice_requested_voip_conference">%1$s님이 VoIP 회의를 요청했습니다</string>
