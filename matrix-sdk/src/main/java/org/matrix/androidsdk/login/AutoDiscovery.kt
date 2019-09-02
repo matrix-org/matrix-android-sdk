@@ -31,6 +31,7 @@ import org.matrix.androidsdk.rest.model.WellKnown
 import java.io.EOFException
 import java.net.MalformedURLException
 import java.net.URL
+import java.security.InvalidParameterException
 import javax.net.ssl.HttpsURLConnection
 
 /**
@@ -99,7 +100,7 @@ class AutoDiscovery {
                 if (e is HttpException) {
                     when (e.httpError.httpCode) {
                         HttpsURLConnection.HTTP_NOT_FOUND -> callback.onSuccess(DiscoveredClientConfig(Action.IGNORE))
-                        else -> callback.onSuccess(DiscoveredClientConfig(Action.FAIL_PROMPT))
+                        else                              -> callback.onSuccess(DiscoveredClientConfig(Action.FAIL_PROMPT))
                     }
                 } else if (e is MalformedJsonException || e is EOFException) {
                     callback.onSuccess(DiscoveredClientConfig(Action.FAIL_PROMPT))
@@ -180,6 +181,22 @@ class AutoDiscovery {
             true
         } catch (t: MalformedURLException) {
             false
+        }
+    }
+
+    /**
+     * Try to get an identity server URL from a home server URL, using a .wellknown request
+     */
+    fun getIdentityServer(homeServerUrl: String, callback: ApiCallback<String?>) {
+        if (homeServerUrl.startsWith("https://")) {
+            wellKnownRestClient.getWellKnown(homeServerUrl.substring("https://".length),
+                    object : SimpleApiCallback<WellKnown>(callback) {
+                        override fun onSuccess(info: WellKnown) {
+                            callback.onSuccess(info.identityServer?.baseURL)
+                        }
+                    })
+        } else {
+            callback.onUnexpectedError(InvalidParameterException("malformed url"))
         }
     }
 }
