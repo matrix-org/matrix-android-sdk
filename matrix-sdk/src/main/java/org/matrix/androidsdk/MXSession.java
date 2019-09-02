@@ -2136,36 +2136,6 @@ public class MXSession implements CryptoSession {
     }
 
     /**
-     * Ask if the `id_access_token` parameter can be safely passed to the homeserver.
-     * Some homeservers may trigger errors if they are not prepared for the new parameter.
-     *
-     * @param callback the callback.
-     */
-    public void doesServerAcceptIdentityAccessToken(final ApiCallback<Boolean> callback) {
-        mLoginRestClient.getVersions(new SimpleApiCallback<Versions>(callback) {
-            @Override
-            public void onSuccess(Versions info) {
-                callback.onSuccess(VersionsUtilKt.doesServerAcceptIdentityAccessToken(info));
-            }
-        });
-    }
-
-    /**
-     * Ask the home server require identity server param
-     *
-     * @param callback the callback, true if the `id_server` parameter is required when registering with an 3pid,
-     *                 adding a 3pid or resetting password.
-     */
-    public void doesServerRequireIdentityServerParam(final ApiCallback<Boolean> callback) {
-        mLoginRestClient.getVersions(new SimpleApiCallback<Versions>(callback) {
-            @Override
-            public void onSuccess(Versions info) {
-                callback.onSuccess(VersionsUtilKt.doesServerRequireIdentityServerParam(info));
-            }
-        });
-    }
-
-    /**
      * Invalidate the access token, so that it can no longer be used for authorization.
      *
      * @param context  the application context

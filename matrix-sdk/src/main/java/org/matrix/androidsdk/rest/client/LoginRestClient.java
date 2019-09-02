@@ -23,6 +23,7 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.core.VersionsUtilKt;
 import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
@@ -79,6 +80,37 @@ public class LoginRestClient extends RestClient<LoginApi> {
         mApi.versions()
                 .enqueue(new RestAdapterCallback<Versions>(description, mUnsentEventsManager, callback, null));
     }
+
+    /**
+     * Ask if the `id_access_token` parameter can be safely passed to the homeserver.
+     * Some homeservers may trigger errors if they are not prepared for the new parameter.
+     *
+     * @param callback the callback.
+     */
+    public void doesServerAcceptIdentityAccessToken(final ApiCallback<Boolean> callback) {
+        getVersions(new SimpleApiCallback<Versions>(callback) {
+            @Override
+            public void onSuccess(Versions info) {
+                callback.onSuccess(VersionsUtilKt.doesServerAcceptIdentityAccessToken(info));
+            }
+        });
+    }
+
+    /**
+     * Ask the home server require identity server param
+     *
+     * @param callback the callback, true if the `id_server` parameter is required when registering with an 3pid,
+     *                 adding a 3pid or resetting password.
+     */
+    public void doesServerRequireIdentityServerParam(final ApiCallback<Boolean> callback) {
+        getVersions(new SimpleApiCallback<Versions>(callback) {
+            @Override
+            public void onSuccess(Versions info) {
+                callback.onSuccess(VersionsUtilKt.doesServerRequireIdentityServerParam(info));
+            }
+        });
+    }
+
 
     /**
      * Retrieve the login supported flows.
