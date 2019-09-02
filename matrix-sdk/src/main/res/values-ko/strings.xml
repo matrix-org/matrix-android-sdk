@@ -26,9 +26,9 @@
     <string name="notice_answered_call">%s님이 전화를 받았습니다.</string>
     <string name="notice_ended_call">%s님이 전화를 끊었습니다.</string>
     <string name="notice_made_future_room_visibility">%1$s님이 이후 %2$s에게 방 기록을 공개했습니다</string>
-    <string name="notice_room_visibility_invited">초대된 시점부터 모든 방 구성원.</string>
-    <string name="notice_room_visibility_joined">들어온 시점부터 모든 방 구성원.</string>
-    <string name="notice_room_visibility_shared">모든 방 구성원.</string>
+    <string name="notice_room_visibility_invited">초대된 시점부터 모든 방 구성원</string>
+    <string name="notice_room_visibility_joined">들어온 시점부터 모든 방 구성원</string>
+    <string name="notice_room_visibility_shared">모든 방 구성원</string>
     <string name="notice_room_visibility_world_readable">누구나.</string>
     <string name="notice_room_visibility_unknown">알 수 없음 (%s).</string>
     <string name="notice_end_to_end">%1$s님이 종단간 암호화를 켰습니다 (%2$s)</string>
