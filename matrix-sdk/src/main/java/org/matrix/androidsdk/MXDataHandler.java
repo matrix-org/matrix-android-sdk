@@ -21,8 +21,9 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
-import androidx.annotation.Nullable;
 import android.text.TextUtils;
+
+import androidx.annotation.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -1299,7 +1300,9 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
                 // Global management, to be sure to handle any account data
                 getStore().storeAccountData(syncResponse.accountData);
 
-                mMxEventDispatcher.dispatchOnAccountDataUpdate();
+                for (AccountDataElement accountDataElement : syncResponse.accountData.accountDataElements) {
+                    mMxEventDispatcher.dispatchOnAccountDataUpdate(accountDataElement);
+                }
             }
 
             // sanity check
