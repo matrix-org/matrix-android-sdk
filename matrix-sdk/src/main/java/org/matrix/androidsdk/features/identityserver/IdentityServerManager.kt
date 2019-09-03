@@ -26,38 +26,120 @@ import org.matrix.androidsdk.core.model.MatrixError
 import org.matrix.androidsdk.features.terms.TermsNotSignedException
 import org.matrix.androidsdk.listeners.MXEventListener
 import org.matrix.androidsdk.rest.client.IdentityAuthRestClient
+import org.matrix.androidsdk.rest.client.IdentityPingRestClient
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient
 import org.matrix.androidsdk.rest.model.identityserver.HashDetailResponse
 import org.matrix.androidsdk.rest.model.identityserver.IdentityServerRegisterResponse
 import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse
+import org.matrix.androidsdk.rest.model.sync.AccountDataElement
+import java.security.InvalidParameterException
 import javax.net.ssl.HttpsURLConnection
 
 class IdentityServerManager(val mxSession: MXSession,
                             context: Context) {
 
     init {
-        setIdentityServerUrl(mxSession.homeServerConfig.identityServerUri?.toString())
+        localSetIdentityServerUrl(getIdentityServerUrl())
 
+        // TODO Release the listener somewhere?
         mxSession.dataHandler.addListener(object : MXEventListener() {
-            override fun onAccountDataUpdated() {
-                // Has the identity server been updated?
+            override fun onAccountDataUpdated(accountDataElement: AccountDataElement) {
+                if (accountDataElement.type == AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER) {
+                    // The identity server has been updated
+                    val accountDataIdentityServer =
+                            mxSession.dataHandler.store.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER)
+
+                    accountDataIdentityServer?.content?.let {
+                        localSetIdentityServerUrl(it[AccountDataElement.ACCOUNT_DATA_KEY_IDENTITY_SERVER_BASE_URL] as String?)
+                    }
+                }
             }
         })
     }
 
     private val identityServerTokensStore = IdentityServerTokensStore(context)
 
-    private var identityPath: String? = null
+    private var identityPath: String? = getIdentityServerUrl()
 
     // Rest clients
     private var identityAuthRestClient: IdentityAuthRestClient? = null
     private var thirdPidRestClient: ThirdPidRestClient? = null
 
     /**
-     * Update the identity server Url. It is up the the client to persist this data
-     * @param newUrl: null to remove identityServer
+     * Retrun the identity server url, either from AccountData if it has been set, or from the local storage
      */
-    fun setIdentityServerUrl(newUrl: String?) {
+    fun getIdentityServerUrl(): String? {
+        val accountDataIdentityServer =
+                mxSession.dataHandler.store.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER)
+
+        accountDataIdentityServer?.content?.let {
+            return it[AccountDataElement.ACCOUNT_DATA_KEY_IDENTITY_SERVER_BASE_URL] as String?
+        }
+
+        // Default: use local storage
+        return mxSession.homeServerConfig.identityServerUri?.toString()
+    }
+
+    /**
+     * Update the identity server Url.
+     * @param callback callback called when account data has been updated successfully
+     */
+    fun setIdentityServerUrl(newUrl: String?, callback: ApiCallback<Void?>) {
+        if (newUrl == null || newUrl.isBlank()) {
+            // User want to remove the identity server
+            updateAccountData(null, callback)
+        } else {
+            val uri = Uri.parse(newUrl)
+            val hsConfig = try {
+                // Check that this is a valid Identity server
+                HomeServerConnectionConfig.Builder()
+                        .withHomeServerUri(uri)
+                        .withIdentityServerUri(uri)
+                        .build()
+            } catch (e: Exception) {
+                callback.onUnexpectedError(InvalidParameterException("Invalid url"))
+                return
+            }
+
+            IdentityPingRestClient(hsConfig).ping(object : ApiCallback<Void> {
+                override fun onSuccess(info: Void?) {
+                    // Ok, this is an identity server
+                    updateAccountData(newUrl, callback)
+                }
+
+                override fun onUnexpectedError(e: Exception?) {
+                    callback.onUnexpectedError(InvalidParameterException("Invalid identity server"))
+                }
+
+                override fun onNetworkError(e: Exception?) {
+                    callback.onUnexpectedError(InvalidParameterException("Invalid identity server"))
+                }
+
+                override fun onMatrixError(e: MatrixError?) {
+                    callback.onUnexpectedError(InvalidParameterException("Invalid identity server"))
+                }
+            })
+        }
+    }
+
+    private fun updateAccountData(newUrl: String?, callback: ApiCallback<Void?>) {
+        // Update AccountData
+        val updatedIdentityServerDict = mapOf(AccountDataElement.ACCOUNT_DATA_KEY_IDENTITY_SERVER_BASE_URL to newUrl)
+
+        mxSession.accountDataRestClient.setAccountData(mxSession.myUserId,
+                AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER,
+                updatedIdentityServerDict,
+                object : SimpleApiCallback<Void?>(callback) {
+                    override fun onSuccess(info: Void?) {
+                        // Note that this code will also be executed by onAccountDataUpdated(), but we do not want to wait for it
+                        localSetIdentityServerUrl(newUrl)
+                        callback.onSuccess(null)
+                    }
+                }
+        )
+    }
+
+    private fun localSetIdentityServerUrl(newUrl: String?) {
         identityPath = newUrl
 
         if (newUrl.isNullOrBlank()) {
@@ -71,8 +153,6 @@ class IdentityServerManager(val mxSession: MXSession,
             identityAuthRestClient = IdentityAuthRestClient(alteredHsConfig)
             thirdPidRestClient = ThirdPidRestClient(alteredHsConfig)
         }
-
-        // TODO Update AccountData, but not the first time
     }
 
     /**
@@ -80,7 +160,7 @@ class IdentityServerManager(val mxSession: MXSession,
      */
     private fun getToken(callback: ApiCallback<String>) {
         val storeToken = identityServerTokensStore
-                .getToken(mxSession.myUserId, mxSession.homeServerConfig.identityServerUri?.toString() ?: "")
+                .getToken(mxSession.myUserId, identityPath ?: "")
 
         if (storeToken.isNullOrEmpty().not()) {
             callback.onSuccess(storeToken)
@@ -156,7 +236,7 @@ class IdentityServerManager(val mxSession: MXSession,
                                 // 401 -> Renew token
                                 // Reset the token we know and start again
                                 identityServerTokensStore
-                                        .resetToken(mxSession.myUserId, mxSession.homeServerConfig.identityServerUri?.toString() ?: "")
+                                        .resetToken(mxSession.myUserId, identityPath ?: "")
                                 lookup3Pids(addresses, mediums, callback)
                             } else if (e.mStatus == HttpsURLConnection.HTTP_FORBIDDEN /* 403 */
                                     && e.errcode == MatrixError.TERMS_NOT_SIGNED) {
@@ -198,7 +278,7 @@ class IdentityServerManager(val mxSession: MXSession,
                                 // 401 -> Renew token
                                 // Reset the token we know and start again
                                 identityServerTokensStore
-                                        .resetToken(mxSession.myUserId, mxSession.homeServerConfig.identityServerUri?.toString() ?: "")
+                                        .resetToken(mxSession.myUserId, identityPath ?: "")
                                 submitValidationToken(medium, token, clientSecret, sid, callback)
                             } else if (e.mStatus == HttpsURLConnection.HTTP_FORBIDDEN /* 403 */
                                     && e.errcode == MatrixError.TERMS_NOT_SIGNED) {

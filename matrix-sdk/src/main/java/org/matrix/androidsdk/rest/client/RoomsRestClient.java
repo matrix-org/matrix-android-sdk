@@ -213,6 +213,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
         final String description = "inviteThreePidToRoom : medium " + medium + " roomId " + roomId;
 
         // This request must not have the protocol part
+        // TODO privacy: there is something to do here, we cannot use identity server from hsConfig
         Uri identityServerUri = mHsConfig.getIdentityServerUri();
         if (identityServerUri == null) {
             callback.onUnexpectedError(new IdentityServerNotConfiguredException());

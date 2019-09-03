@@ -247,6 +247,7 @@ public class CreateRoomParams {
 
                 Invite3Pid pid = new Invite3Pid();
 
+                // TODO privacy: there is something to do here, we cannot use identity server from hsConfig
                 Uri identityServerUri = hsConfig.getIdentityServerUri();
                 if (identityServerUri == null) {
                     // Error
