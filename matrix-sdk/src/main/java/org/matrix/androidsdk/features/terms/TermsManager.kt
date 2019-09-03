@@ -70,7 +70,7 @@ class TermsManager(private val mxSession: MXSession) {
                 mxSession.myUserId.let { userId ->
                     mxSession.accountDataRestClient?.setAccountData(
                             userId,
-                            AccountDataElement.ACCOUNT_DATA_ACCEPTED_TERMS,
+                            AccountDataElement.ACCOUNT_DATA_TYPE_ACCEPTED_TERMS,
                             mapOf(AccountDataElement.ACCOUNT_DATA_KEY_ACCEPTED_TERMS to newList),
                             object : SimpleApiCallback<Void?>(callback) {
                                 override fun onSuccess(info: Void?) {
@@ -86,7 +86,7 @@ class TermsManager(private val mxSession: MXSession) {
 
     private fun getAlreadyAcceptedTermUrlsFromAccountData(): Set<String> {
         val accountDataCurrentAcceptedTerms =
-                mxSession.dataHandler.store.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_ACCEPTED_TERMS)
+                mxSession.dataHandler.store.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_ACCEPTED_TERMS)
 
         return accountDataCurrentAcceptedTerms?.content
                 ?.get(AccountDataElement.ACCOUNT_DATA_KEY_ACCEPTED_TERMS) as? Set<String> ?: emptySet()

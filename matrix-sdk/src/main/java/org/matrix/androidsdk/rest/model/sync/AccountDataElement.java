@@ -29,7 +29,7 @@ public class AccountDataElement implements Serializable {
     public static final String ACCOUNT_DATA_TYPE_PREVIEW_URLS = "org.matrix.preview_urls";
     public static final String ACCOUNT_DATA_TYPE_WIDGETS = "m.widgets";
     public static final String ACCOUNT_DATA_TYPE_PUSH_RULES = "m.push_rules";
-    public static final String ACCOUNT_DATA_ACCEPTED_TERMS = "m.accepted_terms";
+    public static final String ACCOUNT_DATA_TYPE_ACCEPTED_TERMS = "m.accepted_terms";
 
 
     /**
