@@ -66,7 +66,7 @@ class IdentityServerManager(val mxSession: MXSession,
     private var thirdPidRestClient: ThirdPidRestClient? = null
 
     /**
-     * Retrun the identity server url, either from AccountData if it has been set, or from the local storage
+     * Return the identity server url, either from AccountData if it has been set, or from the local storage
      */
     fun getIdentityServerUrl(): String? {
         val accountDataIdentityServer =
@@ -82,12 +82,20 @@ class IdentityServerManager(val mxSession: MXSession,
 
     /**
      * Update the identity server Url.
+     * @param newUrl   the new identity server url. Can be null (or empty) to disconnect the identity server and do not use an
+     *                 identity server anymore
      * @param callback callback called when account data has been updated successfully
      */
     fun setIdentityServerUrl(newUrl: String?, callback: ApiCallback<Void?>) {
+        if (identityPath == newUrl) {
+            // No change
+            callback.onSuccess(null)
+            return
+        }
+
         if (newUrl == null || newUrl.isBlank()) {
             // User want to remove the identity server
-            updateAccountData(null, callback)
+            disconnectPreviousIdentityServer(null, callback)
         } else {
             val uri = Uri.parse(newUrl)
             val hsConfig = try {
@@ -104,7 +112,7 @@ class IdentityServerManager(val mxSession: MXSession,
             IdentityPingRestClient(hsConfig).ping(object : ApiCallback<Void> {
                 override fun onSuccess(info: Void?) {
                     // Ok, this is an identity server
-                    updateAccountData(newUrl, callback)
+                    disconnectPreviousIdentityServer(newUrl, callback)
                 }
 
                 override fun onUnexpectedError(e: Exception?) {
@@ -119,6 +127,46 @@ class IdentityServerManager(val mxSession: MXSession,
                     callback.onUnexpectedError(InvalidParameterException("Invalid identity server"))
                 }
             })
+        }
+    }
+
+    private fun disconnectPreviousIdentityServer(newUrl: String?, callback: ApiCallback<Void?>) {
+        if (identityAuthRestClient == null) {
+            // No previous identity server, go to next step
+            updateAccountData(newUrl, callback)
+        } else {
+            // Disconnect old identity server first
+            val storedToken = identityServerTokensStore
+                    .getToken(mxSession.myUserId, identityPath ?: "")
+
+            if (storedToken.isNullOrBlank()) {
+                // Previous identity server was not logged in, go to next step
+                updateAccountData(newUrl, callback)
+            } else {
+                identityAuthRestClient?.logout(storedToken, object : ApiCallback<Unit> {
+                    override fun onUnexpectedError(e: java.lang.Exception?) {
+                        // Ignore any error
+                        onSuccess(Unit)
+                    }
+
+                    override fun onNetworkError(e: java.lang.Exception?) {
+                        // Ignore any error
+                        onSuccess(Unit)
+                    }
+
+                    override fun onMatrixError(e: MatrixError?) {
+                        // Ignore any error
+                        onSuccess(Unit)
+                    }
+
+                    override fun onSuccess(info: Unit) {
+                        identityServerTokensStore
+                                .resetToken(mxSession.myUserId, identityPath ?: "")
+
+                        updateAccountData(newUrl, callback)
+                    }
+                })
+            }
         }
     }
 
@@ -156,7 +204,7 @@ class IdentityServerManager(val mxSession: MXSession,
     }
 
     /**
-     *
+     * Get the token from the store, or request one
      */
     private fun getToken(callback: ApiCallback<String>) {
         val storeToken = identityServerTokensStore

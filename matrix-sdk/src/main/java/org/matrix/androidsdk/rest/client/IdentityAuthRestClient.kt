@@ -36,4 +36,10 @@ class IdentityAuthRestClient(hsConfig: HomeServerConnectionConfig) :
         mApi.checkAccount().enqueue(RestAdapterCallback("checkAccount", null, callback, null))
     }
 
+    fun logout(token: String, callback: ApiCallback<Unit>) {
+        setAccessToken(token)
+
+        mApi.logout().enqueue(RestAdapterCallback("logout", null, callback, null))
+    }
+
 }
