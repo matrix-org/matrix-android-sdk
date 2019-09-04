@@ -24,7 +24,6 @@ import org.matrix.androidsdk.rest.model.SuccessResult;
 import org.matrix.androidsdk.rest.model.identityserver.HashDetailResponse;
 import org.matrix.androidsdk.rest.model.identityserver.LookUpV2Params;
 import org.matrix.androidsdk.rest.model.identityserver.LookUpV2Response;
-import org.matrix.androidsdk.rest.model.pid.PidResponse;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -33,7 +32,7 @@ import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
-public interface ThirdPidApi {
+public interface IdentityThirdPidApi {
 
     /**
      * Request the hash detail to request a bunch of 3PIDs

@@ -308,6 +308,8 @@ class IdentityServerManager(val mxSession: MXSession,
         }
     }
 
+
+
     fun submitValidationToken(medium: String, token: String, clientSecret: String, sid: String, callback: ApiCallback<Boolean>) {
         val client = thirdPidRestClient
         if (client == null) {

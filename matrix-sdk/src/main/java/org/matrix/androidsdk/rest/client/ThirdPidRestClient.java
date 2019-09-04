@@ -25,7 +25,7 @@ import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
 import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.features.identityserver.IdentityServerV2ApiNotAvailable;
-import org.matrix.androidsdk.rest.api.ThirdPidApi;
+import org.matrix.androidsdk.rest.api.IdentityThirdPidApi;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.BulkLookupParams;
 import org.matrix.androidsdk.rest.model.BulkLookupResponse;
@@ -42,13 +42,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
+public class ThirdPidRestClient extends RestClient<IdentityThirdPidApi> {
 
     /**
      * {@inheritDoc}
      */
     public ThirdPidRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, ThirdPidApi.class, "", false, true);
+        super(hsConfig, IdentityThirdPidApi.class, "", false, true);
     }
 
     /**
