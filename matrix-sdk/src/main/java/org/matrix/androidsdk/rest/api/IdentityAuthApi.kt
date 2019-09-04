@@ -22,6 +22,11 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 
+/**
+ * Ref:
+ * - https://github.com/matrix-org/matrix-doc/blob/master/proposals/1961-integrations-auth.md
+ * - https://github.com/matrix-org/matrix-doc/blob/dbkr/tos_2/proposals/2140-terms-of-service-2.md#is-register-api
+ */
 interface IdentityAuthApi {
 
     /**
@@ -40,6 +45,7 @@ interface IdentityAuthApi {
 
     /**
      * unregister to the server
+     * Authenticated method
      */
     @POST("account/logout")
     fun logout(): Call<Unit>
