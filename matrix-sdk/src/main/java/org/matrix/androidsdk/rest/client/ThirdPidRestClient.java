@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class ThirdPidRestClient extends RestClient<IdentityThirdPidApi> {
@@ -173,7 +174,8 @@ public class ThirdPidRestClient extends RestClient<IdentityThirdPidApi> {
         for (int i = 0; i < addresses.size(); i++) {
             hashedPids.add(
                     StringUtilsKt.base64ToBase64Url(
-                            olmUtility.sha256(addresses.get(i) + " " + mediums.get(i) + " " + hashDetailResponse.pepper)
+                            olmUtility.sha256(addresses.get(i).toLowerCase(Locale.ROOT)
+                                    + " " + mediums.get(i) + " " + hashDetailResponse.pepper)
                     )
             );
         }
