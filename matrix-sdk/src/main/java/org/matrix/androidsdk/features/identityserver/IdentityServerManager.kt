@@ -81,6 +81,13 @@ class IdentityServerManager(val mxSession: MXSession,
     }
 
     /**
+     * Disconnect an identity server
+     */
+    fun disconnect(callback: ApiCallback<Void?>) {
+        setIdentityServerUrl(null, callback)
+    }
+
+    /**
      * Update the identity server Url.
      * @param newUrl   the new identity server url. Can be null (or empty) to disconnect the identity server and do not use an
      *                 identity server anymore
