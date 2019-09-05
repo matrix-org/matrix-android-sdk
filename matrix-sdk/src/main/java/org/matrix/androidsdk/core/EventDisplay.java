@@ -297,7 +297,17 @@ public class EventDisplay {
                     displayName = redactedInfo;
                 }
 
-                text = mContext.getString(R.string.notice_room_third_party_invite, userDisplayName, displayName);
+                if (displayName != null) {
+                    text = mContext.getString(R.string.notice_room_third_party_invite, userDisplayName, displayName);
+                } else {
+                    // Consider the invite has been revoked
+                    JsonObject prevContent = event.getPrevContentAsJsonObject();
+                    if (prevContent != null) {
+                        text = mContext.getString(R.string.notice_room_third_party_revoked_invite, userDisplayName, prevContent.get("display_name"));
+                    } else {
+                        text = null;
+                    }
+                }
             } else if (Event.EVENT_TYPE_STATE_ROOM_MEMBER.equals(eventType)) {
                 text = getMembershipNotice(mContext, event, roomState);
             }
