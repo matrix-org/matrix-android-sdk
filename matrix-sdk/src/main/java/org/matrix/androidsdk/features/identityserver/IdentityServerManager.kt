@@ -94,17 +94,22 @@ class IdentityServerManager(val mxSession: MXSession,
      * @param callback callback called when account data has been updated successfully
      */
     fun setIdentityServerUrl(newUrl: String?, callback: ApiCallback<Void?>) {
-        if (identityPath == newUrl) {
+        var newIdentityServer = newUrl
+        if (!newIdentityServer.isNullOrBlank() && !newIdentityServer.startsWith("http")) {
+            newIdentityServer = "https://$newIdentityServer"
+        }
+
+        if (identityPath == newIdentityServer) {
             // No change
             callback.onSuccess(null)
             return
         }
 
-        if (newUrl == null || newUrl.isBlank()) {
+        if (newIdentityServer.isNullOrBlank()) {
             // User want to remove the identity server
             disconnectPreviousIdentityServer(null, callback)
         } else {
-            val uri = Uri.parse(newUrl)
+            val uri = Uri.parse(newIdentityServer)
             val hsConfig = try {
                 // Check that this is a valid Identity server
                 HomeServerConnectionConfig.Builder()
@@ -119,7 +124,7 @@ class IdentityServerManager(val mxSession: MXSession,
             IdentityPingRestClient(hsConfig).ping(object : ApiCallback<Void> {
                 override fun onSuccess(info: Void?) {
                     // Ok, this is an identity server
-                    disconnectPreviousIdentityServer(newUrl, callback)
+                    disconnectPreviousIdentityServer(newIdentityServer, callback)
                 }
 
                 override fun onUnexpectedError(e: Exception?) {
