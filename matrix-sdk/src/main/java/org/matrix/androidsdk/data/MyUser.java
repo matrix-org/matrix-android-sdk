@@ -290,7 +290,7 @@ public class MyUser extends User {
      * Refresh the avatar url
      */
     private void refreshUserAvatarUrl() {
-        mDataHandler.getProfileRestClient().avatarUrl(user_id, new SimpleApiCallback<String>() {
+        mDataHandler.getProfileRestClient().avatarUrl(user_id, new ApiCallback<String>() {
             @Override
             public void onSuccess(String anAvatarUrl) {
                 if (mDataHandler.isAlive()) {
@@ -344,7 +344,7 @@ public class MyUser extends User {
      * Refresh the displayname.
      */
     private void refreshUserDisplayname() {
-        mDataHandler.getProfileRestClient().displayname(user_id, new SimpleApiCallback<String>() {
+        mDataHandler.getProfileRestClient().displayname(user_id, new ApiCallback<String>() {
             @Override
             public void onSuccess(String aDisplayname) {
                 if (mDataHandler.isAlive()) {
@@ -396,7 +396,7 @@ public class MyUser extends User {
      * Refresh the Third party identifiers i.e. the linked email to this account
      */
     public void refreshThirdPartyIdentifiers() {
-        mDataHandler.getProfileRestClient().threePIDs(new SimpleApiCallback<List<ThirdPartyIdentifier>>() {
+        mDataHandler.getProfileRestClient().threePIDs(new ApiCallback<List<ThirdPartyIdentifier>>() {
             @Override
             public void onSuccess(List<ThirdPartyIdentifier> identifiers) {
                 if (mDataHandler.isAlive()) {
