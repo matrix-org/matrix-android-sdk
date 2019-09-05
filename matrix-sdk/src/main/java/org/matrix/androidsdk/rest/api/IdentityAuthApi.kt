@@ -15,6 +15,7 @@
  */
 package org.matrix.androidsdk.rest.api
 
+import org.matrix.androidsdk.rest.model.identityserver.IdentityAccountResponse
 import org.matrix.androidsdk.rest.model.identityserver.IdentityServerRegisterResponse
 import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse
 import retrofit2.Call
@@ -33,7 +34,7 @@ interface IdentityAuthApi {
      * Check that we can use the identity server. You'll get a 403 if this is not the case
      */
     @GET("account")
-    fun checkAccount(): Call<Unit>
+    fun checkAccount(): Call<IdentityAccountResponse>
 
     /**
      * register to the server

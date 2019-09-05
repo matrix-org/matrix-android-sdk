@@ -20,6 +20,7 @@ import org.matrix.androidsdk.RestClient
 import org.matrix.androidsdk.core.callback.ApiCallback
 import org.matrix.androidsdk.rest.api.IdentityAuthApi
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback
+import org.matrix.androidsdk.rest.model.identityserver.IdentityAccountResponse
 import org.matrix.androidsdk.rest.model.identityserver.IdentityServerRegisterResponse
 import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse
 
@@ -30,7 +31,7 @@ class IdentityAuthRestClient(hsConfig: HomeServerConnectionConfig) :
         mApi.register(openIdTokenResponse).enqueue(RestAdapterCallback("register", null, callback, null))
     }
 
-    fun checkAccount(token: String, callback: ApiCallback<Unit>) {
+    fun checkAccount(token: String, callback: ApiCallback<IdentityAccountResponse>) {
         setAccessToken(token)
 
         mApi.checkAccount().enqueue(RestAdapterCallback("checkAccount", null, callback, null))
