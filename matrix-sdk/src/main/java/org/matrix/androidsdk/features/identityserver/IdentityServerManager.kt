@@ -38,6 +38,16 @@ import javax.net.ssl.HttpsURLConnection
 class IdentityServerManager(val mxSession: MXSession,
                             context: Context) {
 
+    interface IdentityServerManagerListener {
+        fun onIdentityServerChange()
+    }
+
+    private val listeners = HashSet<IdentityServerManagerListener>()
+
+    fun addListener(listener: IdentityServerManagerListener) = synchronized(listeners) { listeners.add(listener) }
+    fun removeListener(listener: IdentityServerManagerListener) = synchronized(listeners) { listeners.remove(listener) }
+
+
     init {
         localSetIdentityServerUrl(getIdentityServerUrl())
 
@@ -213,6 +223,8 @@ class IdentityServerManager(val mxSession: MXSession,
             identityAuthRestClient = IdentityAuthRestClient(alteredHsConfig)
             thirdPidRestClient = ThirdPidRestClient(alteredHsConfig)
         }
+
+        synchronized(listeners) { listeners.forEach { it.onIdentityServerChange() } }
     }
 
     /**
