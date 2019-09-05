@@ -288,7 +288,7 @@ class IdentityServerManager(val mxSession: MXSession,
         })
     }
 
-    fun lookup3Pids(addresses: MutableList<String>, mediums: MutableList<String>, callback: ApiCallback<MutableList<String>>) {
+    fun lookup3Pids(addresses: List<String>, mediums: List<String>, callback: ApiCallback<List<String>>) {
         val client = thirdPidRestClient
         if (client == null) {
             callback.onUnexpectedError(IdentityServerNotConfiguredException())
