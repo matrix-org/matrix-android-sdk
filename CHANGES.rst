@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - Display correctly the revoked third-party invites.
 
 Bugfix:
  -
