@@ -88,8 +88,11 @@ class TermsManager(private val mxSession: MXSession) {
         val accountDataCurrentAcceptedTerms =
                 mxSession.dataHandler.store.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_ACCEPTED_TERMS)
 
-        return accountDataCurrentAcceptedTerms?.content
-                ?.get(AccountDataElement.ACCOUNT_DATA_KEY_ACCEPTED_TERMS) as? Set<String> ?: emptySet()
+        return (accountDataCurrentAcceptedTerms?.content
+                ?.get(AccountDataElement.ACCOUNT_DATA_KEY_ACCEPTED_TERMS) as? List<*>)
+                ?.mapNotNull { it as? String }
+                ?.toSet()
+                ?: emptySet()
     }
 
     companion object {
