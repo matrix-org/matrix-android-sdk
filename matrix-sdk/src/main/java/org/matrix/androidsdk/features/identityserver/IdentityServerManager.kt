@@ -217,7 +217,7 @@ class IdentityServerManager(val mxSession: MXSession,
             thirdPidRestClient = null
         } else {
             val alteredHsConfig = HomeServerConnectionConfig.Builder(mxSession.homeServerConfig)
-                    .withHomeServerUri(Uri.parse(newUrl))
+                    .withIdentityServerUri(Uri.parse(newUrl))
                     .build()
 
             identityAuthRestClient = IdentityAuthRestClient(alteredHsConfig)
