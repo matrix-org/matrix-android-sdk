@@ -16,12 +16,17 @@
 
 package org.matrix.androidsdk.features.terms
 
+import android.net.Uri
+import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.RestClient
 import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.callback.ApiCallback
 import org.matrix.androidsdk.core.callback.SimpleApiCallback
+import org.matrix.androidsdk.rest.client.IdentityAuthRestClient
 import org.matrix.androidsdk.rest.client.TermsRestClient
+import org.matrix.androidsdk.rest.model.identityserver.IdentityServerRegisterResponse
+import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement
 import org.matrix.androidsdk.rest.model.terms.TermsResponse
 
@@ -48,8 +53,8 @@ class TermsManager(private val mxSession: MXSession) {
         })
     }
 
-    fun agreeToTerms(serviceType: ServiceType, baseUrl: String, agreedUrls: List<String>, token: String, callback: ApiCallback<Unit>) {
-        termsRestClient.setAccessToken(token)
+    fun agreeToTerms(serviceType: ServiceType, baseUrl: String, agreedUrls: List<String>, token: String?, callback: ApiCallback<Unit>) {
+
 
         val sep = if (baseUrl.endsWith("/")) "" else "/"
 
@@ -58,6 +63,28 @@ class TermsManager(private val mxSession: MXSession) {
             ServiceType.IdentityService    -> "$baseUrl$sep${RestClient.URI_IDENTITY_PATH_V2}"
         }
 
+        if (token.isNullOrBlank()) {
+            //We need a token
+            val alteredHsConfig = HomeServerConnectionConfig.Builder(mxSession.homeServerConfig)
+                    .withIdentityServerUri(Uri.parse(baseUrl))
+                    .build()
+
+            val identityAuthRestClient = IdentityAuthRestClient(alteredHsConfig)
+            mxSession.openIdToken(object : SimpleApiCallback<RequestOpenIdTokenResponse>(callback) {
+                override fun onSuccess(info: RequestOpenIdTokenResponse) {
+                    identityAuthRestClient.register(info, object : SimpleApiCallback<IdentityServerRegisterResponse>(callback) {
+                        override fun onSuccess(info: IdentityServerRegisterResponse) {
+                            agreeToTerms(serviceType, baseUrl, agreedUrls, info.identityServerAccessToken, callback)
+                        }
+                    })
+                }
+
+            })
+
+            return
+        }
+
+        termsRestClient.setAccessToken(token)
         termsRestClient.agreeToTerms(url, agreedUrls, object : SimpleApiCallback<Unit>(callback) {
             override fun onSuccess(info: Unit) {
                 //client SHOULD update this account data section adding any the URLs
