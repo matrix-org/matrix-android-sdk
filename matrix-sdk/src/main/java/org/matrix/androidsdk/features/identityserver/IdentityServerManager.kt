@@ -64,6 +64,10 @@ class IdentityServerManager(val mxSession: MXSession,
                     }
                 }
             }
+
+            override fun onStoreReady() {
+                localSetIdentityServerUrl(getIdentityServerUrl())
+            }
         })
     }
 
