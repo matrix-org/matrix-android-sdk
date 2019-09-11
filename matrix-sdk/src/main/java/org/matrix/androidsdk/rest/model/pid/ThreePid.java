@@ -18,6 +18,7 @@
 package org.matrix.androidsdk.rest.model.pid;
 
 import android.content.Context;
+import android.net.Uri;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.R;
@@ -142,10 +143,12 @@ public class ThreePid implements java.io.Serializable {
      * @param isDuringRegistration true if it is added during a registration
      * @param callback             the callback when the operation is done
      */
-    public void requestEmailValidationToken(final ProfileRestClient restClient,
-                                            final String nextLink,
-                                            final boolean isDuringRegistration,
-                                            final ApiCallback<Void> callback) {
+    public void requestEmailValidationToken(
+            final Uri identityServerUri,
+            final ProfileRestClient restClient,
+            final String nextLink,
+            final boolean isDuringRegistration,
+            final ApiCallback<Void> callback) {
         // sanity check
         if (null != restClient && mValidationState != AUTH_STATE_TOKEN_REQUESTED) {
 
@@ -154,7 +157,7 @@ public class ThreePid implements java.io.Serializable {
             }
 
             mValidationState = AUTH_STATE_TOKEN_REQUESTED;
-            restClient.requestEmailValidationToken(emailAddress, clientSecret, sendAttempt, nextLink, isDuringRegistration,
+            restClient.requestEmailValidationToken(identityServerUri, emailAddress, clientSecret, sendAttempt, nextLink, isDuringRegistration,
                     new ApiCallback<RequestEmailValidationResponse>() {
 
                         @Override

@@ -18,6 +18,7 @@
 
 package org.matrix.androidsdk.data;
 
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -105,9 +106,9 @@ public class MyUser extends User {
      * @param pid      the pid to retrieve a token
      * @param callback the callback when the operation is done
      */
-    public void requestEmailValidationToken(ThreePid pid, ApiCallback<Void> callback) {
+    public void requestEmailValidationToken(Uri identityServerURi, ThreePid pid, ApiCallback<Void> callback) {
         if (null != pid) {
-            pid.requestEmailValidationToken(mDataHandler.getProfileRestClient(), null, false, callback);
+            pid.requestEmailValidationToken(identityServerURi, mDataHandler.getProfileRestClient(), null, false, callback);
         }
     }
 
@@ -130,9 +131,9 @@ public class MyUser extends User {
      * @param bind     true to add it.
      * @param callback the async callback
      */
-    public void add3Pid(final ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
+    public void add3Pid(Uri identityServerURi, final ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
         if (null != pid) {
-            mDataHandler.getProfileRestClient().add3PID(pid, bind, new SimpleApiCallback<Void>(callback) {
+            mDataHandler.getProfileRestClient().add3PID(identityServerURi, pid, bind, new SimpleApiCallback<Void>(callback) {
                 @Override
                 public void onSuccess(Void info) {
                     // refresh the third party identifiers lists

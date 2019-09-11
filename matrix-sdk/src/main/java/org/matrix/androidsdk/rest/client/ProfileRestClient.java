@@ -24,6 +24,7 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
+import org.matrix.androidsdk.features.identityserver.IdentityServerManager;
 import org.matrix.androidsdk.features.identityserver.IdentityServerNotConfiguredException;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
@@ -353,6 +354,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     /**
      * Request an email validation token.
      *
+     * @param identityServerUri the identity server to use
      * @param address              the email address
      * @param clientSecret         the client secret number
      * @param attempt              the attempt count
@@ -360,7 +362,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param isDuringRegistration true if it occurs during a registration flow
      * @param callback             the callback
      */
-    public void requestEmailValidationToken(final String address, final String clientSecret, final int attempt,
+    public void requestEmailValidationToken(Uri identityServerUri, final String address, final String clientSecret, final int attempt,
                                             final String nextLink, final boolean isDuringRegistration,
                                             final ApiCallback<RequestEmailValidationResponse> callback) {
         final String description = "requestEmailValidationToken";
@@ -370,8 +372,10 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         params.clientSecret = clientSecret;
         params.sendAttempt = attempt;
 
-        // TODO privacy: there is something to do here, we cannot use identity server from hsConfig
-        Uri identityServerUri = mHsConfig.getIdentityServerUri();
+        // Smart default to hs config
+        if (identityServerUri == null) {
+            identityServerUri = mHsConfig.getIdentityServerUri();
+        }
         if (identityServerUri == null) {
             callback.onUnexpectedError(new IdentityServerNotConfiguredException());
             return;
@@ -382,12 +386,13 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             params.next_link = nextLink;
         }
 
+        Uri finalIdentityServerUri = identityServerUri;
         final RestAdapterCallback<RequestEmailValidationResponse> adapterCallback
                 = new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        requestEmailValidationToken(address, clientSecret, attempt, nextLink, isDuringRegistration, callback);
+                        requestEmailValidationToken(finalIdentityServerUri, address, clientSecret, attempt, nextLink, isDuringRegistration, callback);
                     }
                 }
         ) {
@@ -474,14 +479,16 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param bind     bind the email
      * @param callback the asynchronous callback called with the response
      */
-    public void add3PID(final ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
+    public void add3PID(Uri identityServerUri, final ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
         final String description = "add3PID";
 
         AddThreePidsParams params = new AddThreePidsParams();
         params.three_pid_creds = new ThreePidCreds();
 
-        // TODO privacy: there is something to do here, we cannot use identity server from hsConfig
-        Uri identityServerUri = mHsConfig.getIdentityServerUri();
+        // Smart default to hs config
+        if (identityServerUri == null) {
+            identityServerUri = mHsConfig.getIdentityServerUri();
+        }
         if (identityServerUri == null) {
             callback.onUnexpectedError(new IdentityServerNotConfiguredException());
             return;
@@ -500,11 +507,12 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
 
         params.bind = bind;
 
+        Uri finalIdentityServerUri = identityServerUri;
         mApi.add3PID(params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        add3PID(pid, bind, callback);
+                        add3PID(finalIdentityServerUri, pid, bind, callback);
                     }
                 }));
     }
