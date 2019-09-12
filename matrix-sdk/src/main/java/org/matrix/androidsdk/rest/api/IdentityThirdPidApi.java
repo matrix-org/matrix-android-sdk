@@ -20,6 +20,7 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.rest.model.BulkLookupParams;
 import org.matrix.androidsdk.rest.model.BulkLookupResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationParams;
+import org.matrix.androidsdk.rest.model.RequestOwnershipParams;
 import org.matrix.androidsdk.rest.model.SuccessResult;
 import org.matrix.androidsdk.rest.model.identityserver.HashDetailResponse;
 import org.matrix.androidsdk.rest.model.identityserver.LookUpV2Params;
@@ -59,9 +60,7 @@ public interface IdentityThirdPidApi {
      */
     @POST(RestClient.URI_IDENTITY_PATH_V2 + "validate/{medium}/submitToken")
     Call<SuccessResult> requestOwnershipValidationV2(@Path("medium") String medium,
-                                                     @Query("token") String token,
-                                                     @Query("client_secret") String clientSecret,
-                                                     @Query("sid") String sid);
+                                                     @Body RequestOwnershipParams body);
 
     /* ==========================================================================================
      * Legacy requests

@@ -118,9 +118,9 @@ public class MyUser extends User {
      * @param pid      the pid to retrieve a token
      * @param callback the callback when the operation is done
      */
-    public void requestPhoneNumberValidationToken(ThreePid pid, ApiCallback<Void> callback) {
+    public void requestPhoneNumberValidationToken(Uri identityServerURi, ThreePid pid, ApiCallback<Void> callback) {
         if (null != pid) {
-            pid.requestPhoneNumberValidationToken(mDataHandler.getProfileRestClient(), false, callback);
+            pid.requestPhoneNumberValidationToken(identityServerURi, mDataHandler.getProfileRestClient(), false, callback);
         }
     }
 

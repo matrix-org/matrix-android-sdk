@@ -425,7 +425,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param isDuringRegistration true if it occurs during a registration flow
      * @param callback             the callback
      */
-    public void requestPhoneNumberValidationToken(final String phoneNumber, final String countryCode,
+    public void requestPhoneNumberValidationToken(Uri identityServerUri, final String phoneNumber, final String countryCode,
                                                   final String clientSecret, final int attempt,
                                                   final boolean isDuringRegistration, final ApiCallback<RequestPhoneNumberValidationResponse> callback) {
         final String description = "requestPhoneNumberValidationToken";
@@ -436,8 +436,10 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         params.clientSecret = clientSecret;
         params.sendAttempt = attempt;
 
-        // TODO privacy: there is something to do here, we cannot use identity server from hsConfig
-        Uri identityServerUri = mHsConfig.getIdentityServerUri();
+
+        if (identityServerUri == null) {
+            identityServerUri = mHsConfig.getIdentityServerUri();
+        }
         if (identityServerUri == null) {
             callback.onUnexpectedError(new IdentityServerNotConfiguredException());
             return;
@@ -445,12 +447,13 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
 
         params.id_server = identityServerUri.getHost();
 
+        Uri finalIdentityServerUri = identityServerUri;
         final RestAdapterCallback<RequestPhoneNumberValidationResponse> adapterCallback
                 = new RestAdapterCallback<RequestPhoneNumberValidationResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        requestPhoneNumberValidationToken(phoneNumber, countryCode, clientSecret, attempt, isDuringRegistration, callback);
+                        requestPhoneNumberValidationToken(finalIdentityServerUri, phoneNumber, countryCode, clientSecret, attempt, isDuringRegistration, callback);
                     }
                 }
         ) {
