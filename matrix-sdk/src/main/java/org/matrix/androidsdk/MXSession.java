@@ -2136,6 +2136,16 @@ public class MXSession implements CryptoSession {
     }
 
     /**
+     * Ask the home server if an identity server is required.
+     *
+     * @param callback the callback, to be notified if the server actually support the lazy loading. True if required
+     */
+    public void doesServerRequireIdentityServerParam(final ApiCallback<Boolean> callback) {
+        // Check that the server support the lazy loading
+        mLoginRestClient.doesServerRequireIdentityServerParam(callback);
+    }
+
+    /**
      * Invalidate the access token, so that it can no longer be used for authorization.
      *
      * @param context  the application context
