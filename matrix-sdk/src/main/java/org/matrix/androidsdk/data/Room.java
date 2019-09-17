@@ -28,10 +28,11 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Pair;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -39,6 +40,7 @@ import com.google.gson.reflect.TypeToken;
 
 import org.jetbrains.annotations.NotNull;
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.core.ImageUtils;
@@ -58,6 +60,7 @@ import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.timeline.EventTimelineFactory;
 import org.matrix.androidsdk.db.MXMediaCache;
+import org.matrix.androidsdk.features.identityserver.IdentityServerManager;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.listeners.MXRoomEventListener;
@@ -2402,7 +2405,7 @@ public class Room implements CryptoRoom {
      */
     public void invite(String userId, ApiCallback<Void> callback) {
         if (null != userId) {
-            invite(Collections.singletonList(userId), callback);
+            invite(null, Collections.singletonList(userId), callback);
         }
     }
 
@@ -2412,9 +2415,9 @@ public class Room implements CryptoRoom {
      * @param email    the email address
      * @param callback the callback for when done
      */
-    public void inviteByEmail(String email, ApiCallback<Void> callback) {
+    public void inviteByEmail(final MXSession session, String email, ApiCallback<Void> callback) {
         if (null != email) {
-            invite(Collections.singletonList(email), callback);
+            invite(session, Collections.singletonList(email), callback);
         }
     }
 
@@ -2425,9 +2428,9 @@ public class Room implements CryptoRoom {
      * @param identifiers the identifiers list
      * @param callback    the callback for when done
      */
-    public void invite(List<String> identifiers, ApiCallback<Void> callback) {
+    public void invite(final MXSession session, List<String> identifiers, ApiCallback<Void> callback) {
         if (null != identifiers) {
-            invite(identifiers.iterator(), callback);
+            invite(session.getIdentityServerManager(), identifiers.iterator(), callback);
         }
     }
 
@@ -2437,7 +2440,7 @@ public class Room implements CryptoRoom {
      * @param identifiers the identifiers iterator
      * @param callback    the callback for when done
      */
-    private void invite(final Iterator<String> identifiers, final ApiCallback<Void> callback) {
+    private void invite(final IdentityServerManager identityServerManager, final Iterator<String> identifiers, final ApiCallback<Void> callback) {
         if (!identifiers.hasNext()) {
             callback.onSuccess(null);
             return;
@@ -2446,14 +2449,16 @@ public class Room implements CryptoRoom {
         final ApiCallback<Void> localCallback = new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
-                invite(identifiers, callback);
+                invite(identityServerManager, identifiers, callback);
             }
         };
 
         String identifier = identifiers.next();
 
         if (android.util.Patterns.EMAIL_ADDRESS.matcher(identifier).matches()) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().inviteByEmailToRoom(getRoomId(), identifier, localCallback);
+            mDataHandler.getDataRetriever().getRoomsRestClient().inviteByEmailToRoom(
+                    identityServerManager.getIdentityServerUri(),
+                    getRoomId(), identifier, localCallback);
         } else {
             mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), identifier, localCallback);
         }

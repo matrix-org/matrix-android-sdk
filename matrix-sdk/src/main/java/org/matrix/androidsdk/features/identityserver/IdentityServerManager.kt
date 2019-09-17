@@ -94,6 +94,10 @@ class IdentityServerManager(val mxSession: MXSession,
         return mxSession.homeServerConfig.identityServerUri?.toString()
     }
 
+    fun getIdentityServerUri(): Uri? {
+        return getIdentityServerUrl()?.let { Uri.parse(it) }
+    }
+
     /**
      * Disconnect an identity server
      */

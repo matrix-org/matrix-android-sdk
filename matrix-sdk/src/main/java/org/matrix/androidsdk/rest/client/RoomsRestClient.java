@@ -18,9 +18,10 @@
 
 package org.matrix.androidsdk.rest.client;
 
-import androidx.annotation.Nullable;
 import android.net.Uri;
 import android.text.TextUtils;
+
+import androidx.annotation.Nullable;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -195,8 +196,8 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param email    the email
      * @param callback the async callback
      */
-    public void inviteByEmailToRoom(final String roomId, final String email, final ApiCallback<Void> callback) {
-        inviteThreePidToRoom("email", email, roomId, callback);
+    public void inviteByEmailToRoom(Uri identityServerUri, final String roomId, final String email, final ApiCallback<Void> callback) {
+        inviteThreePidToRoom(identityServerUri, "email", email, roomId, callback);
     }
 
     /**
@@ -207,14 +208,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param roomId   the room id
      * @param callback the async callback
      */
-    private void inviteThreePidToRoom(final String medium, final String address, final String roomId, final ApiCallback<Void> callback) {
+    private void inviteThreePidToRoom(Uri identityServerUri, final String medium, final String address, final String roomId, final ApiCallback<Void> callback) {
         // privacy
         //final String description = "inviteThreePidToRoom : medium " + medium + " address " + address + " roomId " + roomId;
         final String description = "inviteThreePidToRoom : medium " + medium + " roomId " + roomId;
 
         // This request must not have the protocol part
-        // TODO privacy: there is something to do here, we cannot use identity server from hsConfig
-        Uri identityServerUri = mHsConfig.getIdentityServerUri();
         if (identityServerUri == null) {
             callback.onUnexpectedError(new IdentityServerNotConfiguredException());
             return;
@@ -237,7 +236,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        inviteThreePidToRoom(medium, address, roomId, callback);
+                        inviteThreePidToRoom(identityServerUri, medium, address, roomId, callback);
                     }
                 }));
     }
