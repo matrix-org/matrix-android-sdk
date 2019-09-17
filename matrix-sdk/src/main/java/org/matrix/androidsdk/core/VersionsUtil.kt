@@ -29,6 +29,7 @@ private const val VERSION_R0_2_0 = "r0_2_0"
 private const val VERSION_R0_3_0 = "r0_3_0"
 private const val VERSION_R0_4_0 = "r0_4_0"
 private const val VERSION_R0_5_0 = "r0_5_0"
+private const val VERSION_R0_6_0 = "r0_6_0"
 
 // MatrixVersionsFeature
 private const val FEATURE_LAZY_LOAD_MEMBERS = "m.lazy_load_members"
@@ -52,6 +53,7 @@ fun Versions.supportLazyLoadMembers(): Boolean {
  */
 fun Versions.doesServerRequireIdentityServerParam(): Boolean {
     // true by default
+    if (supportedVersions?.contains(VERSION_R0_6_0) == true) return false
     return unstableFeatures[FEATURE_REQUIRE_IDENTITY_SERVER] ?: true
 }
 
