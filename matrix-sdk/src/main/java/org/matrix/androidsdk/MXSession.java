@@ -1367,7 +1367,7 @@ public class MXSession implements CryptoSession {
             params.addCryptoAlgorithm(algorithm);
             params.setDirectMessage();
 
-            boolean res = params.addParticipantIds(mHsConfig, Arrays.asList(aParticipantUserId));
+            boolean res = params.addParticipantIds(getIdentityServerManager().getIdentityServerUri(), mHsConfig, Arrays.asList(aParticipantUserId));
 
             if (res) {
                 aCreateRoomCallBack.onUnexpectedError(new IdentityServerNotConfiguredException());

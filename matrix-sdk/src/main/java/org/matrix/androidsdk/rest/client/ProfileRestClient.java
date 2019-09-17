@@ -24,7 +24,6 @@ import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
-import org.matrix.androidsdk.features.identityserver.IdentityServerManager;
 import org.matrix.androidsdk.features.identityserver.IdentityServerNotConfiguredException;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
@@ -233,7 +232,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param email    the email to send the password reset.
      * @param callback the callback
      */
-    public void forgetPassword(final String email, final ApiCallback<ThreePid> callback) {
+    public void forgetPassword(Uri identityServerUri, final String email, final ApiCallback<ThreePid> callback) {
         final String description = "forget password";
 
         if (!TextUtils.isEmpty(email)) {
@@ -244,8 +243,6 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             forgetPasswordParams.client_secret = pid.clientSecret;
             forgetPasswordParams.send_attempt = 1;
 
-            // TODO privacy: there is something to do here, we cannot use identity server from hsConfig
-            Uri identityServerUri = mHsConfig.getIdentityServerUri();
             if (identityServerUri == null) {
                 callback.onUnexpectedError(new IdentityServerNotConfiguredException());
                 return;
@@ -258,7 +255,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                             new RestAdapterCallback.RequestRetryCallBack() {
                                 @Override
                                 public void onRetry() {
-                                    forgetPassword(email, callback);
+                                    forgetPassword(identityServerUri, email, callback);
                                 }
                             }) {
                         @Override
@@ -354,7 +351,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     /**
      * Request an email validation token.
      *
-     * @param identityServerUri the identity server to use
+     * @param identityServerUri    the identity server to use
      * @param address              the email address
      * @param clientSecret         the client secret number
      * @param attempt              the attempt count
@@ -372,10 +369,6 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         params.clientSecret = clientSecret;
         params.sendAttempt = attempt;
 
-        // Smart default to hs config
-        if (identityServerUri == null) {
-            identityServerUri = mHsConfig.getIdentityServerUri();
-        }
         if (identityServerUri == null) {
             callback.onUnexpectedError(new IdentityServerNotConfiguredException());
             return;
@@ -436,10 +429,6 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         params.clientSecret = clientSecret;
         params.sendAttempt = attempt;
 
-
-        if (identityServerUri == null) {
-            identityServerUri = mHsConfig.getIdentityServerUri();
-        }
         if (identityServerUri == null) {
             callback.onUnexpectedError(new IdentityServerNotConfiguredException());
             return;
@@ -488,10 +477,6 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         AddThreePidsParams params = new AddThreePidsParams();
         params.three_pid_creds = new ThreePidCreds();
 
-        // Smart default to hs config
-        if (identityServerUri == null) {
-            identityServerUri = mHsConfig.getIdentityServerUri();
-        }
         if (identityServerUri == null) {
             callback.onUnexpectedError(new IdentityServerNotConfiguredException());
             return;

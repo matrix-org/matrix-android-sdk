@@ -2403,9 +2403,9 @@ public class Room implements CryptoRoom {
      * @param userId   the user id
      * @param callback the callback for when done
      */
-    public void invite(String userId, ApiCallback<Void> callback) {
+    public void invite(MXSession session, String userId, ApiCallback<Void> callback) {
         if (null != userId) {
-            invite(null, Collections.singletonList(userId), callback);
+            invite(session, Collections.singletonList(userId), callback);
         }
     }
 
@@ -2426,11 +2426,13 @@ public class Room implements CryptoRoom {
      * The identifiers are either ini Id or email address.
      *
      * @param identifiers the identifiers list
+     * @param session     is needed for email invites
      * @param callback    the callback for when done
      */
-    public void invite(final MXSession session, List<String> identifiers, ApiCallback<Void> callback) {
+    public void invite(@Nullable final MXSession session, List<String> identifiers, ApiCallback<Void> callback) {
         if (null != identifiers) {
-            invite(session.getIdentityServerManager(), identifiers.iterator(), callback);
+            IdentityServerManager identityServerManager = session != null ? session.getIdentityServerManager() : null;
+            invite(identityServerManager, identifiers.iterator(), callback);
         }
     }
 
@@ -2456,8 +2458,9 @@ public class Room implements CryptoRoom {
         String identifier = identifiers.next();
 
         if (android.util.Patterns.EMAIL_ADDRESS.matcher(identifier).matches()) {
+            Uri identityServerUri = identityServerManager != null ? identityServerManager.getIdentityServerUri() : null;
             mDataHandler.getDataRetriever().getRoomsRestClient().inviteByEmailToRoom(
-                    identityServerManager.getIdentityServerUri(),
+                    identityServerUri,
                     getRoomId(), identifier, localCallback);
         } else {
             mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), identifier, localCallback);

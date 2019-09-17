@@ -238,7 +238,7 @@ public class CreateRoomParams {
      * @param ids the participant ids to add.
      * @return true in case of error, which can happen when adding email and no identity server is configured, false in case of success
      */
-    public boolean addParticipantIds(HomeServerConnectionConfig hsConfig, List<String> ids) {
+    public boolean addParticipantIds(Uri identityServerUri, HomeServerConnectionConfig hsConfig, List<String> ids) {
         for (String id : ids) {
             if (android.util.Patterns.EMAIL_ADDRESS.matcher(id).matches()) {
                 if (null == invite3pids) {
@@ -247,8 +247,6 @@ public class CreateRoomParams {
 
                 Invite3Pid pid = new Invite3Pid();
 
-                // TODO privacy: there is something to do here, we cannot use identity server from hsConfig
-                Uri identityServerUri = hsConfig.getIdentityServerUri();
                 if (identityServerUri == null) {
                     // Error
                     return true;
