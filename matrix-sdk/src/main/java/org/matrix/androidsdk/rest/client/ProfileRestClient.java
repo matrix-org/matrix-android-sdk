@@ -244,7 +244,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             forgetPasswordParams.send_attempt = 1;
 
             if (identityServerUri != null) {
-                forgetPasswordParams.id_server = identityServerUri.getHost();
+                forgetPasswordParams.id_server = (identityServerUri.getHost() != null) ? identityServerUri.getHost() : identityServerUri.toString();
             }
 
 
