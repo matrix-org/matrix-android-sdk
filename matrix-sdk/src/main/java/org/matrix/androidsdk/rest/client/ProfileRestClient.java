@@ -243,12 +243,10 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
             forgetPasswordParams.client_secret = pid.clientSecret;
             forgetPasswordParams.send_attempt = 1;
 
-            if (identityServerUri == null) {
-                callback.onUnexpectedError(new IdentityServerNotConfiguredException());
-                return;
+            if (identityServerUri != null) {
+                forgetPasswordParams.id_server = identityServerUri.getHost();
             }
 
-            forgetPasswordParams.id_server = identityServerUri.getHost();
 
             mApi.forgetPassword(forgetPasswordParams)
                     .enqueue(new RestAdapterCallback<ForgetPasswordResponse>(description, mUnsentEventsManager, callback,
