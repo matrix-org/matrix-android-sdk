@@ -17,6 +17,7 @@
  */
 package org.matrix.androidsdk;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -27,8 +28,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
 
+import org.jetbrains.annotations.NotNull;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.core.BingRulesManager;
+import org.matrix.androidsdk.core.DataHandlerInterface;
 import org.matrix.androidsdk.core.FilterUtil;
 import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.Log;
@@ -96,7 +99,7 @@ import java.util.Set;
  * <li>Provides the means for an app to get callbacks for data changes</li>
  * </ul>
  */
-public class MXDataHandler implements CryptoDataHandler {
+public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
     private static final String LOG_TAG = MXDataHandler.class.getSimpleName();
 
     public interface RequestNetworkErrorListener {
@@ -406,6 +409,7 @@ public class MXDataHandler implements CryptoDataHandler {
      *
      * @param matrixErrorCode the matrix error code.
      */
+    @Override
     public void onConfigurationError(String matrixErrorCode) {
         if (null != mRequestNetworkErrorListener) {
             mRequestNetworkErrorListener.onConfigurationError(matrixErrorCode);
@@ -417,6 +421,7 @@ public class MXDataHandler implements CryptoDataHandler {
      *
      * @param exception the SSL certificate exception
      */
+    @Override
     public void onSSLCertificateError(UnrecognizedCertificateException exception) {
         if (null != mRequestNetworkErrorListener) {
             mRequestNetworkErrorListener.onSSLCertificateError(exception);
@@ -2185,5 +2190,11 @@ public class MXDataHandler implements CryptoDataHandler {
         }
 
         return directChatRoomIdsList;
+    }
+
+    @NotNull
+    @Override
+    public Context getContext() {
+        return getStore().getContext();
     }
 }

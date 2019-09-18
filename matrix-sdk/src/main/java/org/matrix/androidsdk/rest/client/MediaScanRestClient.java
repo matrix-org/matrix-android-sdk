@@ -56,7 +56,7 @@ public class MediaScanRestClient extends RestClient<MediaScanApi> {
      * {@inheritDoc}
      */
     public MediaScanRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, MediaScanApi.class, RestClient.URI_API_PREFIX_PATH_MEDIA_PROXY_UNSTABLE, false, EndPointServer.ANTIVIRUS_SERVER);
+        super(hsConfig, MediaScanApi.class, RestClient.URI_API_PREFIX_PATH_MEDIA_PROXY_UNSTABLE, JsonUtils.getGson(false), EndPointServer.ANTIVIRUS_SERVER);
     }
 
     /**

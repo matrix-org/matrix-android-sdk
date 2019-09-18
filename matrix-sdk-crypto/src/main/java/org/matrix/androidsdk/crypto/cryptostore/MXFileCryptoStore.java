@@ -35,8 +35,8 @@ import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSession;
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
-import org.matrix.androidsdk.crypto.interfaces.CryptoCredentials;
 import org.matrix.androidsdk.crypto.model.crypto.RoomKeyRequestBody;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.olm.OlmAccount;
 import org.matrix.olm.OlmSession;
 
@@ -100,7 +100,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     private static final String MXFILE_CRYPTO_STORE_INCOMING_ROOM_KEY_REQUESTS_FILE_TMP = "incomingRoomKeyRequests.tmp";
 
     // The credentials used for this store
-    private CryptoCredentials mCredentials;
+    private Credentials mCredentials;
 
     // Meta data about the store
     private MXFileCryptoStoreMetaData2 mMetaData;
@@ -187,7 +187,7 @@ public class MXFileCryptoStore implements IMXCryptoStore {
     }
 
     @Override
-    public void initWithCredentials(Context context, CryptoCredentials credentials) {
+    public void initWithCredentials(Context context, Credentials credentials) {
         mCredentials = credentials;
 
         mStoreFile = new File(new File(context.getApplicationContext().getFilesDir(), MXFILE_CRYPTO_STORE_FOLDER), mCredentials.getUserId());

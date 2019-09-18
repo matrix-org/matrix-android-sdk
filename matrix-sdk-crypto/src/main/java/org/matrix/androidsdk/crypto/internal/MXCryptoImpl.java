@@ -30,6 +30,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.jetbrains.annotations.NotNull;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.core.JsonUtility;
 import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.core.StringUtilsKt;
@@ -66,7 +67,6 @@ import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap;
 import org.matrix.androidsdk.crypto.interfaces.CryptoEvent;
 import org.matrix.androidsdk.crypto.interfaces.CryptoEventContent;
 import org.matrix.androidsdk.crypto.interfaces.CryptoEventListener;
-import org.matrix.androidsdk.crypto.interfaces.CryptoNetworkConnectivityReceiver;
 import org.matrix.androidsdk.crypto.interfaces.CryptoRoom;
 import org.matrix.androidsdk.crypto.interfaces.CryptoRoomMember;
 import org.matrix.androidsdk.crypto.interfaces.CryptoRoomState;
@@ -80,6 +80,7 @@ import org.matrix.androidsdk.crypto.rest.CryptoRestClient;
 import org.matrix.androidsdk.crypto.rest.model.crypto.EncryptedMessage;
 import org.matrix.androidsdk.crypto.rest.model.crypto.RoomKeyShare;
 import org.matrix.androidsdk.crypto.verification.VerificationManager;
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.olm.OlmAccount;
 
 import java.lang.reflect.Constructor;
@@ -92,8 +93,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-
-import retrofit2.Converter;
 
 /**
  * A `MXCrypto` class instance manages the end-to-end crypto for a MXSession instance.
@@ -154,7 +153,7 @@ public class MXCryptoImpl implements MXCrypto {
     // the UI thread
     private Handler mUIHandler;
 
-    private CryptoNetworkConnectivityReceiver mNetworkConnectivityReceiver;
+    private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
 
     private Integer mOneTimeKeyCount;
 
@@ -230,13 +229,11 @@ public class MXCryptoImpl implements MXCrypto {
     public MXCryptoImpl(@NonNull CryptoSession matrixSession,
                         @NonNull IMXCryptoStore cryptoStore,
                         @Nullable MXCryptoConfig cryptoConfig,
-                        String homeServerUrl,
-                        String accessToken,
-                        Converter.Factory converterFactory) {
+                        HomeServerConnectionConfig homeServerConnectionConfig) {
         mSession = matrixSession;
         mCryptoStore = cryptoStore;
 
-        mCryptoRestClient = new CryptoRestClient(homeServerUrl, accessToken, converterFactory);
+        mCryptoRestClient = new CryptoRestClient(homeServerConnectionConfig);
 
         if (null != cryptoConfig) {
             mCryptoConfig = cryptoConfig;
@@ -320,7 +317,7 @@ public class MXCryptoImpl implements MXCrypto {
 
         mReceivedRoomKeyRequests.addAll(mCryptoStore.getPendingIncomingRoomKeyRequests());
 
-        mKeysBackup = new KeysBackup(this, homeServerUrl, accessToken, converterFactory);
+        mKeysBackup = new KeysBackup(this, homeServerConnectionConfig);
         mShortCodeVerificationManager = new VerificationManager(mSession);
     }
 
@@ -370,7 +367,7 @@ public class MXCryptoImpl implements MXCrypto {
     }
 
     @Override
-    public void setNetworkConnectivityReceiver(CryptoNetworkConnectivityReceiver networkConnectivityReceiver) {
+    public void setNetworkConnectivityReceiver(NetworkConnectivityReceiver networkConnectivityReceiver) {
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
     }
 

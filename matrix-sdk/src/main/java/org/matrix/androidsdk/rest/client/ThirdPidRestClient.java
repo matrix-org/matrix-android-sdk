@@ -19,6 +19,7 @@ package org.matrix.androidsdk.rest.client;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.model.HttpError;
 import org.matrix.androidsdk.core.model.HttpException;
@@ -47,7 +48,7 @@ public class ThirdPidRestClient extends RestClient<ThirdPidApi> {
      * {@inheritDoc}
      */
     public ThirdPidRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, ThirdPidApi.class, URI_API_PREFIX_IDENTITY, false, true);
+        super(hsConfig, ThirdPidApi.class, URI_API_PREFIX_IDENTITY, JsonUtils.getGson(false), true);
     }
 
     /**

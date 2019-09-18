@@ -28,14 +28,13 @@ import android.telephony.TelephonyManager;
 
 import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.core.listeners.IMXNetworkEventListener;
-import org.matrix.androidsdk.crypto.interfaces.CryptoNetworkConnectivityReceiver;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-public class NetworkConnectivityReceiver extends BroadcastReceiver implements CryptoNetworkConnectivityReceiver {
+public class NetworkConnectivityReceiver extends BroadcastReceiver {
 
     private static final String LOG_TAG = NetworkConnectivityReceiver.class.getSimpleName();
 
@@ -177,7 +176,6 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver implements Cr
      *
      * @param networkEventListener the event listener to add
      */
-    @Override
     public void addEventListener(final IMXNetworkEventListener networkEventListener) {
         if (null != networkEventListener) {
             mNetworkEventListeners.add(networkEventListener);
@@ -204,7 +202,6 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver implements Cr
      *
      * @param networkEventListener the event listener to remove
      */
-    @Override
     public void removeEventListener(final IMXNetworkEventListener networkEventListener) {
         synchronized (LOG_TAG) {
             mNetworkEventListeners.remove(networkEventListener);
@@ -252,7 +249,6 @@ public class NetworkConnectivityReceiver extends BroadcastReceiver implements Cr
     /**
      * @return true if the application is connected to a data network
      */
-    @Override
     public boolean isConnected() {
         boolean res;
 

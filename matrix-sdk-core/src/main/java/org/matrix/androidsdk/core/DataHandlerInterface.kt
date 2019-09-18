@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 New Vector Ltd
+ * Copyright 2019 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.crypto.interfaces
+package org.matrix.androidsdk.core
 
-interface CryptoCredentials {
-    fun getUserId(): String
-    fun getHomeServer(): String?
-    fun getAccessToken(): String?
-    fun getDeviceId(): String?
+import android.content.Context
+import org.matrix.androidsdk.ssl.UnrecognizedCertificateException
+
+interface DataHandlerInterface {
+
+    fun getContext(): Context
+
+    fun onConfigurationError(errcode: String)
+
+    fun onSSLCertificateError(unrecCertEx: UnrecognizedCertificateException)
 }

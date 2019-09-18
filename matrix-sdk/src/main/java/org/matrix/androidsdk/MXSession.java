@@ -392,7 +392,7 @@ public class MXSession implements CryptoSession {
      */
     public static void initUserAgent(@Nullable Context appContext,
                                      @Nullable String flavorDescription) {
-        RestClient.initUserAgent(appContext, flavorDescription == null ? "SDKApp" : flavorDescription);
+        RestClient.initUserAgent(appContext, BuildConfig.VERSION_NAME, flavorDescription == null ? "SDKApp" : flavorDescription);
     }
 
     /**
@@ -579,10 +579,7 @@ public class MXSession implements CryptoSession {
             return mCrypto.getCryptoRestClient();
         } else {
             // Create a client, for test only
-            return new CryptoRestClient(
-                    mHsConfig.getHomeserverUri().toString(),
-                    mCredentials.accessToken,
-                    PolymorphicRequestBodyConverter.FACTORY);
+            return new CryptoRestClient(mHsConfig);
         }
     }
 
@@ -2449,9 +2446,7 @@ public class MXSession implements CryptoSession {
             mCrypto = new MXCryptoImpl(this,
                     mCryptoStore,
                     sCryptoConfig,
-                    mHsConfig.getHomeserverUri().toString(),
-                    mCredentials.accessToken,
-                    PolymorphicRequestBodyConverter.FACTORY);
+                    mHsConfig);
             mDataHandler.setCrypto(mCrypto);
             // the room summaries are not stored with decrypted content
             decryptRoomSummaries();
@@ -2477,9 +2472,7 @@ public class MXSession implements CryptoSession {
                 mCrypto = new MXCryptoImpl(this,
                         mCryptoStore,
                         sCryptoConfig,
-                        mHsConfig.getHomeserverUri().toString(),
-                        mCredentials.accessToken,
-                        PolymorphicRequestBodyConverter.FACTORY);
+                        mHsConfig);
                 mCrypto.start(true, new SimpleApiCallback<Void>(callback) {
                     @Override
                     public void onSuccess(Void info) {

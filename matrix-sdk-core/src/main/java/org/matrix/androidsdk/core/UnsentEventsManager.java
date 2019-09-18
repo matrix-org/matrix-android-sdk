@@ -20,8 +20,8 @@ package org.matrix.androidsdk.core;
 import android.content.Context;
 import android.text.TextUtils;
 
-import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.core.callback.ApiCallback;
+import org.matrix.androidsdk.core.json.GsonProvider;
 import org.matrix.androidsdk.core.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -69,7 +69,7 @@ public class UnsentEventsManager {
     private boolean mbIsConnected = false;
 
     // matrix error management
-    private final MXDataHandler mDataHandler;
+    private final DataHandlerInterface mDataHandler;
 
     /**
      * storage class
@@ -173,7 +173,7 @@ public class UnsentEventsManager {
      * @param networkConnectivityReceiver the network received
      * @param dataHandler                 the data handler
      */
-    public UnsentEventsManager(NetworkConnectivityReceiver networkConnectivityReceiver, MXDataHandler dataHandler) {
+    public UnsentEventsManager(NetworkConnectivityReceiver networkConnectivityReceiver, DataHandlerInterface dataHandler) {
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
 
         // add a default listener
@@ -251,7 +251,7 @@ public class UnsentEventsManager {
      * @return the context
      */
     public Context getContext() {
-        return mDataHandler.getStore().getContext();
+        return mDataHandler.getContext();
     }
 
     /**
@@ -262,7 +262,11 @@ public class UnsentEventsManager {
      * @param exception        the exception
      * @param callback         the callback.
      */
-    private static void triggerErrorCallback(MXDataHandler dataHandler, String eventDescription, Response response, Exception exception, ApiCallback callback) {
+    private static void triggerErrorCallback(DataHandlerInterface dataHandler,
+                                             String eventDescription,
+                                             Response response,
+                                             Exception exception,
+                                             ApiCallback callback) {
         if ((null != exception) && !TextUtils.isEmpty(exception.getMessage())) {
             // privacy
             //Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
@@ -299,7 +303,7 @@ public class UnsentEventsManager {
             // Try to convert this into a Matrix error
             MatrixError mxError;
             try {
-                mxError = JsonUtils.getGson(false).fromJson(response.errorBody().string(), MatrixError.class);
+                mxError = GsonProvider.provideGson().fromJson(response.errorBody().string(), MatrixError.class);
             } catch (Exception e) {
                 mxError = null;
             }
@@ -380,7 +384,7 @@ public class UnsentEventsManager {
 
                 if (null != response) {
                     try {
-                        mxError = JsonUtils.getGson(false).fromJson(response.errorBody().string(), MatrixError.class);
+                        mxError = GsonProvider.provideGson().fromJson(response.errorBody().string(), MatrixError.class);
                     } catch (Exception e) {
                         mxError = null;
                     }

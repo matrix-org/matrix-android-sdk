@@ -17,7 +17,7 @@ Translations:
  -
 
 Others:
- -
+ - Remove ParentRestClient from crypto module and use a common parent Rest Client (dinsic-pim/tchap-android#539)
 
 Build:
  -
