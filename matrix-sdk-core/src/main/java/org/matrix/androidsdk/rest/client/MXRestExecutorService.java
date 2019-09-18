@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.rest.client;
 
 import android.os.HandlerThread;
+
 import androidx.annotation.NonNull;
 
 import org.matrix.androidsdk.core.MXOsHandler;

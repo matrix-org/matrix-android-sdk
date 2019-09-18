@@ -19,10 +19,10 @@ package org.matrix.androidsdk.rest.callback;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.MalformedJsonException;
 
-import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.core.UnsentEventsManager;
 import org.matrix.androidsdk.core.callback.ApiCallback;
+import org.matrix.androidsdk.core.json.GsonProvider;
 import org.matrix.androidsdk.core.model.HttpError;
 import org.matrix.androidsdk.core.model.HttpException;
 import org.matrix.androidsdk.core.model.MatrixError;
@@ -232,7 +232,7 @@ public class RestAdapterCallback<T> implements Callback<T> {
                     ResponseBody errorBody = response.errorBody();
 
                     String bodyAsString = error.getErrorBody();
-                    mxError = JsonUtils.getGson(false).fromJson(bodyAsString, MatrixError.class);
+                    mxError = GsonProvider.provideGson().fromJson(bodyAsString, MatrixError.class);
 
                     mxError.mStatus = response.code();
                     mxError.mReason = response.message();

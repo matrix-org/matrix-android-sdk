@@ -22,13 +22,12 @@ import com.google.gson.annotations.SerializedName;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.matrix.androidsdk.crypto.interfaces.CryptoCredentials;
 import org.matrix.androidsdk.rest.model.WellKnown;
 
 /**
  * The user's credentials.
  */
-public class Credentials implements CryptoCredentials {
+public class Credentials {
     @SerializedName("user_id")
     public String userId;
 
@@ -97,25 +96,21 @@ public class Credentials implements CryptoCredentials {
     }
 
     @Nullable
-    @Override
     public String getUserId() {
         return userId;
     }
 
     @Nullable
-    @Override
     public String getHomeServer() {
         return homeServer;
     }
 
     @Nullable
-    @Override
     public String getAccessToken() {
         return accessToken;
     }
 
     @Nullable
-    @Override
     public String getDeviceId() {
         return deviceId;
     }

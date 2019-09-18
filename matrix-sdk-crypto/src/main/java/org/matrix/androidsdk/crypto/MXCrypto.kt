@@ -24,13 +24,13 @@ import org.matrix.androidsdk.core.listeners.ProgressListener
 import org.matrix.androidsdk.crypto.cryptostore.IMXCryptoStore
 import org.matrix.androidsdk.crypto.data.*
 import org.matrix.androidsdk.crypto.interfaces.CryptoEvent
-import org.matrix.androidsdk.crypto.interfaces.CryptoNetworkConnectivityReceiver
 import org.matrix.androidsdk.crypto.interfaces.CryptoRoom
 import org.matrix.androidsdk.crypto.interfaces.CryptoSyncResponse
 import org.matrix.androidsdk.crypto.keysbackup.KeysBackup
 import org.matrix.androidsdk.crypto.model.crypto.RoomKeyRequestBody
 import org.matrix.androidsdk.crypto.rest.CryptoRestClient
 import org.matrix.androidsdk.crypto.verification.VerificationManager
+import org.matrix.androidsdk.network.NetworkConnectivityReceiver
 
 interface MXCrypto {
     fun start(isInitialSync: Boolean, aCallback: ApiCallback<Void>)
@@ -61,7 +61,7 @@ interface MXCrypto {
 
     fun getOlmDevice(): MXOlmDevice?
 
-    fun setNetworkConnectivityReceiver(networkConnectivityReceiver: CryptoNetworkConnectivityReceiver)
+    fun setNetworkConnectivityReceiver(networkConnectivityReceiver: NetworkConnectivityReceiver)
 
     fun checkUnknownDevices(userIds: List<String>, callback: ApiCallback<Void>)
 

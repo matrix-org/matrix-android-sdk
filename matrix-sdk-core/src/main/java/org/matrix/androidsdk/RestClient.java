@@ -21,18 +21,18 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.text.TextUtils;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import android.text.TextUtils;
 
 import com.google.gson.Gson;
 
-import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.core.PolymorphicRequestBodyConverter;
 import org.matrix.androidsdk.core.UnsentEventsManager;
+import org.matrix.androidsdk.core.json.GsonProvider;
 import org.matrix.androidsdk.core.listeners.IMXNetworkEventListener;
-import org.matrix.androidsdk.crypto.rest.ParentRestClient;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
 import org.matrix.androidsdk.rest.model.login.Credentials;
 
@@ -99,11 +99,11 @@ public class RestClient<T> {
     private OkHttpClient mOkHttpClient;
 
     public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix) {
-        this(hsConfig, type, uriPrefix, JsonUtils.getKotlinGson(), EndPointServer.HOME_SERVER);
+        this(hsConfig, type, uriPrefix, GsonProvider.provideGson(), EndPointServer.HOME_SERVER);
     }
 
-    public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization) {
-        this(hsConfig, type, uriPrefix, withNullSerialization, EndPointServer.HOME_SERVER);
+    public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, Gson gson) {
+        this(hsConfig, type, uriPrefix, gson, EndPointServer.HOME_SERVER);
     }
 
     /**
@@ -112,11 +112,11 @@ public class RestClient<T> {
      * @param hsConfig              the home server configuration.
      * @param type                  the REST type
      * @param uriPrefix             the URL request prefix
-     * @param withNullSerialization true to serialise class member with null value
+     * @param gson                  the gson parser
      * @param useIdentityServer     true to use the identity server URL as base request
      */
-    public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, boolean useIdentityServer) {
-        this(hsConfig, type, uriPrefix, withNullSerialization, useIdentityServer ? EndPointServer.IDENTITY_SERVER : EndPointServer.HOME_SERVER);
+    public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, Gson gson, boolean useIdentityServer) {
+        this(hsConfig, type, uriPrefix, gson, useIdentityServer ? EndPointServer.IDENTITY_SERVER : EndPointServer.HOME_SERVER);
     }
 
     /**
@@ -125,15 +125,10 @@ public class RestClient<T> {
      * @param hsConfig              the home server configuration.
      * @param type                  the REST type
      * @param uriPrefix             the URL request prefix
-     * @param withNullSerialization true to serialise class member with null value
+     * @param gson                  the gson parser
      * @param endPointServer        tell which server is used to define the base url
      */
-    public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, boolean withNullSerialization, EndPointServer endPointServer) {
-        this(hsConfig, type, uriPrefix, JsonUtils.getGson(withNullSerialization), endPointServer);
-    }
-
-    // Private constructor with Gson instance as a parameter
-    private RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, Gson gson, EndPointServer endPointServer) {
+    public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, Gson gson, EndPointServer endPointServer) {
         mHsConfig = hsConfig;
 
         if (endPointServer == EndPointServer.HOME_SERVER) {
@@ -222,9 +217,11 @@ public class RestClient<T> {
      * Ex: Riot/0.8.12 (Linux; U; Android 6.0.1; SM-A510F Build/MMB29; Flavour FDroid; MatrixAndroidSDK 0.9.6)
      *
      * @param appContext        the application context
+     * @param versionName       the application version name. Can be BuildConfig.VERSION_NAME by instance
      * @param flavorDescription the flavor description
      */
     public static void initUserAgent(@Nullable Context appContext,
+                                     @NonNull String versionName,
                                      @NonNull String flavorDescription) {
         String appName = "";
         String appVersion = "";
@@ -261,16 +258,14 @@ public class RestClient<T> {
         // if there is no user agent or cannot parse it
         if ((null == sUserAgent) || (sUserAgent.lastIndexOf(")") == -1) || !sUserAgent.contains("(")) {
             sUserAgent = appName + "/" + appVersion + " ( Flavour " + flavorDescription
-                    + "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
+                    + "; MatrixAndroidSDK " + versionName + ")";
         } else {
             // update
             sUserAgent = appName + "/" + appVersion + " " +
                     sUserAgent.substring(sUserAgent.indexOf("("), sUserAgent.lastIndexOf(")") - 1) +
                     "; Flavour " + flavorDescription +
-                    "; MatrixAndroidSDK " + BuildConfig.VERSION_NAME + ")";
+                    "; MatrixAndroidSDK " + versionName + ")";
         }
-
-        ParentRestClient.initUserAgent(sUserAgent);
     }
 
     /**

@@ -19,6 +19,7 @@ package org.matrix.androidsdk.rest.client;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.data.Pusher;
 import org.matrix.androidsdk.rest.api.PushersApi;
@@ -37,7 +38,7 @@ public class PushersRestClient extends RestClient<PushersApi> {
     private static final String DATA_KEY_HTTP_URL = "url";
 
     public PushersRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, PushersApi.class, RestClient.URI_API_PREFIX_PATH_R0, true);
+        super(hsConfig, PushersApi.class, RestClient.URI_API_PREFIX_PATH_R0, JsonUtils.getGson(true));
     }
 
     /**

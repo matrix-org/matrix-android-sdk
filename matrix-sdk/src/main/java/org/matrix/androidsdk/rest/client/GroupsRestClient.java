@@ -19,6 +19,7 @@ package org.matrix.androidsdk.rest.client;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.api.GroupsApi;
@@ -56,7 +57,7 @@ public class GroupsRestClient extends RestClient<GroupsApi> {
      * {@inheritDoc}
      */
     public GroupsRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, GroupsApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
+        super(hsConfig, GroupsApi.class, RestClient.URI_API_PREFIX_PATH_R0, JsonUtils.getGson(false));
     }
 
     /**

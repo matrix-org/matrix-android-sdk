@@ -20,6 +20,7 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
 import org.matrix.androidsdk.rest.api.ProfileApi;
@@ -59,7 +60,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * {@inheritDoc}
      */
     public ProfileRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, ProfileApi.class, "", false);
+        super(hsConfig, ProfileApi.class, "", JsonUtils.getGson(false));
     }
 
     /**

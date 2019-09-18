@@ -19,6 +19,7 @@ package org.matrix.androidsdk.crypto.keysbackup
 import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
+import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.core.JsonUtility
 import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.callback.ApiCallback
@@ -56,11 +57,9 @@ import kotlin.collections.HashMap
  * to the user's homeserver.
  */
 class KeysBackup(private val mCrypto: MXCryptoImpl,
-                 homeServerUrl: String,
-                 accessToken: String,
-                 converterFactory: Converter.Factory) {
+                 homeServerConnectionConfig: HomeServerConnectionConfig) {
 
-    private val mRoomKeysRestClient = RoomKeysRestClient(homeServerUrl, accessToken, converterFactory)
+    private val mRoomKeysRestClient = RoomKeysRestClient(homeServerConnectionConfig)
 
     private val mKeysBackupStateManager = KeysBackupStateManager(mCrypto)
 

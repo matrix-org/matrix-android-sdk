@@ -20,6 +20,7 @@ import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import org.matrix.androidsdk.core.BuildConfig
 import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.interceptors.CurlLoggingInterceptor
 import org.matrix.androidsdk.core.interceptors.FormattedJsonHttpLogger
@@ -46,7 +47,7 @@ class RestClientHttpClientFactory(private val testInterceptor: Interceptor? = nu
 
         if (BuildConfig.DEBUG) {
             val loggingInterceptor = HttpLoggingInterceptor(FormattedJsonHttpLogger())
-            loggingInterceptor.level = org.matrix.androidsdk.core.BuildConfig.OKHTTP_LOGGING_LEVEL
+            loggingInterceptor.level = BuildConfig.OKHTTP_LOGGING_LEVEL
 
 
             okHttpClientBuilder

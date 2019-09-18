@@ -18,6 +18,7 @@
 package org.matrix.androidsdk.crypto.cryptostore;
 
 import android.content.Context;
+
 import androidx.annotation.Nullable;
 
 import org.jetbrains.annotations.NotNull;
@@ -27,8 +28,8 @@ import org.matrix.androidsdk.crypto.cryptostore.db.model.KeysBackupDataEntity;
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo;
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2;
 import org.matrix.androidsdk.crypto.data.MXOlmSession;
-import org.matrix.androidsdk.crypto.interfaces.CryptoCredentials;
 import org.matrix.androidsdk.crypto.model.crypto.RoomKeyRequestBody;
+import org.matrix.androidsdk.rest.model.login.Credentials;
 import org.matrix.olm.OlmAccount;
 
 import java.util.List;
@@ -45,7 +46,7 @@ public interface IMXCryptoStore {
      * @param context     the application context
      * @param credentials the credentials of the account.
      */
-    void initWithCredentials(Context context, CryptoCredentials credentials);
+    void initWithCredentials(Context context, Credentials credentials);
 
     /**
      * @return if the store is corrupted.
