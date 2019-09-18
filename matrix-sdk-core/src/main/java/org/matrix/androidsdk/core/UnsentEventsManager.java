@@ -262,7 +262,11 @@ public class UnsentEventsManager {
      * @param exception        the exception
      * @param callback         the callback.
      */
-    private static void triggerErrorCallback(DataHandlerInterface dataHandler, String eventDescription, Response response, Exception exception, ApiCallback callback) {
+    private static void triggerErrorCallback(DataHandlerInterface dataHandler,
+                                             String eventDescription,
+                                             Response response,
+                                             Exception exception,
+                                             ApiCallback callback) {
         if ((null != exception) && !TextUtils.isEmpty(exception.getMessage())) {
             // privacy
             //Log.e(LOG_TAG, error.getMessage() + " url=" + error.getUrl());
