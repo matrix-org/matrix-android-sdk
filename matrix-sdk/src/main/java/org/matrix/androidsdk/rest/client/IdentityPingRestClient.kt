@@ -23,7 +23,7 @@ import org.matrix.androidsdk.rest.api.IdentityPingApi
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback
 
 class IdentityPingRestClient(hsConfig: HomeServerConnectionConfig) :
-        RestClient<IdentityPingApi>(hsConfig, IdentityPingApi::class.java, "", false, true) {
+        RestClient<IdentityPingApi>(hsConfig, IdentityPingApi::class.java, "", JsonUtils.getGson(false), true) {
 
     fun ping(callback: ApiCallback<Void>) {
         mApi.ping().enqueue(RestAdapterCallback("ping", null, callback, null))

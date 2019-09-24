@@ -28,7 +28,7 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
      * {@inheritDoc}
      */
     public AccountDataRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, AccountDataApi.class, RestClient.URI_API_PREFIX_PATH_R0, true);
+        super(hsConfig, AccountDataApi.class, RestClient.URI_API_PREFIX_PATH_R0, JsonUtils.getGson(true));
     }
 
     /**

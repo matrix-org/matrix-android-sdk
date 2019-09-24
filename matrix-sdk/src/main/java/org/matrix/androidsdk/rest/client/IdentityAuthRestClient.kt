@@ -17,6 +17,7 @@ package org.matrix.androidsdk.rest.client
 
 import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.RestClient
+import org.matrix.androidsdk.core.JsonUtils
 import org.matrix.androidsdk.core.callback.ApiCallback
 import org.matrix.androidsdk.rest.api.IdentityAuthApi
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback
@@ -25,7 +26,7 @@ import org.matrix.androidsdk.rest.model.identityserver.IdentityServerRegisterRes
 import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse
 
 class IdentityAuthRestClient(hsConfig: HomeServerConnectionConfig) :
-        RestClient<IdentityAuthApi>(hsConfig, IdentityAuthApi::class.java, URI_IDENTITY_PATH_V2, false, true) {
+        RestClient<IdentityAuthApi>(hsConfig, IdentityAuthApi::class.java, URI_IDENTITY_PATH_V2, JsonUtils.getGson(false), true) {
 
     fun register(openIdTokenResponse: RequestOpenIdTokenResponse, callback: ApiCallback<IdentityServerRegisterResponse>) {
         mApi.register(openIdTokenResponse).enqueue(RestAdapterCallback("register", null, callback, null))
