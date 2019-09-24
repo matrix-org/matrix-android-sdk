@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Vector Creations Ltd
+ * Copyright 2014 OpenMarket Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,28 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.matrix.androidsdk.rest.model;
+
+package org.matrix.androidsdk.rest.model.pid;
+
+import org.matrix.androidsdk.rest.model.ThreePidCreds;
 
 /**
- * Response to a request an phone number validation request
+ * Parameters to add a 3Pids to an user
  */
-public class RequestPhoneNumberValidationResponse {
+public class AddThreePidsParamsPreMSC2290 {
 
-    // the client secret key
-    public String clientSecret;
+    // the 3rd party id credentials
+    public ThreePidCreds three_pid_creds;
 
-    // the attempt count
-    public Integer sendAttempt;
-
-    // the sid
-    public String sid;
-
-    // the msisdn
-    public String msisdn;
-
-    // phone number international format
-    public String intl_fmt;
-
-    // The url to submit the code to
-    public String submit_url;
+    // true when the email has been binded.
+    public Boolean bind;
 }

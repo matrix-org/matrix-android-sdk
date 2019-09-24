@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Vector Creations Ltd
+ * Copyright 2019 The Matrix.org Foundation C.I.C.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,26 +15,9 @@
  */
 package org.matrix.androidsdk.rest.model;
 
-/**
- * Response to a request an phone number validation request
- */
-public class RequestPhoneNumberValidationResponse {
+public class IdentityServerRequestTokenResponse {
 
-    // the client secret key
-    public String clientSecret;
-
-    // the attempt count
-    public Integer sendAttempt;
-
-    // the sid
     public String sid;
 
-    // the msisdn
-    public String msisdn;
-
-    // phone number international format
-    public String intl_fmt;
-
-    // The url to submit the code to
-    public String submit_url;
+    public Boolean success;
 }

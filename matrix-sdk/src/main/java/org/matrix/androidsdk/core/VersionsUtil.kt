@@ -35,6 +35,7 @@ private const val VERSION_R0_6_0 = "r0_6_0"
 private const val FEATURE_LAZY_LOAD_MEMBERS = "m.lazy_load_members"
 private const val FEATURE_REQUIRE_IDENTITY_SERVER = "m.require_identity_server"
 private const val FEATURE_ID_ACCESS_TOKEN = "m.id_access_token"
+private const val FEATURE_SEPARATE_ADD_AND_BIND = "m.separate_add_and_bind"
 
 /**
  * Return true if the server support the lazy loading of room members
@@ -52,7 +53,6 @@ fun Versions.supportLazyLoadMembers(): Boolean {
  * adding a 3pid or resetting password.
  */
 fun Versions.doesServerRequireIdentityServerParam(): Boolean {
-    // true by default
     if (supportedVersions?.contains(VERSION_R0_6_0) == true) return false
     return unstableFeatures[FEATURE_REQUIRE_IDENTITY_SERVER] ?: true
 }
@@ -62,6 +62,11 @@ fun Versions.doesServerRequireIdentityServerParam(): Boolean {
  * Some homeservers may trigger errors if they are not prepared for the new parameter.
  */
 fun Versions.doesServerAcceptIdentityAccessToken(): Boolean {
-    // false by default
-    return unstableFeatures[FEATURE_ID_ACCESS_TOKEN] ?: false
+    return supportedVersions?.contains(VERSION_R0_6_0) == true
+            || unstableFeatures[FEATURE_ID_ACCESS_TOKEN] ?: false
+}
+
+fun Versions.doesServerSeparatesAddAndBind(): Boolean {
+    return supportedVersions?.contains(VERSION_R0_6_0) == true
+            || unstableFeatures[FEATURE_SEPARATE_ADD_AND_BIND] ?: false
 }

@@ -231,46 +231,4 @@ public class CreateRoomParams {
         return null;
     }
 
-    /**
-     * Add some ids to the room creation
-     * ids might be a matrix id or an email address.
-     *
-     * @param ids the participant ids to add.
-     * @return true in case of error, which can happen when adding email and no identity server is configured, false in case of success
-     */
-    public boolean addParticipantIds(Uri identityServerUri, HomeServerConnectionConfig hsConfig, List<String> ids) {
-        for (String id : ids) {
-            if (android.util.Patterns.EMAIL_ADDRESS.matcher(id).matches()) {
-                if (null == invite3pids) {
-                    invite3pids = new ArrayList<>();
-                }
-
-                Invite3Pid pid = new Invite3Pid();
-
-                if (identityServerUri == null) {
-                    // Error
-                    return true;
-                }
-
-                pid.id_server = identityServerUri.getHost();
-                pid.medium = ThreePid.MEDIUM_EMAIL;
-                pid.address = id;
-
-                invite3pids.add(pid);
-            } else if (MXPatterns.isUserId(id)) {
-                // do not invite oneself
-                if (!TextUtils.equals(hsConfig.getCredentials().userId, id)) {
-                    if (null == invitedUserIds) {
-                        invitedUserIds = new ArrayList<>();
-                    }
-
-                    invitedUserIds.add(id);
-                }
-
-            } // TODO add phonenumbers when it will be available
-        }
-
-        // No error
-        return false;
-    }
 }

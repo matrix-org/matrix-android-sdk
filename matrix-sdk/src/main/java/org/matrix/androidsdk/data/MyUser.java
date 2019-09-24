@@ -18,10 +18,10 @@
 
 package org.matrix.androidsdk.data;
 
-import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
@@ -100,48 +100,6 @@ public class MyUser extends User {
         });
     }
 
-    /**
-     * Request a validation token for an email address 3Pid
-     *
-     * @param pid      the pid to retrieve a token
-     * @param callback the callback when the operation is done
-     */
-    public void requestEmailValidationToken(Uri identityServerURi, ThreePid pid, ApiCallback<Void> callback) {
-        if (null != pid) {
-            pid.requestEmailValidationToken(identityServerURi, mDataHandler.getProfileRestClient(), null, false, callback);
-        }
-    }
-
-    /**
-     * Request a validation token for a phone number 3Pid
-     *
-     * @param pid      the pid to retrieve a token
-     * @param callback the callback when the operation is done
-     */
-    public void requestPhoneNumberValidationToken(Uri identityServerURi, ThreePid pid, ApiCallback<Void> callback) {
-        if (null != pid) {
-            pid.requestPhoneNumberValidationToken(identityServerURi, mDataHandler.getProfileRestClient(), false, callback);
-        }
-    }
-
-    /**
-     * Add a new pid to the account.
-     *
-     * @param pid      the pid to add.
-     * @param bind     true to add it.
-     * @param callback the async callback
-     */
-    public void add3Pid(Uri identityServerURi, final ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
-        if (null != pid) {
-            mDataHandler.getProfileRestClient().add3PID(identityServerURi, pid, bind, new SimpleApiCallback<Void>(callback) {
-                @Override
-                public void onSuccess(Void info) {
-                    // refresh the third party identifiers lists
-                    refreshThirdPartyIdentifiers(callback);
-                }
-            });
-        }
-    }
 
     /**
      * Delete a 3pid from an account
@@ -160,6 +118,7 @@ public class MyUser extends User {
             });
         }
     }
+
 
     /**
      * Build the lists of identifiers

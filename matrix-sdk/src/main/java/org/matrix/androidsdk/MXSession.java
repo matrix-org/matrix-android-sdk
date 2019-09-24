@@ -106,6 +106,7 @@ import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 import org.matrix.androidsdk.rest.model.message.MediaMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse;
+import org.matrix.androidsdk.rest.model.pid.Invite3Pid;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;
 import org.matrix.androidsdk.rest.model.search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
@@ -127,6 +128,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import kotlin.Pair;
 
 /**
  * Class that represents one user's session with a particular home server.
@@ -1367,14 +1370,16 @@ public class MXSession implements CryptoSession {
             params.addCryptoAlgorithm(algorithm);
             params.setDirectMessage();
 
-            boolean res = params.addParticipantIds(getIdentityServerManager().getIdentityServerUri(), mHsConfig, Arrays.asList(aParticipantUserId));
 
-            if (res) {
-                aCreateRoomCallBack.onUnexpectedError(new IdentityServerNotConfiguredException());
-                retCode = false;
-            } else {
+            try {
+                Pair<List<Invite3Pid>, List<String>> listPair = getIdentityServerManager().getInvite3pid(mHsConfig.getCredentials().userId, Arrays.asList(aParticipantUserId));
+                params.invitedUserIds = listPair.getSecond();
+                params.invite3pids = listPair.getFirst();
                 createRoom(params, aCreateRoomCallBack);
                 retCode = true;
+            } catch (IdentityServerNotConfiguredException e) {
+                aCreateRoomCallBack.onUnexpectedError(new IdentityServerNotConfiguredException());
+                retCode = false;
             }
         }
 
@@ -2138,11 +2143,24 @@ public class MXSession implements CryptoSession {
     /**
      * Ask the home server if an identity server is required.
      *
-     * @param callback the callback, to be notified if the server actually support the lazy loading. True if required
+     * @param callback the callback, to be notified if the server requires an id server
      */
     public void doesServerRequireIdentityServerParam(final ApiCallback<Boolean> callback) {
-        // Check that the server support the lazy loading
         mLoginRestClient.doesServerRequireIdentityServerParam(callback);
+    }
+
+    /**
+     * Ask if the `id_access_token` parameter can be safely passed to the homeserver.
+     * Some homeservers may trigger errors if they are not prepared for the new parameter.
+     *
+     * @param callback the callback.
+     */
+    public void doesServerAcceptIdentityAccessToken(final ApiCallback<Boolean> callback) {
+        mLoginRestClient.doesServerAcceptIdentityAccessToken(callback);
+    }
+
+    public void doesServerSeparatesAddAndBind(final ApiCallback<Boolean> callback) {
+        mLoginRestClient.doesServerSeparatesAddAndBind(callback);
     }
 
     /**

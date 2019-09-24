@@ -19,6 +19,8 @@ package org.matrix.androidsdk.rest.client;
 
 import android.net.Uri;
 
+import androidx.annotation.Nullable;
+
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.JsonUtils;
@@ -31,11 +33,14 @@ import org.matrix.androidsdk.rest.api.IdentityThirdPidApi;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.BulkLookupParams;
 import org.matrix.androidsdk.rest.model.BulkLookupResponse;
+import org.matrix.androidsdk.rest.model.IdentityServerRequest3PIDValidationParams;
+import org.matrix.androidsdk.rest.model.IdentityServerRequestTokenResponse;
 import org.matrix.androidsdk.rest.model.RequestOwnershipParams;
 import org.matrix.androidsdk.rest.model.SuccessResult;
 import org.matrix.androidsdk.rest.model.identityserver.HashDetailResponse;
 import org.matrix.androidsdk.rest.model.identityserver.LookUpV2Params;
 import org.matrix.androidsdk.rest.model.identityserver.LookUpV2Response;
+import org.matrix.androidsdk.rest.model.pid.ThreePid;
 import org.matrix.olm.OlmUtility;
 
 import java.net.HttpURLConnection;
@@ -70,7 +75,7 @@ public class ThirdPidRestClient extends RestClient<IdentityThirdPidApi> {
                                       final String clientSecret,
                                       final String sid,
                                       final ApiCallback<Boolean> callback) {
-        RequestOwnershipParams params = RequestOwnershipParams.Companion.with(clientSecret,sid,token);
+        RequestOwnershipParams params = RequestOwnershipParams.Companion.with(clientSecret, sid, token);
         mApi.requestOwnershipValidationV2(medium, params)
                 .enqueue(new RestAdapterCallback<>("submitValidationToken",
                         null,
@@ -288,5 +293,40 @@ public class ThirdPidRestClient extends RestClient<IdentityThirdPidApi> {
         }
 
         callback.onSuccess(matrixIds);
+    }
+
+    public void requestEmailValidationToken(ThreePid pid, @Nullable String nextLink, ApiCallback<Void> callback) {
+        IdentityServerRequest3PIDValidationParams params =
+                IdentityServerRequest3PIDValidationParams.forEmail(pid.getEmailAddress(), pid.getClientSecret(), pid.getSendAttempt());
+
+        pid.setState(ThreePid.State.TOKEN_REQUESTED);
+        mApi.requestMailValidationToken(params).enqueue(new RestAdapterCallback<>("chandeBindStatus",
+                null,
+                new SimpleApiCallback<IdentityServerRequestTokenResponse>(callback) {
+                    @Override
+                    public void onSuccess(IdentityServerRequestTokenResponse response) {
+                        pid.setSid(response.sid);
+                        callback.onSuccess(null);
+                    }
+                },
+                null));
+    }
+
+    public void requestPhoneNumberValidationToken(ThreePid pid, @Nullable String nextLink, ApiCallback<Void> callback) {
+        IdentityServerRequest3PIDValidationParams params =
+                IdentityServerRequest3PIDValidationParams.forPhoneNumber(pid.getPhoneNumber(),pid.getCountry(),
+                        pid.getClientSecret(), pid.getSendAttempt());
+
+        pid.setState(ThreePid.State.TOKEN_REQUESTED);
+        mApi.requestPhoneNumberValidationToken(params).enqueue(new RestAdapterCallback<>("chandeBindStatus",
+                null,
+                new SimpleApiCallback<IdentityServerRequestTokenResponse>(callback) {
+                    @Override
+                    public void onSuccess(IdentityServerRequestTokenResponse response) {
+                        pid.setSid(response.sid);
+                        callback.onSuccess(null);
+                    }
+                },
+                null));
     }
 }

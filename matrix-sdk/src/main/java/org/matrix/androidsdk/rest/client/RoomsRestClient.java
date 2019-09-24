@@ -18,7 +18,6 @@
 
 package org.matrix.androidsdk.rest.client;
 
-import android.net.Uri;
 import android.text.TextUtils;
 
 import androidx.annotation.Nullable;
@@ -34,7 +33,6 @@ import org.matrix.androidsdk.core.callback.SimpleApiCallback;
 import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
-import org.matrix.androidsdk.features.identityserver.IdentityServerNotConfiguredException;
 import org.matrix.androidsdk.rest.api.RoomsApi;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.ChunkEvents;
@@ -196,8 +194,8 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param email    the email
      * @param callback the async callback
      */
-    public void inviteByEmailToRoom(Uri identityServerUri, final String roomId, final String email, final ApiCallback<Void> callback) {
-        inviteThreePidToRoom(identityServerUri, "email", email, roomId, callback);
+    public void inviteByEmailToRoom(String idServer, String idServerToken, final String roomId, final String email, final ApiCallback<Void> callback) {
+        inviteThreePidToRoom(idServer, idServerToken, "email", email, roomId, callback);
     }
 
     /**
@@ -208,27 +206,24 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param roomId   the room id
      * @param callback the async callback
      */
-    private void inviteThreePidToRoom(Uri identityServerUri, final String medium, final String address, final String roomId, final ApiCallback<Void> callback) {
+    private void inviteThreePidToRoom(String idServer, String idAccessToken, final String medium, final String address, final String roomId, final ApiCallback<Void> callback) {
         // privacy
         //final String description = "inviteThreePidToRoom : medium " + medium + " address " + address + " roomId " + roomId;
         final String description = "inviteThreePidToRoom : medium " + medium + " roomId " + roomId;
 
-        // This request must not have the protocol part
-        if (identityServerUri == null) {
-            callback.onUnexpectedError(new IdentityServerNotConfiguredException());
-            return;
-        }
-
-        String identityServer = identityServerUri.toString();
-
-        if (identityServer.startsWith("http://")) {
-            identityServer = identityServer.substring("http://".length());
-        } else if (identityServer.startsWith("https://")) {
-            identityServer = identityServer.substring("https://".length());
-        }
 
         Map<String, String> parameters = new HashMap<>();
-        parameters.put("id_server", identityServer);
+
+        // This request must not have the protocol part
+        if (idServer != null) {
+            parameters.put("id_server", idServer);
+
+            if (idAccessToken != null) {
+                parameters.put("id_access_token", idAccessToken);
+            }
+        }
+
+
         parameters.put("medium", medium);
         parameters.put("address", address);
 
@@ -236,7 +231,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        inviteThreePidToRoom(identityServerUri, medium, address, roomId, callback);
+                        inviteThreePidToRoom(idServer, idAccessToken, medium, address, roomId, callback);
                     }
                 }));
     }

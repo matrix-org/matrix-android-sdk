@@ -111,6 +111,15 @@ public class LoginRestClient extends RestClient<LoginApi> {
         });
     }
 
+    public void doesServerSeparatesAddAndBind(final ApiCallback<Boolean> callback) {
+        getVersions(new SimpleApiCallback<Versions>(callback) {
+            @Override
+            public void onSuccess(Versions info) {
+                callback.onSuccess(VersionsUtilKt.doesServerSeparatesAddAndBind(info));
+            }
+        });
+    }
+
 
     /**
      * Retrieve the login supported flows.

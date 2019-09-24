@@ -2429,43 +2429,46 @@ public class Room implements CryptoRoom {
      * @param session     is needed for email invites
      * @param callback    the callback for when done
      */
-    public void invite(@Nullable final MXSession session, List<String> identifiers, ApiCallback<Void> callback) {
+    public void invite(final MXSession session, List<String> identifiers, ApiCallback<Void> callback) {
         if (null != identifiers) {
-            IdentityServerManager identityServerManager = session != null ? session.getIdentityServerManager() : null;
-            invite(identityServerManager, identifiers.iterator(), callback);
+            session.getIdentityServerManager().inviteInRoom(this,identifiers.iterator(),callback);
         }
     }
 
-    /**
-     * Invite some users to this room.
-     *
-     * @param identifiers the identifiers iterator
-     * @param callback    the callback for when done
-     */
-    private void invite(final IdentityServerManager identityServerManager, final Iterator<String> identifiers, final ApiCallback<Void> callback) {
-        if (!identifiers.hasNext()) {
-            callback.onSuccess(null);
-            return;
-        }
-
-        final ApiCallback<Void> localCallback = new SimpleApiCallback<Void>(callback) {
-            @Override
-            public void onSuccess(Void info) {
-                invite(identityServerManager, identifiers, callback);
-            }
-        };
-
-        String identifier = identifiers.next();
-
-        if (android.util.Patterns.EMAIL_ADDRESS.matcher(identifier).matches()) {
-            Uri identityServerUri = identityServerManager != null ? identityServerManager.getIdentityServerUri() : null;
-            mDataHandler.getDataRetriever().getRoomsRestClient().inviteByEmailToRoom(
-                    identityServerUri,
-                    getRoomId(), identifier, localCallback);
-        } else {
-            mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), identifier, localCallback);
-        }
-    }
+//    /**
+//     * Invite some users to this room.
+//     *
+//     * @param identifiers the identifiers iterator
+//     * @param callback    the callback for when done
+//     */
+//    private void invite(final IdentityServerManager identityServerManager, final Iterator<String> identifiers, final ApiCallback<Void> callback) {
+//        if (!identifiers.hasNext()) {
+//            callback.onSuccess(null);
+//            return;
+//        }
+//
+//        final ApiCallback<Void> localCallback = new SimpleApiCallback<Void>(callback) {
+//            @Override
+//            public void onSuccess(Void info) {
+//                invite(identityServerManager, identifiers, callback);
+//            }
+//        };
+//
+//        String identifier = identifiers.next();
+//
+//        if (android.util.Patterns.EMAIL_ADDRESS.matcher(identifier).matches()) {
+//            Uri identityServerUri = identityServerManager != null ? identityServerManager.getIdentityServerUri() : null;
+//            if (identityServerUri != null) {
+//                identityServerManager.to
+//            }
+//            mDataHandler.getDataRetriever().getRoomsRestClient().inviteByEmailToRoom(
+//                    identityServerUri,
+//                    requiresIdServer,
+//                    getRoomId(), identifier, localCallback);
+//        } else {
+//            mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), identifier, localCallback);
+//        }
+//    }
 
     /**
      * Leave the room.

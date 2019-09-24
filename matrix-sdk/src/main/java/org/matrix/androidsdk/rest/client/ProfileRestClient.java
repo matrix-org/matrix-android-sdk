@@ -19,23 +19,28 @@ package org.matrix.androidsdk.rest.client;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import androidx.annotation.Nullable;
+
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
-import org.matrix.androidsdk.features.identityserver.IdentityServerNotConfiguredException;
 import org.matrix.androidsdk.rest.api.ProfileApi;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
+import org.matrix.androidsdk.rest.model.AddThreePidsParams;
 import org.matrix.androidsdk.rest.model.ChangePasswordParams;
 import org.matrix.androidsdk.rest.model.DeactivateAccountParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordParams;
 import org.matrix.androidsdk.rest.model.ForgetPasswordResponse;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationParams;
 import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse;
+import org.matrix.androidsdk.rest.model.RequestOwnershipParams;
 import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationParams;
 import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse;
+import org.matrix.androidsdk.rest.model.SuccessResult;
 import org.matrix.androidsdk.rest.model.ThreePidCreds;
+import org.matrix.androidsdk.rest.model.Unbind3pidParams;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.login.AuthParamsEmailIdentity;
 import org.matrix.androidsdk.rest.model.login.AuthParamsLoginPassword;
@@ -43,7 +48,7 @@ import org.matrix.androidsdk.rest.model.login.ThreePidCredentials;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshParams;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 import org.matrix.androidsdk.rest.model.pid.AccountThreePidsResponse;
-import org.matrix.androidsdk.rest.model.pid.AddThreePidsParams;
+import org.matrix.androidsdk.rest.model.pid.AddThreePidsParamsPreMSC2290;
 import org.matrix.androidsdk.rest.model.pid.DeleteThreePidParams;
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.pid.ThreePid;
@@ -236,11 +241,11 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         final String description = "forget password";
 
         if (!TextUtils.isEmpty(email)) {
-            final ThreePid pid = new ThreePid(email, ThreePid.MEDIUM_EMAIL);
+            final ThreePid pid = ThreePid.Companion.fromEmail(email);
 
             final ForgetPasswordParams forgetPasswordParams = new ForgetPasswordParams();
             forgetPasswordParams.email = email;
-            forgetPasswordParams.client_secret = pid.clientSecret;
+            forgetPasswordParams.client_secret = pid.getClientSecret();
             forgetPasswordParams.send_attempt = 1;
 
             if (identityServerUri != null) {
@@ -260,7 +265,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                         public void success(ForgetPasswordResponse forgetPasswordResponse, Response response) {
                             onEventSent();
 
-                            pid.sid = forgetPasswordResponse.sid;
+                            pid.setSid(forgetPasswordResponse.sid);
                             callback.onSuccess(pid);
                         }
                     });
@@ -349,7 +354,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
     /**
      * Request an email validation token.
      *
-     * @param identityServerUri    the identity server to use
+     * @param idServer             the identity server to use
      * @param address              the email address
      * @param clientSecret         the client secret number
      * @param attempt              the attempt count
@@ -357,33 +362,28 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param isDuringRegistration true if it occurs during a registration flow
      * @param callback             the callback
      */
-    public void requestEmailValidationToken(Uri identityServerUri, final String address, final String clientSecret, final int attempt,
+    public void requestEmailValidationToken(@Nullable final String idServer,
+                                            final String address, final String clientSecret, final int attempt,
                                             final String nextLink, final boolean isDuringRegistration,
                                             final ApiCallback<RequestEmailValidationResponse> callback) {
         final String description = "requestEmailValidationToken";
 
         RequestEmailValidationParams params = new RequestEmailValidationParams();
         params.email = address;
-        params.clientSecret = clientSecret;
-        params.sendAttempt = attempt;
+        params.client_secret = clientSecret;
+        params.send_attempt = attempt;
 
-        if (identityServerUri == null) {
-            callback.onUnexpectedError(new IdentityServerNotConfiguredException());
-            return;
-        }
-
-        params.id_server = identityServerUri.getHost();
+        params.id_server = idServer;
         if (!TextUtils.isEmpty(nextLink)) {
             params.next_link = nextLink;
         }
 
-        Uri finalIdentityServerUri = identityServerUri;
         final RestAdapterCallback<RequestEmailValidationResponse> adapterCallback
                 = new RestAdapterCallback<RequestEmailValidationResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        requestEmailValidationToken(finalIdentityServerUri, address, clientSecret, attempt, nextLink, isDuringRegistration, callback);
+                        requestEmailValidationToken(idServer, address, clientSecret, attempt, nextLink, isDuringRegistration, callback);
                     }
                 }
         ) {
@@ -416,7 +416,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * @param isDuringRegistration true if it occurs during a registration flow
      * @param callback             the callback
      */
-    public void requestPhoneNumberValidationToken(Uri identityServerUri, final String phoneNumber, final String countryCode,
+    public void requestPhoneNumberValidationToken(final String idServer, final String phoneNumber, final String countryCode,
                                                   final String clientSecret, final int attempt,
                                                   final boolean isDuringRegistration, final ApiCallback<RequestPhoneNumberValidationResponse> callback) {
         final String description = "requestPhoneNumberValidationToken";
@@ -427,20 +427,14 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
         params.clientSecret = clientSecret;
         params.sendAttempt = attempt;
 
-        if (identityServerUri == null) {
-            callback.onUnexpectedError(new IdentityServerNotConfiguredException());
-            return;
-        }
+        params.id_server = idServer;
 
-        params.id_server = identityServerUri.getHost();
-
-        Uri finalIdentityServerUri = identityServerUri;
         final RestAdapterCallback<RequestPhoneNumberValidationResponse> adapterCallback
                 = new RestAdapterCallback<RequestPhoneNumberValidationResponse>(description, mUnsentEventsManager, callback,
                 new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        requestPhoneNumberValidationToken(finalIdentityServerUri, phoneNumber, countryCode, clientSecret, attempt, isDuringRegistration, callback);
+                        requestPhoneNumberValidationToken(idServer, phoneNumber, countryCode, clientSecret, attempt, isDuringRegistration, callback);
                     }
                 }
         ) {
@@ -449,7 +443,6 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                 onEventSent();
                 requestPhoneNumberValidationResponse.clientSecret = clientSecret;
                 requestPhoneNumberValidationResponse.sendAttempt = attempt;
-
                 callback.onSuccess(requestPhoneNumberValidationResponse);
             }
         };
@@ -466,41 +459,73 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
      * Add an 3Pids to an user
      *
      * @param pid      the 3Pid to add
-     * @param bind     bind the email
      * @param callback the asynchronous callback called with the response
      */
-    public void add3PID(Uri identityServerUri, final ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
+    public void add3PIDLegacy(String idServer, final ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
         final String description = "add3PID";
 
-        AddThreePidsParams params = new AddThreePidsParams();
+        AddThreePidsParamsPreMSC2290 params = new AddThreePidsParamsPreMSC2290();
         params.three_pid_creds = new ThreePidCreds();
 
-        if (identityServerUri == null) {
-            callback.onUnexpectedError(new IdentityServerNotConfiguredException());
-            return;
-        }
-
-        String identityServerHost = identityServerUri.toString();
-        if (identityServerHost.startsWith("http://")) {
-            identityServerHost = identityServerHost.substring("http://".length());
-        } else if (identityServerHost.startsWith("https://")) {
-            identityServerHost = identityServerHost.substring("https://".length());
-        }
-
-        params.three_pid_creds.id_server = identityServerHost;
-        params.three_pid_creds.sid = pid.sid;
-        params.three_pid_creds.client_secret = pid.clientSecret;
+        params.three_pid_creds.id_server = idServer;
+        params.three_pid_creds.sid = pid.getSid();
+        params.three_pid_creds.client_secret = pid.getClientSecret();
 
         params.bind = bind;
 
-        Uri finalIdentityServerUri = identityServerUri;
-        mApi.add3PID(params)
+        mApi.add3PIDLegacy(params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        add3PID(finalIdentityServerUri, pid, bind, callback);
+                        add3PIDLegacy(idServer, pid, bind, callback);
                     }
                 }));
+    }
+
+    public void add3PID(final ThreePid pid, final ApiCallback<Void> callback) {
+        final String description = "add3PID";
+
+        AddThreePidsParams params = new AddThreePidsParams();
+
+        params.sid = pid.getSid();
+        params.client_secret = pid.getClientSecret();
+
+        mApi.add3PIDMSC2290(params)
+                .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        add3PID(pid, callback);
+                    }
+                }));
+    }
+
+    public void bind3PID(final ThreePid pid, final String idServer, String idAccessToken, final ApiCallback<Void> callback) {
+        final String description = "bind3PID";
+
+        ThreePidCreds params = new ThreePidCreds();
+
+        params.sid = pid.getSid();
+        params.client_secret = pid.getClientSecret();
+        params.id_access_token = idAccessToken;
+        params.id_server = idServer;
+
+        mApi.bind3PID(params)
+                .enqueue(new RestAdapterCallback<>(description, mUnsentEventsManager,
+                        callback, () -> bind3PID(pid, idServer, idAccessToken, callback)));
+    }
+
+    public void unbind3PID(final String address, String medium, final String idServer, final ApiCallback<Void> callback) {
+        final String description = "unbind3PID";
+
+        Unbind3pidParams params = new Unbind3pidParams();
+
+        params.id_server = idServer;
+        params.medium = medium;
+        params.address = address;
+
+        mApi.unbind3PID(params)
+                .enqueue(new RestAdapterCallback<>(description, mUnsentEventsManager,
+                        callback, () -> unbind3PID(address, medium, idServer, callback)));
     }
 
     /**
@@ -524,5 +549,22 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                             }
                         })
                 );
+    }
+
+
+    public void submitToken(final String submitUrl, ThreePid pid, String token, final ApiCallback<SuccessResult> callback) {
+        final String description = "submitPNToken";
+
+        RequestOwnershipParams params = RequestOwnershipParams.Companion.with(pid.getClientSecret(), pid.getSid(), token);
+
+        mApi.submitPhoneNumberToken(submitUrl, params)
+                .enqueue(new RestAdapterCallback<SuccessResult>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                            @Override
+                            public void onRetry() {
+                                submitToken(submitUrl, pid, token, callback);
+                            }
+                        })
+                );
+
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2019 The Matrix.org Foundation C.I.C.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,14 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.rest.model.pid;
+package org.matrix.androidsdk.rest.model;
 
-import org.matrix.androidsdk.rest.model.ThreePidCreds;
 
-/**
- * Parameters to add a 3Pids to an user
- */
 public class AddThreePidsParams {
 
-    // the 3rd party id credentials
-    public ThreePidCreds three_pid_creds;
+    // the 3 pids sid
+    public String sid;
 
-    // true when the email has been binded.
-    public Boolean bind;
+    // a secret key
+    public String client_secret;
 }

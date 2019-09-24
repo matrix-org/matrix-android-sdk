@@ -18,22 +18,34 @@ package org.matrix.androidsdk.features.identityserver
 
 import android.content.Context
 import android.net.Uri
+import android.text.TextUtils
 import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.MXSession
+import org.matrix.androidsdk.core.Log
+import org.matrix.androidsdk.core.MXPatterns
 import org.matrix.androidsdk.core.callback.ApiCallback
 import org.matrix.androidsdk.core.callback.SimpleApiCallback
 import org.matrix.androidsdk.core.model.MatrixError
+import org.matrix.androidsdk.data.Room
 import org.matrix.androidsdk.features.terms.TermsNotSignedException
 import org.matrix.androidsdk.listeners.MXEventListener
 import org.matrix.androidsdk.rest.client.IdentityAuthRestClient
 import org.matrix.androidsdk.rest.client.IdentityPingRestClient
 import org.matrix.androidsdk.rest.client.ThirdPidRestClient
+import org.matrix.androidsdk.rest.model.RequestEmailValidationResponse
+import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse
+import org.matrix.androidsdk.rest.model.SuccessResult
 import org.matrix.androidsdk.rest.model.identityserver.HashDetailResponse
 import org.matrix.androidsdk.rest.model.identityserver.IdentityServerRegisterResponse
 import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse
+import org.matrix.androidsdk.rest.model.pid.Invite3Pid
+import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier
+import org.matrix.androidsdk.rest.model.pid.ThreePid
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement
 import java.security.InvalidParameterException
+import java.util.*
 import javax.net.ssl.HttpsURLConnection
+import kotlin.collections.HashSet
 
 class IdentityServerManager(val mxSession: MXSession,
                             context: Context) {
@@ -46,6 +58,10 @@ class IdentityServerManager(val mxSession: MXSession,
 
     fun addListener(listener: IdentityServerManagerListener) = synchronized(listeners) { listeners.add(listener) }
     fun removeListener(listener: IdentityServerManagerListener) = synchronized(listeners) { listeners.remove(listener) }
+
+    var doesServerRequiresIdentityServer: Boolean = true
+    var doesServerAcceptIdentityAccessToken: Boolean = false
+    var doesServerSeparatesAddAndBind: Boolean = true
 
 
     init {
@@ -69,6 +85,25 @@ class IdentityServerManager(val mxSession: MXSession,
                 localSetIdentityServerUrl(getIdentityServerUrl())
             }
         })
+
+        mxSession.doesServerRequireIdentityServerParam(object : SimpleApiCallback<Boolean>() {
+            override fun onSuccess(info: Boolean) {
+                doesServerRequiresIdentityServer = info
+            }
+        })
+
+        mxSession.doesServerAcceptIdentityAccessToken(object : SimpleApiCallback<Boolean>() {
+            override fun onSuccess(info: Boolean) {
+                doesServerAcceptIdentityAccessToken = info
+            }
+        })
+
+        mxSession.doesServerSeparatesAddAndBind(object : SimpleApiCallback<Boolean>() {
+            override fun onSuccess(info: Boolean) {
+                doesServerSeparatesAddAndBind = info
+            }
+        })
+
     }
 
     private val identityServerTokensStore = IdentityServerTokensStore(context)
@@ -94,8 +129,14 @@ class IdentityServerManager(val mxSession: MXSession,
         return mxSession.homeServerConfig.identityServerUri?.toString()
     }
 
-    fun getIdentityServerUri(): Uri? {
-        return getIdentityServerUrl()?.let { Uri.parse(it) }
+    fun identityServerStripProtocol(): String? {
+        return getIdentityServerUrl()?.let {
+            if (it.startsWith("http://")) {
+                it.substring("http://".length)
+            } else if (it.startsWith("https://")) {
+                it.substring("https://".length)
+            } else it
+        }
     }
 
     /**
@@ -253,27 +294,6 @@ class IdentityServerManager(val mxSession: MXSession,
 
             })
         }
-
-/*
-
-        identityAuthRestClient?.setAccessToken(storeToken)
-
-        // Check validity
-        identityAuthRestClient?.checkAccount(storeToken, object : ApiCallback<Unit> {
-            override fun onSuccess(info: Unit?) {
-            }
-
-            override fun onUnexpectedError(e: Exception?) {
-            }
-
-            override fun onNetworkError(e: Exception?) {
-            }
-
-            override fun onMatrixError(e: MatrixError?) {
-            }
-
-        })
-*/
     }
 
     private fun requestIdentityServerToken(requestOpenIdTokenResponse: RequestOpenIdTokenResponse, callback: ApiCallback<String>) {
@@ -341,46 +361,388 @@ class IdentityServerManager(val mxSession: MXSession,
     }
 
 
-
-    fun submitValidationToken(medium: String, token: String, clientSecret: String, sid: String, callback: ApiCallback<Boolean>) {
-        val client = thirdPidRestClient
-        if (client == null) {
-            callback.onUnexpectedError(IdentityServerNotConfiguredException())
+    fun submitValidationToken(threePid: ThreePid, token: String, callback: ApiCallback<SuccessResult>) {
+        val submitURL = threePid.submitUrl
+        if (submitURL != null) {
+            mxSession.profileApiClient.submitToken(submitURL, threePid, token, callback)
         } else {
-            getToken(object : SimpleApiCallback<String>(callback) {
-                override fun onSuccess(info: String) {
-                    client.setAccessToken(info)
-                    client.submitValidationToken(medium, token, clientSecret, sid, object : SimpleApiCallback<Boolean>(callback) {
+            //Submit to the current id server?
+            val client = thirdPidRestClient
+            val idServer = identityServerStripProtocol()
+            if (idServer == null || client == null) {
+                callback.onUnexpectedError(IdentityServerNotConfiguredException())
+                return
+            }
+
+            client.submitValidationToken(threePid.medium, token, threePid.clientSecret, threePid.sid,
+                    object : SimpleApiCallback<Boolean>(callback) {
                         override fun onSuccess(info: Boolean) {
-                            callback.onSuccess(info)
+                            callback.onSuccess(SuccessResult(true))
                         }
 
                         override fun onMatrixError(e: MatrixError) {
-                            if (e.mStatus == HttpsURLConnection.HTTP_UNAUTHORIZED /* 401 */) {
-                                // 401 -> Renew token
-                                // Reset the token we know and start again
-                                identityServerTokensStore
-                                        .resetToken(mxSession.myUserId, identityPath ?: "")
-                                submitValidationToken(medium, token, clientSecret, sid, callback)
-                            } else if (e.mStatus == HttpsURLConnection.HTTP_FORBIDDEN /* 403 */
-                                    && e.errcode == MatrixError.TERMS_NOT_SIGNED) {
-                                callback.onUnexpectedError(TermsNotSignedException(info))
-                            } else {
-                                super.onMatrixError(e)
-                            }
+                            super.onMatrixError(e)
                         }
                     })
+
+        }
+
+    }
+
+
+    /**
+     * Invite some users to this room.
+     *
+     * @param identifiers the identifiers iterator
+     * @param callback    the callback for when done
+     */
+    fun inviteInRoom(room: Room, identifiers: Iterator<String>, callback: ApiCallback<Void>) {
+        if (!identifiers.hasNext()) {
+            callback.onSuccess(null)
+            return
+        }
+
+        val localCallback = object : SimpleApiCallback<Void>(callback) {
+            override fun onSuccess(info: Void) {
+                inviteInRoom(room, identifiers, callback)
+            }
+        }
+
+        val identifier = identifiers.next()
+
+        if (android.util.Patterns.EMAIL_ADDRESS.matcher(identifier).matches()) {
+            val idServer = identityServerStripProtocol()
+            if (idServer == null) {
+                //Error case
+                callback.onUnexpectedError(IdentityServerNotConfiguredException())
+                return
+            }
+
+            if (doesServerAcceptIdentityAccessToken) {
+                getToken(object : SimpleApiCallback<String>(callback) {
+                    override fun onSuccess(token: String) {
+                        mxSession.dataHandler.dataRetriever.roomsRestClient.inviteByEmailToRoom(
+                                idServer,
+                                token,
+                                room.roomId, identifier, localCallback)
+                    }
+                })
+            } else {
+                mxSession.dataHandler.dataRetriever.roomsRestClient.inviteByEmailToRoom(
+                        idServer,
+                        null,
+                        room.roomId, identifier, localCallback)
+            }
+        } else {
+            mxSession.dataHandler.dataRetriever.roomsRestClient.inviteUserToRoom(room.roomId, identifier, localCallback)
+        }
+    }
+
+
+    /**
+     *
+     */
+    @Throws(IdentityServerNotConfiguredException::class)
+    fun getInvite3pid(currentUserId: String, ids: List<String>): Pair<List<Invite3Pid>?, List<String>?> {
+        val invite3pids = ArrayList<Invite3Pid>()
+        val invitedUserIds = ArrayList<String>()
+        for (id in ids) {
+            if (android.util.Patterns.EMAIL_ADDRESS.matcher(id).matches()) {
+                val pid = Invite3Pid()
+
+                if (identityServerStripProtocol() == null) {
+                    throw IdentityServerNotConfiguredException()
                 }
 
-                override fun onUnexpectedError(e: Exception) {
-                    if (e is IdentityServerV2ApiNotAvailable) {
-                        // Fallback to v1 API
-                        client.submitValidationTokenLegacy(medium, token, clientSecret, sid, callback)
+                pid.id_server = identityServerStripProtocol()
+                if (doesServerAcceptIdentityAccessToken) {
+                    //XXX what if we don't have yet a token
+                    pid.id_access_token = identityServerTokensStore
+                            .getToken(mxSession.myUserId, identityPath ?: "")
+                    if (pid.id_access_token == null) {
+                        Log.w(LOG_TAG, "Server requires id access token, but none is available")
+                    }
+                }
+                pid.medium = ThreePid.MEDIUM_EMAIL
+                pid.address = id
+
+                invite3pids.add(pid)
+            } else if (MXPatterns.isUserId(id)) {
+                // do not invite oneself
+                if (!TextUtils.equals(currentUserId, id)) {
+                    invitedUserIds.add(id)
+                }
+
+            } // TODO add phonenumbers when it will be available
+        }
+        return invite3pids.takeIf { invite3pids.isEmpty().not() } to invitedUserIds.takeIf { invitedUserIds.isEmpty().not() }
+    }
+
+
+    fun startAddSessionForPhoneNumber(threePid: ThreePid, nextLink: String?, callback: ApiCallback<ThreePid>) {
+        val idServer = identityServerStripProtocol()
+        if (idServer == null && doesServerRequiresIdentityServer) {
+            //we need an id server
+            callback.onUnexpectedError(IdentityServerNotConfiguredException())
+            return
+        }
+        mxSession.profileApiClient.requestPhoneNumberValidationToken(
+                idServer.takeIf { doesServerRequiresIdentityServer },
+                threePid.phoneNumber,
+                threePid.country,
+                threePid.clientSecret,
+                threePid.sendAttempt,
+                false,
+                object : SimpleApiCallback<RequestPhoneNumberValidationResponse>(callback) {
+                    override fun onSuccess(info: RequestPhoneNumberValidationResponse?) {
+                        threePid.sid = info?.sid
+                        threePid.submitUrl = info?.submit_url
+                        callback.onSuccess(threePid)
+                    }
+                })
+
+    }
+
+    fun startAddSessionForEmail(threePid: ThreePid, nextLink: String?, callback: ApiCallback<ThreePid>) {
+        val idServer = identityServerStripProtocol()
+        if (idServer == null && doesServerRequiresIdentityServer) {
+            //we need an id server
+            callback.onUnexpectedError(IdentityServerNotConfiguredException())
+            return
+        }
+        mxSession.profileApiClient.requestEmailValidationToken(
+                idServer.takeIf { doesServerRequiresIdentityServer },
+                threePid.emailAddress,
+                threePid.clientSecret,
+                threePid.sendAttempt,
+                nextLink,
+                false,
+                object : SimpleApiCallback<RequestEmailValidationResponse>(callback) {
+                    override fun onSuccess(info: RequestEmailValidationResponse?) {
+                        threePid.sid = info?.sid
+                        callback.onSuccess(threePid)
+                    }
+                })
+
+    }
+
+    fun finalizeAddSessionForEmail(threePid: ThreePid, callback: ApiCallback<Void?>) {
+        val idServer = identityServerStripProtocol()
+        if (idServer == null && doesServerRequiresIdentityServer) {
+            //we need an id server
+            callback.onUnexpectedError(IdentityServerNotConfiguredException())
+            return
+        }
+        if (doesServerSeparatesAddAndBind) {
+            mxSession.profileApiClient.add3PID(threePid,
+                    object : SimpleApiCallback<Void?>(callback) {
+                        override fun onSuccess(info: Void?) {
+                            mxSession.myUser.refreshThirdPartyIdentifiers()
+                            callback.onSuccess(null)
+                        }
+
+                    })
+        } else {
+            mxSession.profileApiClient.add3PIDLegacy(identityServerStripProtocol(), threePid, false,
+                    object : SimpleApiCallback<Void?>(callback) {
+                        override fun onSuccess(info: Void?) {
+                            mxSession.myUser.refreshThirdPartyIdentifiers()
+                            callback.onSuccess(null)
+                        }
+                    })
+        }
+    }
+
+    /**
+     * Starts a bind session for an email.
+     * In order to bind a 3pid, an ownership request need to be performed (for email users will receive a mail
+     * with a validation link)
+     * Returns true if an email validation is needed
+     */
+    fun startBindSessionForEmail(email: String, nextLink: String?, callback: ApiCallback<ThreePid>) {
+
+        val idServer = identityServerStripProtocol()
+        if (idServer == null) {
+            //we need an id server
+            callback.onUnexpectedError(IdentityServerNotConfiguredException())
+            return
+        }
+        val threePid = ThreePid.fromEmail(email)
+        if (doesServerSeparatesAddAndBind) {
+            thirdPidRestClient?.requestEmailValidationToken(threePid, nextLink,
+                    object : SimpleApiCallback<Void?>(callback) {
+                        override fun onSuccess(info: Void?) {
+                            callback.onSuccess(threePid)
+                        }
+                    })
+        } else {
+            //It's the legacy flow, we need to remove then proxy the id call to the HS
+            val param = ThirdPartyIdentifier().apply {
+                address = threePid.emailAddress
+                medium = threePid.medium
+            }
+
+            mxSession.myUser?.delete3Pid(param, object : SimpleApiCallback<Void>(callback) {
+                override fun onSuccess(info: Void?) {
+
+                    mxSession.profileApiClient.requestEmailValidationToken(idServer,
+                            threePid.emailAddress,
+                            threePid.clientSecret,
+                            threePid.sendAttempt,
+                            null,
+                            false,
+                            object : SimpleApiCallback<RequestEmailValidationResponse>(callback) {
+                                override fun onSuccess(info: RequestEmailValidationResponse?) {
+                                    threePid.sid = info?.sid
+                                    mxSession.myUser?.refreshThirdPartyIdentifiers()
+                                    callback.onSuccess(threePid)
+                                }
+                            })
+                }
+            })
+        }
+    }
+
+    fun startBindSessionForPhoneNumber(msisdn: String,countryCode: String, nextLink: String?, callback: ApiCallback<ThreePid>) {
+
+        val idServer = identityServerStripProtocol()
+        if (idServer == null) {
+            //we need an id server
+            callback.onUnexpectedError(IdentityServerNotConfiguredException())
+            return
+        }
+        val threePid = ThreePid.fromPhoneNumber(msisdn,countryCode)
+        if (doesServerSeparatesAddAndBind) {
+            thirdPidRestClient?.requestPhoneNumberValidationToken(threePid, nextLink,
+                    object : SimpleApiCallback<Void?>(callback) {
+                        override fun onSuccess(info: Void?) {
+                            callback.onSuccess(threePid)
+                        }
+                    })
+        } else {
+            //It's the legacy flow, we need to remove then proxy the id call to the HS
+            val param = ThirdPartyIdentifier().apply {
+                address = threePid.emailAddress
+                medium = threePid.medium
+            }
+
+            mxSession.myUser?.delete3Pid(param, object : SimpleApiCallback<Void>(callback) {
+                override fun onSuccess(info: Void?) {
+
+                    mxSession.profileApiClient.requestPhoneNumberValidationToken(idServer,
+                            threePid.phoneNumber,
+                            threePid.country,
+                            threePid.clientSecret,
+                            threePid.sendAttempt,
+                            false,
+                            object : SimpleApiCallback<RequestPhoneNumberValidationResponse>(callback) {
+                                override fun onSuccess(info: RequestPhoneNumberValidationResponse?) {
+                                    threePid.sid = info?.sid
+                                    mxSession.myUser?.refreshThirdPartyIdentifiers()
+                                    callback.onSuccess(threePid)
+                                }
+                            })
+                }
+            })
+        }
+    }
+
+    /**
+     * Returns true if an email/phone validation is needed
+     */
+    fun startUnBindSession(medium: String, address: String, countryCode: String? = null, callback: ApiCallback<Pair<Boolean, ThreePid?>>) {
+
+        val idServer = identityServerStripProtocol()
+        if (idServer == null) {
+            //we need an id server
+            callback.onUnexpectedError(IdentityServerNotConfiguredException())
+            return
+        }
+
+        if (doesServerSeparatesAddAndBind) {
+            mxSession.profileApiClient?.unbind3PID(address, medium, idServer,
+                    object : SimpleApiCallback<Void?>(callback) {
+                        override fun onSuccess(info: Void?) {
+                            callback.onSuccess(false to null)
+                        }
+                    })
+        } else {
+            //It's the legacy flow, we need to remove then proxy the id call to the HS
+
+            val param = ThirdPartyIdentifier().apply {
+                this.address = address
+                this.medium = medium
+            }
+
+            mxSession.myUser?.delete3Pid(param, object : SimpleApiCallback<Void>(callback) {
+                override fun onSuccess(info: Void?) {
+
+                    if (medium == ThreePid.MEDIUM_EMAIL) {
+                        val threePid = ThreePid.fromEmail(address)
+                        mxSession.profileApiClient.requestEmailValidationToken(idServer,
+                                threePid.emailAddress,
+                                threePid.clientSecret,
+                                threePid.sendAttempt,
+                                null,
+                                false,
+                                object : SimpleApiCallback<RequestEmailValidationResponse>(callback) {
+                                    override fun onSuccess(info: RequestEmailValidationResponse?) {
+                                        threePid.sid = info?.sid
+                                        callback.onSuccess(true to threePid)
+                                    }
+                                })
                     } else {
-                        super.onUnexpectedError(e)
+                        val threePid = ThreePid.fromPhoneNumber(address, countryCode)
+                        mxSession.profileApiClient.requestPhoneNumberValidationToken(idServer,
+                                threePid.phoneNumber,
+                                threePid.country,
+                                threePid.clientSecret,
+                                threePid.sendAttempt,
+                                false,
+                                object : SimpleApiCallback<RequestPhoneNumberValidationResponse>(callback) {
+                                    override fun onSuccess(info: RequestPhoneNumberValidationResponse?) {
+                                        threePid.sid = info?.sid
+                                        threePid.submitUrl = info?.submit_url
+                                        callback.onSuccess(true to threePid)
+                                    }
+                                })
                     }
                 }
             })
+        }
+    }
+
+
+    fun finalizeBindSessionFor3PID(threePid: ThreePid, callback: ApiCallback<Void?>) {
+        val idServer = identityServerStripProtocol()
+        if (idServer == null) {
+            callback.onUnexpectedError(IdentityServerNotConfiguredException())
+            return
+        }
+
+        if (doesServerSeparatesAddAndBind) {
+            getToken(object : SimpleApiCallback<String>(callback) {
+                override fun onSuccess(token: String) {
+                    mxSession.profileApiClient.bind3PID(threePid, idServer, token, callback);
+                }
+
+            })
+        } else {
+            //we need to call old api on HS to add with bind true
+
+            mxSession.profileApiClient.add3PIDLegacy(idServer, threePid, true, callback)
+        }
+    }
+
+    companion object {
+        private val LOG_TAG = IdentityServerManager::class.java.simpleName
+
+        fun removeProtocol(serverUrl: String): String {
+            return if (serverUrl.startsWith("http://")) {
+                serverUrl.substring("http://".length)
+            } else if (serverUrl.startsWith("https://")) {
+                serverUrl.substring("https://".length)
+            } else serverUrl
         }
     }
 }
