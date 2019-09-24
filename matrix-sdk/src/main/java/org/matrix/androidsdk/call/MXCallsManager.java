@@ -225,11 +225,13 @@ public class MXCallsManager {
         }*/
 
         // webrtc
+//        if (null == call) {
         try {
             call = new MXWebRtcCall(mSession, mContext, getTurnServer(), defaultStunServerUri);
         } catch (Exception e) {
             Log.e(LOG_TAG, "createCall " + e.getMessage(), e);
         }
+//        }
 
         // a valid callid is provided
         if (null != callId) {
