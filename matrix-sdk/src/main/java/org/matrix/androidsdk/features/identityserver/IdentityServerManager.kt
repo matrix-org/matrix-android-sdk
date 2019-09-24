@@ -569,12 +569,18 @@ class IdentityServerManager(val mxSession: MXSession,
         }
         val threePid = ThreePid.fromEmail(email)
         if (doesServerSeparatesAddAndBind) {
-            thirdPidRestClient?.requestEmailValidationToken(threePid, nextLink,
-                    object : SimpleApiCallback<Void?>(callback) {
-                        override fun onSuccess(info: Void?) {
-                            callback.onSuccess(threePid)
-                        }
-                    })
+            getToken(object: SimpleApiCallback<String>() {
+                override fun onSuccess(info: String) {
+                    thirdPidRestClient?.setAccessToken(info)
+                    thirdPidRestClient?.requestEmailValidationToken(threePid, nextLink,
+                            object : SimpleApiCallback<Void?>(callback) {
+                                override fun onSuccess(info: Void?) {
+                                    callback.onSuccess(threePid)
+                                }
+                            })
+                }
+            })
+
         } else {
             //It's the legacy flow, we need to remove then proxy the id call to the HS
             val param = ThirdPartyIdentifier().apply {
@@ -613,12 +619,18 @@ class IdentityServerManager(val mxSession: MXSession,
         }
         val threePid = ThreePid.fromPhoneNumber(msisdn,countryCode)
         if (doesServerSeparatesAddAndBind) {
-            thirdPidRestClient?.requestPhoneNumberValidationToken(threePid, nextLink,
-                    object : SimpleApiCallback<Void?>(callback) {
-                        override fun onSuccess(info: Void?) {
-                            callback.onSuccess(threePid)
-                        }
-                    })
+            getToken(object: SimpleApiCallback<String>() {
+                override fun onSuccess(info: String) {
+                    thirdPidRestClient?.setAccessToken(info)
+                    thirdPidRestClient?.requestPhoneNumberValidationToken(threePid, nextLink,
+                            object : SimpleApiCallback<Void?>(callback) {
+                                override fun onSuccess(info: Void?) {
+                                    callback.onSuccess(threePid)
+                                }
+                            })
+                }
+            })
+
         } else {
             //It's the legacy flow, we need to remove then proxy the id call to the HS
             val param = ThirdPartyIdentifier().apply {
