@@ -1372,7 +1372,10 @@ public class MXSession implements CryptoSession {
 
 
             try {
-                Pair<List<Invite3Pid>, List<String>> listPair = getIdentityServerManager().getInvite3pid(mHsConfig.getCredentials().userId, Arrays.asList(aParticipantUserId));
+                Pair<List<Invite3Pid>, List<String>> listPair = getIdentityServerManager()
+                        .getInvite3pid(mHsConfig.getCredentials().userId,
+                                Arrays.asList(aParticipantUserId)
+                        );
                 params.invitedUserIds = listPair.getSecond();
                 params.invite3pids = listPair.getFirst();
                 createRoom(params, aCreateRoomCallBack);

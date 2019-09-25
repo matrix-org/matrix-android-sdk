@@ -18,6 +18,9 @@ API Change:
  - `MXSession.openIdToken()` callback has a more typed parameter
  - DefaultRetrofit2CallbackWrapper has been removed because it does not manage MatrixError. Use RestAdapterCallback instead.
  - IMXEventListener.onAccountDataUpdated() method now has a parameter: the account data which has been updated.
+ - Third party identifiers (mail, phone) related calls (add/bind) are now delegated to the IdentityServerManager instead of
+   directly from MyUser. Now use mxSession.getIdentityManager().xxx
+ - Room#invite now requires the session (to delegate to correct identity server)
 
 Translations:
  -

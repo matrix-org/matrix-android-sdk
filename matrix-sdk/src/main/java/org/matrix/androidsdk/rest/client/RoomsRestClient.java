@@ -206,7 +206,12 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param roomId   the room id
      * @param callback the async callback
      */
-    private void inviteThreePidToRoom(String idServer, String idAccessToken, final String medium, final String address, final String roomId, final ApiCallback<Void> callback) {
+    private void inviteThreePidToRoom(String idServer,
+                                      String idAccessToken,
+                                      final String medium,
+                                      final String address,
+                                      final String roomId,
+                                      final ApiCallback<Void> callback) {
         // privacy
         //final String description = "inviteThreePidToRoom : medium " + medium + " address " + address + " roomId " + roomId;
         final String description = "inviteThreePidToRoom : medium " + medium + " roomId " + roomId;

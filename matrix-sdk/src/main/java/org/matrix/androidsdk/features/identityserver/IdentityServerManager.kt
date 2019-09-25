@@ -403,7 +403,7 @@ class IdentityServerManager(val mxSession: MXSession,
         }
 
         val localCallback = object : SimpleApiCallback<Void>(callback) {
-            override fun onSuccess(info: Void) {
+            override fun onSuccess(info: Void?) {
                 inviteInRoom(room, identifiers, callback)
             }
         }
