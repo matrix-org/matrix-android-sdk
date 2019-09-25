@@ -28,41 +28,24 @@ data class TermsResponse(
         val policies: Map<String, *>? = null
 ) {
 
-    fun getLocalizedTermOfServices(userLanguage: String,
-                                   defaultLanguage: String = "en"): LocalizedFlowDataLoginTerms? {
-        return (policies?.get(TERMS_OF_SERVICE) as? Map<*, *>)?.let { tos ->
+    fun getLocalizedTerms(userLanguage: String,
+                          defaultLanguage: String = "en"): List<LocalizedFlowDataLoginTerms> {
+        return policies?.map {
+            val tos = policies[it.key] as? Map<*, *> ?: return@map null
             ((tos[userLanguage] ?: tos[defaultLanguage]) as? Map<*, *>)?.let { termsMap ->
                 val name = termsMap[NAME] as? String
                 val url = termsMap[URL] as? String
                 LocalizedFlowDataLoginTerms(
-                        policyName = TERMS_OF_SERVICE,
+                        policyName = it.key,
                         localizedUrl = url,
                         localizedName = name,
                         version = tos[VERSION] as? String
                 )
             }
-        }
-    }
-
-    fun getLocalizedPrivacyPolicies(userLanguage: String,
-                                    defaultLanguage: String = "en"): LocalizedFlowDataLoginTerms? {
-        return (policies?.get(PRIVACY_POLICY) as? Map<*, *>)?.let { tos ->
-            ((tos[userLanguage] ?: tos[defaultLanguage]) as? Map<*, *>)?.let { termsMap ->
-                val name = termsMap[NAME] as? String
-                val url = termsMap[URL] as? String
-                LocalizedFlowDataLoginTerms(
-                        policyName = TERMS_OF_SERVICE,
-                        localizedUrl = url,
-                        localizedName = name,
-                        version = tos[VERSION] as? String
-                )
-            }
-        }
+        }?.filterNotNull() ?: emptyList()
     }
 
     companion object {
-        const val TERMS_OF_SERVICE = "terms_of_service"
-        const val PRIVACY_POLICY = "privacy_policy"
         const val VERSION = "version"
         const val NAME = "name"
         const val URL = "url"
