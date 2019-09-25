@@ -749,10 +749,10 @@ class IdentityServerManager(val mxSession: MXSession,
     companion object {
         private val LOG_TAG = IdentityServerManager::class.java.simpleName
 
-        fun removeProtocol(serverUrl: String): String {
-            return if (serverUrl.startsWith("http://")) {
+        fun removeProtocol(serverUrl: String?): String? {
+            return if (serverUrl?.startsWith("http://") == true) {
                 serverUrl.substring("http://".length)
-            } else if (serverUrl.startsWith("https://")) {
+            } else if (serverUrl?.startsWith("https://") == true) {
                 serverUrl.substring("https://".length)
             } else serverUrl
         }
