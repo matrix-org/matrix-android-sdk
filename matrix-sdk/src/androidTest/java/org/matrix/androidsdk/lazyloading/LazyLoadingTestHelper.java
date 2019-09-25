@@ -108,7 +108,7 @@ public class LazyLoadingTestHelper {
 
         //invite dave
         latch = new CountDownLatch(1);
-        bobRoom.invite("@dave:localhost:8480", new TestApiCallback<Void>(latch));
+        bobRoom.invite(bobSession,"@dave:localhost:8480", new TestApiCallback<Void>(latch));
         mTestHelper.await(latch);
 
         // Send messages
