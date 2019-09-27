@@ -65,7 +65,7 @@ class IdentityServerManager(val mxSession: MXSession,
 
 
     init {
-        localSetIdentityServerUrl(getIdentityServerUrl())
+        localSetIdentityServerUrl(retrieveIdentityServerUrl())
 
         // TODO Release the listener somewhere?
         mxSession.dataHandler.addListener(object : MXEventListener() {
@@ -82,7 +82,7 @@ class IdentityServerManager(val mxSession: MXSession,
             }
 
             override fun onStoreReady() {
-                localSetIdentityServerUrl(getIdentityServerUrl())
+                localSetIdentityServerUrl(retrieveIdentityServerUrl())
             }
         })
 
@@ -108,7 +108,11 @@ class IdentityServerManager(val mxSession: MXSession,
 
     private val identityServerTokensStore = IdentityServerTokensStore(context)
 
-    private var identityPath: String? = getIdentityServerUrl()
+    /**
+     * Return the identity server url, either from AccountData if it has been set, or from the local storage
+     */
+    var identityServerUrl: String? = retrieveIdentityServerUrl()
+        private set
 
     // Rest clients
     private var identityAuthRestClient: IdentityAuthRestClient? = null
@@ -117,7 +121,7 @@ class IdentityServerManager(val mxSession: MXSession,
     /**
      * Return the identity server url, either from AccountData if it has been set, or from the local storage
      */
-    fun getIdentityServerUrl(): String? {
+    private fun retrieveIdentityServerUrl(): String? {
         val accountDataIdentityServer =
                 mxSession.dataHandler.store.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER)
 
@@ -129,8 +133,8 @@ class IdentityServerManager(val mxSession: MXSession,
         return mxSession.homeServerConfig.identityServerUri?.toString()
     }
 
-    fun identityServerStripProtocol(): String? {
-        return getIdentityServerUrl()?.let {
+    private fun identityServerStripProtocol(): String? {
+        return identityServerUrl?.let {
             if (it.startsWith("http://")) {
                 it.substring("http://".length)
             } else if (it.startsWith("https://")) {
@@ -158,7 +162,7 @@ class IdentityServerManager(val mxSession: MXSession,
             newIdentityServer = "https://$newIdentityServer"
         }
 
-        if (identityPath == newIdentityServer) {
+        if (identityServerUrl == newIdentityServer) {
             // No change
             callback.onSuccess(null)
             return
@@ -208,7 +212,7 @@ class IdentityServerManager(val mxSession: MXSession,
         } else {
             // Disconnect old identity server first
             val storedToken = identityServerTokensStore
-                    .getToken(mxSession.myUserId, identityPath ?: "")
+                    .getToken(mxSession.myUserId, identityServerUrl ?: "")
 
             if (storedToken.isNullOrBlank()) {
                 // Previous identity server was not logged in, go to next step
@@ -232,7 +236,7 @@ class IdentityServerManager(val mxSession: MXSession,
 
                     override fun onSuccess(info: Unit) {
                         identityServerTokensStore
-                                .resetToken(mxSession.myUserId, identityPath ?: "")
+                                .resetToken(mxSession.myUserId, identityServerUrl ?: "")
 
                         updateAccountData(newUrl, callback)
                     }
@@ -259,7 +263,7 @@ class IdentityServerManager(val mxSession: MXSession,
     }
 
     private fun localSetIdentityServerUrl(newUrl: String?) {
-        identityPath = newUrl
+        identityServerUrl = newUrl
 
         if (newUrl.isNullOrBlank()) {
             identityAuthRestClient = null
@@ -281,7 +285,7 @@ class IdentityServerManager(val mxSession: MXSession,
      */
     private fun getToken(callback: ApiCallback<String>) {
         val storeToken = identityServerTokensStore
-                .getToken(mxSession.myUserId, identityPath ?: "")
+                .getToken(mxSession.myUserId, identityServerUrl ?: "")
 
         if (storeToken.isNullOrEmpty().not()) {
             callback.onSuccess(storeToken)
@@ -300,7 +304,7 @@ class IdentityServerManager(val mxSession: MXSession,
         identityAuthRestClient?.register(requestOpenIdTokenResponse, object : SimpleApiCallback<IdentityServerRegisterResponse>(callback) {
             override fun onSuccess(info: IdentityServerRegisterResponse) {
                 // Store the token for next time
-                identityServerTokensStore.setToken(mxSession.myUserId, identityPath!!, info.identityServerAccessToken)
+                identityServerTokensStore.setToken(mxSession.myUserId, identityServerUrl!!, info.identityServerAccessToken)
 
                 callback.onSuccess(info.identityServerAccessToken)
             }
@@ -336,7 +340,7 @@ class IdentityServerManager(val mxSession: MXSession,
                                 // 401 -> Renew token
                                 // Reset the token we know and start again
                                 identityServerTokensStore
-                                        .resetToken(mxSession.myUserId, identityPath ?: "")
+                                        .resetToken(mxSession.myUserId, identityServerUrl ?: "")
                                 lookup3Pids(addresses, mediums, callback)
                             } else if (e.mStatus == HttpsURLConnection.HTTP_FORBIDDEN /* 403 */
                                     && e.errcode == MatrixError.TERMS_NOT_SIGNED) {
@@ -458,7 +462,7 @@ class IdentityServerManager(val mxSession: MXSession,
                 if (doesServerAcceptIdentityAccessToken) {
                     //XXX what if we don't have yet a token
                     pid.id_access_token = identityServerTokensStore
-                            .getToken(mxSession.myUserId, identityPath ?: "")
+                            .getToken(mxSession.myUserId, identityServerUrl ?: "")
                     if (pid.id_access_token == null) {
                         Log.w(LOG_TAG, "Server requires id access token, but none is available")
                     }
@@ -569,7 +573,7 @@ class IdentityServerManager(val mxSession: MXSession,
         }
         val threePid = ThreePid.fromEmail(email)
         if (doesServerSeparatesAddAndBind) {
-            getToken(object: SimpleApiCallback<String>() {
+            getToken(object : SimpleApiCallback<String>() {
                 override fun onSuccess(info: String) {
                     thirdPidRestClient?.setAccessToken(info)
                     thirdPidRestClient?.requestEmailValidationToken(threePid, nextLink,
@@ -609,7 +613,7 @@ class IdentityServerManager(val mxSession: MXSession,
         }
     }
 
-    fun startBindSessionForPhoneNumber(msisdn: String,countryCode: String, nextLink: String?, callback: ApiCallback<ThreePid>) {
+    fun startBindSessionForPhoneNumber(msisdn: String, countryCode: String, nextLink: String?, callback: ApiCallback<ThreePid>) {
 
         val idServer = identityServerStripProtocol()
         if (idServer == null) {
@@ -617,9 +621,9 @@ class IdentityServerManager(val mxSession: MXSession,
             callback.onUnexpectedError(IdentityServerNotConfiguredException())
             return
         }
-        val threePid = ThreePid.fromPhoneNumber(msisdn,countryCode)
+        val threePid = ThreePid.fromPhoneNumber(msisdn, countryCode)
         if (doesServerSeparatesAddAndBind) {
-            getToken(object: SimpleApiCallback<String>() {
+            getToken(object : SimpleApiCallback<String>() {
                 override fun onSuccess(info: String) {
                     thirdPidRestClient?.setAccessToken(info)
                     thirdPidRestClient?.requestPhoneNumberValidationToken(threePid, nextLink,
