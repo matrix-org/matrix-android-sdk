@@ -19,20 +19,9 @@ package org.matrix.androidsdk.rest.model;
 /**
  * Parameters to request a validation token for an email
  */
-public class RequestEmailValidationParams {
-
-    // the email address
-    public String email;
-
-    // the client secret key
-    public String clientSecret;
-
-    // the attempt count
-    public Integer sendAttempt;
+public class RequestEmailValidationParams extends IdentityServerRequest3PIDValidationParams {
 
     // the server id
     public String id_server;
 
-    // the nextlink (given if it is a registration process)
-    public String next_link;
 }

@@ -21,8 +21,9 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
-import androidx.annotation.Nullable;
 import android.text.TextUtils;
+
+import androidx.annotation.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -63,7 +64,6 @@ import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
-import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.ChunkEvents;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -132,7 +132,6 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
 
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
-    private ThirdPidRestClient mThirdPidRestClient;
     private RoomsRestClient mRoomsRestClient;
     private EventsRestClient mEventsRestClient;
     private AccountDataRestClient mAccountDataRestClient;
@@ -268,22 +267,6 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
      */
     public PresenceRestClient getPresenceRestClient() {
         return mPresenceRestClient;
-    }
-
-    /**
-     * Update the thirdPid Rest client.
-     *
-     * @param thirdPidRestClient the REST client
-     */
-    public void setThirdPidRestClient(ThirdPidRestClient thirdPidRestClient) {
-        mThirdPidRestClient = thirdPidRestClient;
-    }
-
-    /**
-     * @return the ThirdPid REST client
-     */
-    public ThirdPidRestClient getThirdPidRestClient() {
-        return mThirdPidRestClient;
     }
 
     /**
@@ -1038,7 +1021,7 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
                 } else if (AccountDataElement.ACCOUNT_DATA_TYPE_WIDGETS.equals(accountDataElement.type)) {
                     // User widgets
                     manageUserWidgets(accountDataElement);
-                } else if (AccountDataElement.ACCOUNT_DATA_ACCEPTED_TERMS.equals(accountDataElement.type)) {
+                } else if (AccountDataElement.ACCOUNT_DATA_TYPE_ACCEPTED_TERMS.equals(accountDataElement.type)) {
                     // Accepted terms
                     manageAcceptedTerms(accountDataElement);
                 }
@@ -1066,7 +1049,7 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
     }
 
     private void manageAcceptedTerms(AccountDataElement accountDataElement) {
-        //TODO
+        // Nothing to do
     }
 
     /**
@@ -1317,7 +1300,9 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
                 // Global management, to be sure to handle any account data
                 getStore().storeAccountData(syncResponse.accountData);
 
-                mMxEventDispatcher.dispatchOnAccountDataUpdate();
+                for (AccountDataElement accountDataElement : syncResponse.accountData.accountDataElements) {
+                    mMxEventDispatcher.dispatchOnAccountDataUpdate(accountDataElement);
+                }
             }
 
             // sanity check

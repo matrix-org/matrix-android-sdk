@@ -23,15 +23,12 @@ import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.rest.api.AccountDataApi;
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class AccountDataRestClient extends RestClient<AccountDataApi> {
     /**
      * {@inheritDoc}
      */
     public AccountDataRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, AccountDataApi.class, RestClient.URI_API_PREFIX_PATH_R0, JsonUtils.getGson(false));
+        super(hsConfig, AccountDataApi.class, RestClient.URI_API_PREFIX_PATH_R0, JsonUtils.getGson(true));
     }
 
     /**
@@ -56,24 +53,4 @@ public class AccountDataRestClient extends RestClient<AccountDataApi> {
                 }));
     }
 
-    /**
-     * Gets a bearer token from the homeserver that the user can
-     * present to a third party in order to prove their ownership
-     * of the Matrix account they are logged into.
-     *
-     * @param userId   the user id
-     * @param callback the asynchronous callback called when finished
-     */
-    public void openIdToken(final String userId, final ApiCallback<Map<Object, Object>> callback) {
-        final String description = "openIdToken userId : " + userId;
-
-        mApi.openIdToken(userId, new HashMap<>())
-                .enqueue(new RestAdapterCallback<Map<Object, Object>>(description, mUnsentEventsManager, callback,
-                        new RestAdapterCallback.RequestRetryCallBack() {
-                            @Override
-                            public void onRetry() {
-                                openIdToken(userId, callback);
-                            }
-                        }));
-    }
 }

@@ -34,4 +34,7 @@ public class RequestPhoneNumberValidationResponse {
 
     // phone number international format
     public String intl_fmt;
+
+    // The url to submit the code to
+    public String submit_url;
 }

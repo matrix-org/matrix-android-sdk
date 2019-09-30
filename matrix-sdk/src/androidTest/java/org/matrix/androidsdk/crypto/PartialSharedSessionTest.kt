@@ -104,7 +104,7 @@ class PartialSharedSessionTest {
 
 
         latch = CountDownLatch(1)
-        aliceRoom.invite(bobSession.myUserId, TestApiCallback<Void>(latch))
+        aliceRoom.invite(aliceSession, bobSession.myUserId, TestApiCallback<Void>(latch))
         mTestHelper.await(latch)
 
         latch = CountDownLatch(1)

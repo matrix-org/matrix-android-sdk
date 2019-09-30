@@ -16,4 +16,4 @@
 
 package org.matrix.androidsdk.features.terms
 
-class TermsNotSignedException(val token: String?) : Exception()
+class TermsNotSignedException(val token: String) : Exception()

@@ -18,9 +18,12 @@ package org.matrix.androidsdk.rest.model;
 import java.util.List;
 
 /**
- * 3 pids request param
+ * 3 pids bulk_lookup request param
  */
 public class BulkLookupParams {
+    /**
+     * Required. An array of arrays containing the 3PID Types with the medium in first position and the address in second position.
+     */
     //  List of [medium, value]
     public List<List<String>> threepids;
 }

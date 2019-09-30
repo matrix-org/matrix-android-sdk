@@ -7,18 +7,28 @@ Features:
 Improvements:
  - Display correctly the revoked third-party invites.
  - Support optional default STUN server when no ICE provided by HS
+ - Use wellknown to discover the IS of a HS (vector-im/riot-android#3283)
+ - Make identity server configurable
+ - Privacy: MSC2290 (#3300)
 
 Bugfix:
  -
 
 API Change:
- -
+ - `MXSession.openIdToken()` callback has a more typed parameter
+ - DefaultRetrofit2CallbackWrapper has been removed because it does not manage MatrixError. Use RestAdapterCallback instead.
+ - IMXEventListener.onAccountDataUpdated() method now has a parameter: the account data which has been updated.
+ - Third party identifiers (mail, phone) related calls (add/bind) are now delegated to the IdentityServerManager instead of
+   directly from MyUser. Now use mxSession.getIdentityManager().xxx
+ - Room#invite now requires the session (to delegate to correct identity server)
 
 Translations:
  -
 
 Others:
  - Remove ParentRestClient from crypto module and use a common parent Rest Client (dinsic-pim/tchap-android#539)
+ - MXSession: Add doesServerRequireIdentityServerParam() and doesServerAcceptIdentityAccessToken() methods.
+ - Remove the bind true flag from 3PID calls on registration (vector-im/riot-android#3252)
 
 Build:
  -

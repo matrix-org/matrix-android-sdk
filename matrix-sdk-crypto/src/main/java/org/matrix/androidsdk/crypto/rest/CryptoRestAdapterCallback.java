@@ -33,7 +33,7 @@ import retrofit2.Response;
 
 public class CryptoRestAdapterCallback<T> implements Callback<T> {
 
-    private static final String LOG_TAG = "RestAdapterCallback";
+    private static final String LOG_TAG = "CryptoRestAdapterCallback";
 
     /**
      * Callback when a request failed after a network error.

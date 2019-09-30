@@ -22,6 +22,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
+import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 
 import java.util.List;
 
@@ -165,6 +166,6 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
-    public void onAccountDataUpdated() {
+    public void onAccountDataUpdated(AccountDataElement accountDataElement) {
     }
 }

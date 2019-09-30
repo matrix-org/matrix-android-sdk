@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 OpenMarket Ltd
+ * Copyright 2019 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,22 @@
  * limitations under the License.
  */
 
-package org.matrix.androidsdk.rest.model.pid;
+package org.matrix.androidsdk.rest.model.identityserver
 
-import org.matrix.androidsdk.rest.model.ThreePidCreds;
+import com.google.gson.annotations.SerializedName
 
 /**
- * Parameters to add a 3Pids to an user
+ * Ref: https://github.com/matrix-org/matrix-doc/blob/hs/hash-identity/proposals/2134-identity-hash-lookup.md
  */
-public class AddThreePidsParams {
+data class HashDetailResponse(
+        @JvmField
+        @SerializedName("lookup_pepper")
+        val pepper: String,
 
-    // the 3rd party id credentials
-    public ThreePidCreds three_pid_creds;
-
-    // true when the email has been binded.
-    public Boolean bind;
-}
+        /**
+         * "sha256" must be supported by client. "none" can be another possible value.
+         */
+        @JvmField
+        @SerializedName("algorithms")
+        val algorithms: List<String>
+)

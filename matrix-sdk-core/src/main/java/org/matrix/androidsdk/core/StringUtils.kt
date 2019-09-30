@@ -59,3 +59,28 @@ fun convertFromUTF8(s: String): String? {
 
     return out
 }
+
+
+/**
+ * Base64 URL conversion methods
+ */
+
+fun base64UrlToBase64(base64Url: String?): String? {
+    return base64Url
+            ?.replace("-".toRegex(), "+")
+            ?.replace("_".toRegex(), "/")
+}
+
+fun base64ToBase64Url(base64: String?): String? {
+    return base64
+            ?.replace("\n".toRegex(), "")
+            ?.replace("\\+".toRegex(), "-")
+            ?.replace("/".toRegex(), "_")
+            ?.replace("=".toRegex(), "")
+}
+
+fun base64ToUnpaddedBase64(base64: String?): String? {
+    return base64
+            ?.replace("\n".toRegex(), "")
+            ?.replace("=".toRegex(), "")
+}

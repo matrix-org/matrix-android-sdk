@@ -16,12 +16,17 @@
 
 package org.matrix.androidsdk.features.terms
 
+import android.net.Uri
+import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.RestClient
 import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.callback.ApiCallback
 import org.matrix.androidsdk.core.callback.SimpleApiCallback
+import org.matrix.androidsdk.rest.client.IdentityAuthRestClient
 import org.matrix.androidsdk.rest.client.TermsRestClient
+import org.matrix.androidsdk.rest.model.identityserver.IdentityServerRegisterResponse
+import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement
 import org.matrix.androidsdk.rest.model.terms.TermsResponse
 
@@ -34,9 +39,11 @@ class TermsManager(private val mxSession: MXSession) {
     }
 
     fun get(serviceType: ServiceType, baseUrl: String, callback: ApiCallback<GetTermsResponse>) {
+        val sep = if (baseUrl.endsWith("/")) "" else "/"
+
         val url = when (serviceType) {
-            ServiceType.IntegrationManager -> "$baseUrl${RestClient.URI_INTEGRATION_MANAGER_PATH}"
-            ServiceType.IdentityService    -> "$baseUrl${RestClient.URI_IDENTITY_PATH_V2}"
+            ServiceType.IntegrationManager -> "$baseUrl$sep${RestClient.URI_INTEGRATION_MANAGER_PATH}"
+            ServiceType.IdentityService    -> "$baseUrl$sep${RestClient.URI_IDENTITY_PATH_V2}"
         }
 
         termsRestClient.get(url, object : SimpleApiCallback<TermsResponse>(callback) {
@@ -47,13 +54,37 @@ class TermsManager(private val mxSession: MXSession) {
     }
 
     fun agreeToTerms(serviceType: ServiceType, baseUrl: String, agreedUrls: List<String>, token: String?, callback: ApiCallback<Unit>) {
-        termsRestClient.setAccessToken(token)
+
+
+        val sep = if (baseUrl.endsWith("/")) "" else "/"
 
         val url = when (serviceType) {
-            ServiceType.IntegrationManager -> "$baseUrl${RestClient.URI_INTEGRATION_MANAGER_PATH}"
-            ServiceType.IdentityService    -> "$baseUrl${RestClient.URI_IDENTITY_PATH_V2}"
+            ServiceType.IntegrationManager -> "$baseUrl$sep${RestClient.URI_INTEGRATION_MANAGER_PATH}"
+            ServiceType.IdentityService    -> "$baseUrl$sep${RestClient.URI_IDENTITY_PATH_V2}"
         }
 
+        if (token.isNullOrBlank()) {
+            //We need a token
+            val alteredHsConfig = HomeServerConnectionConfig.Builder(mxSession.homeServerConfig)
+                    .withIdentityServerUri(Uri.parse(baseUrl))
+                    .build()
+
+            val identityAuthRestClient = IdentityAuthRestClient(alteredHsConfig)
+            mxSession.openIdToken(object : SimpleApiCallback<RequestOpenIdTokenResponse>(callback) {
+                override fun onSuccess(info: RequestOpenIdTokenResponse) {
+                    identityAuthRestClient.register(info, object : SimpleApiCallback<IdentityServerRegisterResponse>(callback) {
+                        override fun onSuccess(info: IdentityServerRegisterResponse) {
+                            agreeToTerms(serviceType, baseUrl, agreedUrls, info.identityServerAccessToken, callback)
+                        }
+                    })
+                }
+
+            })
+
+            return
+        }
+
+        termsRestClient.setAccessToken(token)
         termsRestClient.agreeToTerms(url, agreedUrls, object : SimpleApiCallback<Unit>(callback) {
             override fun onSuccess(info: Unit) {
                 //client SHOULD update this account data section adding any the URLs
@@ -66,7 +97,7 @@ class TermsManager(private val mxSession: MXSession) {
                 mxSession.myUserId.let { userId ->
                     mxSession.accountDataRestClient?.setAccountData(
                             userId,
-                            AccountDataElement.ACCOUNT_DATA_ACCEPTED_TERMS,
+                            AccountDataElement.ACCOUNT_DATA_TYPE_ACCEPTED_TERMS,
                             mapOf(AccountDataElement.ACCOUNT_DATA_KEY_ACCEPTED_TERMS to newList),
                             object : SimpleApiCallback<Void?>(callback) {
                                 override fun onSuccess(info: Void?) {
@@ -82,10 +113,13 @@ class TermsManager(private val mxSession: MXSession) {
 
     private fun getAlreadyAcceptedTermUrlsFromAccountData(): Set<String> {
         val accountDataCurrentAcceptedTerms =
-                mxSession.dataHandler.store.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_ACCEPTED_TERMS)
+                mxSession.dataHandler.store.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_ACCEPTED_TERMS)
 
-        return accountDataCurrentAcceptedTerms?.content
-                ?.get(AccountDataElement.ACCOUNT_DATA_KEY_ACCEPTED_TERMS) as? Set<String> ?: emptySet()
+        return (accountDataCurrentAcceptedTerms?.content
+                ?.get(AccountDataElement.ACCOUNT_DATA_KEY_ACCEPTED_TERMS) as? List<*>)
+                ?.mapNotNull { it as? String }
+                ?.toSet()
+                ?: emptySet()
     }
 
     companion object {

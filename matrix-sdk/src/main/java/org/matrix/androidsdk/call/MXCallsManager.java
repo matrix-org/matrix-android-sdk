@@ -1076,7 +1076,7 @@ public class MXCallsManager {
                 }
             });
         } else {
-            room.invite(conferenceUserId, callback);
+            room.invite(mSession, conferenceUserId, callback);
         }
     }
 

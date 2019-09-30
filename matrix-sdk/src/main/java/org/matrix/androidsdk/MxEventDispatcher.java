@@ -30,6 +30,7 @@ import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
+import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -721,7 +722,7 @@ import java.util.Set;
         });
     }
 
-    public void dispatchOnAccountDataUpdate() {
+    public void dispatchOnAccountDataUpdate(AccountDataElement accountDataElement) {
         final List<IMXEventListener> eventListeners = getListenersSnapshot();
 
         mUiHandler.post(new Runnable() {
@@ -729,7 +730,7 @@ import java.util.Set;
             public void run() {
                 for (IMXEventListener listener : eventListeners) {
                     try {
-                        listener.onAccountDataUpdated();
+                        listener.onAccountDataUpdated(accountDataElement);
                     } catch (Exception e) {
                         Log.e(LOG_TAG, "onAccountDataUpdated " + e.getMessage(), e);
                     }

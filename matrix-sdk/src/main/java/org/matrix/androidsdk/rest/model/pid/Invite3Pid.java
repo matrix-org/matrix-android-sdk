@@ -25,6 +25,9 @@ public class Invite3Pid {
      */
     public String id_server;
 
+
+    public String id_access_token;
+
     /**
      * Required.
      * The kind of address being passed in the address field, for example email.

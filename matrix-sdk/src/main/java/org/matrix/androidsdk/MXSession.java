@@ -24,10 +24,11 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
-import android.text.TextUtils;
 
 import org.jetbrains.annotations.NotNull;
 import org.matrix.androidsdk.call.MXCallsManager;
@@ -39,7 +40,7 @@ import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.core.PolymorphicRequestBodyConverter;
 import org.matrix.androidsdk.core.UnsentEventsManager;
-import org.matrix.androidsdk.core.VersionsUtil;
+import org.matrix.androidsdk.core.VersionsUtilKt;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.ApiFailureCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
@@ -67,6 +68,8 @@ import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.store.MXStoreListener;
 import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediaCache;
+import org.matrix.androidsdk.features.identityserver.IdentityServerManager;
+import org.matrix.androidsdk.features.identityserver.IdentityServerNotConfiguredException;
 import org.matrix.androidsdk.features.terms.TermsManager;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -77,13 +80,12 @@ import org.matrix.androidsdk.rest.client.FilterRestClient;
 import org.matrix.androidsdk.rest.client.GroupsRestClient;
 import org.matrix.androidsdk.rest.client.LoginRestClient;
 import org.matrix.androidsdk.rest.client.MediaScanRestClient;
+import org.matrix.androidsdk.rest.client.OpenIdRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.PushRulesRestClient;
 import org.matrix.androidsdk.rest.client.PushersRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
-import org.matrix.androidsdk.rest.client.TermsRestClient;
-import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.CreateRoomParams;
 import org.matrix.androidsdk.rest.model.CreateRoomResponse;
 import org.matrix.androidsdk.rest.model.Event;
@@ -103,6 +105,8 @@ import org.matrix.androidsdk.rest.model.login.ThreePidCredentials;
 import org.matrix.androidsdk.rest.model.login.TokenRefreshResponse;
 import org.matrix.androidsdk.rest.model.message.MediaMessage;
 import org.matrix.androidsdk.rest.model.message.Message;
+import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse;
+import org.matrix.androidsdk.rest.model.pid.Invite3Pid;
 import org.matrix.androidsdk.rest.model.search.SearchResponse;
 import org.matrix.androidsdk.rest.model.search.SearchUsersResponse;
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
@@ -125,6 +129,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import kotlin.Pair;
+
 /**
  * Class that represents one user's session with a particular home server.
  * There can potentially be multiple sessions for handling multiple accounts.
@@ -144,9 +150,9 @@ public class MXSession implements CryptoSession {
     private RoomsRestClient mRoomsRestClient;
     private final PushRulesRestClient mPushRulesRestClient;
     private PushersRestClient mPushersRestClient;
-    private final ThirdPidRestClient mThirdPidRestClient;
     private final CallRestClient mCallRestClient;
     private final AccountDataRestClient mAccountDataRestClient;
+    private final OpenIdRestClient mOpenIdRestClient;
     private final LoginRestClient mLoginRestClient;
     private final GroupsRestClient mGroupsRestClient;
     private final MediaScanRestClient mMediaScanRestClient;
@@ -170,6 +176,8 @@ public class MXSession implements CryptoSession {
     private BingRulesManager mBingRulesManager = null;
 
     private TermsManager termsManager;
+
+    private IdentityServerManager mIdentityServerManager;
 
     private boolean mIsAliveSession = true;
 
@@ -232,9 +240,9 @@ public class MXSession implements CryptoSession {
             mPushersRestClient = new PushersRestClient(hsConfig);
         }
 
-        mThirdPidRestClient = new ThirdPidRestClient(hsConfig);
         mCallRestClient = new CallRestClient(hsConfig);
         mAccountDataRestClient = new AccountDataRestClient(hsConfig);
+        mOpenIdRestClient = new OpenIdRestClient(hsConfig);
         mLoginRestClient = new LoginRestClient(hsConfig);
         mGroupsRestClient = new GroupsRestClient(hsConfig);
         mMediaScanRestClient = new MediaScanRestClient(hsConfig);
@@ -325,7 +333,6 @@ public class MXSession implements CryptoSession {
         mDataHandler.setDataRetriever(mDataRetriever);
         mDataHandler.setProfileRestClient(mProfileRestClient);
         mDataHandler.setPresenceRestClient(mPresenceRestClient);
-        mDataHandler.setThirdPidRestClient(mThirdPidRestClient);
         mDataHandler.setRoomsRestClient(mRoomsRestClient);
         mDataHandler.setEventsRestClient(mEventsRestClient);
         mDataHandler.setAccountDataRestClient(mAccountDataRestClient);
@@ -353,7 +360,6 @@ public class MXSession implements CryptoSession {
         mPresenceRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mRoomsRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mPushRulesRestClient.setUnsentEventsManager(mUnsentEventsManager);
-        mThirdPidRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mCallRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mAccountDataRestClient.setUnsentEventsManager(mUnsentEventsManager);
         mLoginRestClient.setUnsentEventsManager(mUnsentEventsManager);
@@ -371,6 +377,8 @@ public class MXSession implements CryptoSession {
         mDataHandler.setGroupsManager(mGroupsManager);
 
         termsManager = new TermsManager(this);
+
+        mIdentityServerManager = new IdentityServerManager(this, appContext);
     }
 
     private void checkIfAlive() {
@@ -551,9 +559,9 @@ public class MXSession implements CryptoSession {
         return mPushRulesRestClient;
     }
 
-    public ThirdPidRestClient getThirdPidRestClient() {
+    public IdentityServerManager getIdentityServerManager() {
         checkIfAlive();
-        return mThirdPidRestClient;
+        return mIdentityServerManager;
     }
 
     public CallRestClient getCallRestClient() {
@@ -1357,14 +1365,25 @@ public class MXSession implements CryptoSession {
         boolean retCode = false;
 
         if (!TextUtils.isEmpty(aParticipantUserId)) {
-            retCode = true;
             CreateRoomParams params = new CreateRoomParams();
 
             params.addCryptoAlgorithm(algorithm);
             params.setDirectMessage();
-            params.addParticipantIds(mHsConfig, Arrays.asList(aParticipantUserId));
 
-            createRoom(params, aCreateRoomCallBack);
+
+            try {
+                Pair<List<Invite3Pid>, List<String>> listPair = getIdentityServerManager()
+                        .getInvite3pid(mHsConfig.getCredentials().userId,
+                                Arrays.asList(aParticipantUserId)
+                        );
+                params.invitedUserIds = listPair.getSecond();
+                params.invite3pids = listPair.getFirst();
+                createRoom(params, aCreateRoomCallBack);
+                retCode = true;
+            } catch (IdentityServerNotConfiguredException e) {
+                aCreateRoomCallBack.onUnexpectedError(new IdentityServerNotConfiguredException());
+                retCode = false;
+            }
         }
 
         return retCode;
@@ -1551,19 +1570,6 @@ public class MXSession implements CryptoSession {
     /**
      * Retrieve user matrix id from a 3rd party id.
      *
-     * @param address  the user id.
-     * @param media    the media.
-     * @param callback the 3rd party callback
-     */
-    public void lookup3Pid(String address, String media, final ApiCallback<String> callback) {
-        checkIfAlive();
-
-        mThirdPidRestClient.lookup3Pid(address, media, callback);
-    }
-
-    /**
-     * Retrieve user matrix id from a 3rd party id.
-     *
      * @param addresses 3rd party ids
      * @param mediums   the media.
      * @param callback  the 3rd parties callback
@@ -1571,7 +1577,7 @@ public class MXSession implements CryptoSession {
     public void lookup3Pids(List<String> addresses, List<String> mediums, ApiCallback<List<String>> callback) {
         checkIfAlive();
 
-        mThirdPidRestClient.lookup3Pids(addresses, mediums, callback);
+        mIdentityServerManager.lookup3Pids(addresses, mediums, callback);
     }
 
     /**
@@ -2132,9 +2138,32 @@ public class MXSession implements CryptoSession {
             @Override
             public void onSuccess(Versions info) {
                 // Check if we can enable lazyLoading
-                callback.onSuccess(VersionsUtil.supportLazyLoadMembers(info));
+                callback.onSuccess(VersionsUtilKt.supportLazyLoadMembers(info));
             }
         });
+    }
+
+    /**
+     * Ask the home server if an identity server is required.
+     *
+     * @param callback the callback, to be notified if the server requires an id server
+     */
+    public void doesServerRequireIdentityServerParam(final ApiCallback<Boolean> callback) {
+        mLoginRestClient.doesServerRequireIdentityServerParam(callback);
+    }
+
+    /**
+     * Ask if the `id_access_token` parameter can be safely passed to the homeserver.
+     * Some homeservers may trigger errors if they are not prepared for the new parameter.
+     *
+     * @param callback the callback.
+     */
+    public void doesServerAcceptIdentityAccessToken(final ApiCallback<Boolean> callback) {
+        mLoginRestClient.doesServerAcceptIdentityAccessToken(callback);
+    }
+
+    public void doesServerSeparatesAddAndBind(final ApiCallback<Boolean> callback) {
+        mLoginRestClient.doesServerSeparatesAddAndBind(callback);
     }
 
     /**
@@ -2634,8 +2663,8 @@ public class MXSession implements CryptoSession {
      *
      * @param callback the asynchronous callback called when finished
      */
-    public void openIdToken(final ApiCallback<Map<Object, Object>> callback) {
-        mAccountDataRestClient.openIdToken(getMyUserId(), callback);
+    public void openIdToken(final ApiCallback<RequestOpenIdTokenResponse> callback) {
+        mOpenIdRestClient.requestToken(getMyUserId(), callback);
     }
 
     /**

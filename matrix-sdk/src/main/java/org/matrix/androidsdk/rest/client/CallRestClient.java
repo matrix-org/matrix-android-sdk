@@ -21,8 +21,8 @@ import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
-import org.matrix.androidsdk.core.rest.DefaultRetrofit2CallbackWrapper;
 import org.matrix.androidsdk.rest.api.CallRulesApi;
+import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 
 public class CallRestClient extends RestClient<CallRulesApi> {
 
@@ -34,6 +34,7 @@ public class CallRestClient extends RestClient<CallRulesApi> {
     }
 
     public void getTurnServer(final ApiCallback<JsonObject> callback) {
-        mApi.getTurnServer().enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+        mApi.getTurnServer()
+                .enqueue(new RestAdapterCallback<>("getTurnServer", null, callback, null));
     }
 }

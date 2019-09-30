@@ -26,9 +26,15 @@ import retrofit2.http.Url
 
 interface TermsApi {
 
+    /**
+     * This request does not require authentication
+     */
     @GET
     fun getTerms(@Url url: String): Call<TermsResponse>
 
+    /**
+     * This request requires authentication¬
+     */
     @POST
     fun agreeToTerms(@Url url: String, @Body params: AcceptTermsBody): Call<Unit>
 
