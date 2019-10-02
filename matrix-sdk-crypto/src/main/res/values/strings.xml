@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Those strings are overidden in matrix sdk module for translations -->
+    <!-- Those strings are overridden in matrix sdk module for translations -->
     <string name="verification_emoji_dog">Dog</string>
     <string name="verification_emoji_cat">Cat</string>
     <string name="verification_emoji_lion">Lion</string>

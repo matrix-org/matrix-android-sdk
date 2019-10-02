@@ -23,7 +23,7 @@ API Change:
  - Room#invite now requires the session (to delegate to correct identity server)
 
 Translations:
- -
+ - Emoji verification name discrepancy between riot-web and riotX (vector-im/riotX-android#355)
 
 Others:
  - Remove ParentRestClient from crypto module and use a common parent Rest Client (dinsic-pim/tchap-android#539)
