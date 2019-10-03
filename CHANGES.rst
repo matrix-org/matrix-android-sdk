@@ -1,3 +1,55 @@
+Changes to Matrix Android SDK in 0.9.28 (2019-10-03)
+=======================================================
+
+Improvements:
+ - Display correctly the revoked third-party invites.
+ - Support optional default STUN server when no ICE provided by HS
+ - Use wellknown to discover the IS of a HS (vector-im/riot-android#3283)
+ - Make identity server configurable
+ - Privacy: MSC2290 (#3300)
+
+API Change:
+ - `MXSession.openIdToken()` callback has a more typed parameter
+ - DefaultRetrofit2CallbackWrapper has been removed because it does not manage MatrixError. Use RestAdapterCallback instead.
+ - IMXEventListener.onAccountDataUpdated() method now has a parameter: the account data which has been updated.
+ - Third party identifiers (mail, phone) related calls (add/bind) are now delegated to the IdentityServerManager instead of
+   directly from MyUser. Now use mxSession.getIdentityManager().xxx
+ - Room#invite now requires the session (to delegate to correct identity server)
+
+Translations:
+ - Emoji verification name discrepancy between riot-web and riotX (vector-im/riotX-android#355)
+
+Others:
+ - Remove ParentRestClient from crypto module and use a common parent Rest Client (dinsic-pim/tchap-android#539)
+ - MXSession: Add doesServerRequireIdentityServerParam() and doesServerAcceptIdentityAccessToken() methods.
+ - Remove the bind true flag from 3PID calls on registration (vector-im/riot-android#3252)
+
+Changes to Matrix Android SDK in 0.9.27 (2019-08-28)
+=======================================================
+
+/!\ Security:
+ - The homeserver access token was incorrectly included in requests sent to the Identity Server, a separate service.
+   The client should prompt the user to logout and login again to renew the token, unless the user is happy to trust the Identity Server provider with their access token (e.g. if the homeserver and identity server are operated by the same provider).
+
+Features:
+ - Allow Matrix SDK client to configure the filter used for pagination (vector-im/riot-android#3237)
+
+Improvements:
+ - Add a TermsManager (vector-im/riot-android#3225)
+
+Bugfix:
+ - Stop sending the access token of the homeserver to the identity server
+ - VoIP: Stop falling back to Google for STUN (vector-im/riot-android#3223).
+ - EventIDs: Add regex to match eventIDs for v4 and v5 rooms
+ - Failed to send a message in a new joined room (invited by email)
+
+Others:
+ - Remove useless log (vector-im/riot-android#3236)
+
+Build:
+ - Migrate to androidx (following https://developer.android.com/jetpack/androidx/migrate)
+ - WebRTC: upgrade webrtc library, using the one build along with Jitsi
+
 Changes to Matrix Android SDK in 0.9.26 (2019-07-24)
 =======================================================
 

@@ -150,7 +150,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
 
         bobSession.dataHandler.addListener(bobEventListener)
 
-        room.invite(bobSession.myUserId, object : TestApiCallback<Void?>(lock1) {
+        room.invite(aliceSession, bobSession.myUserId, object : TestApiCallback<Void?>(lock1) {
             override fun onSuccess(info: Void?) {
                 statuses["invite"] = "invite"
                 super.onSuccess(info)
@@ -233,7 +233,7 @@ class CryptoTestHelper(val mTestHelper: CommonTestHelper) {
 
         samSession.dataHandler.addListener(samEventListener)
 
-        room.invite(samSession.myUserId, object : TestApiCallback<Void?>(lock1) {
+        room.invite(aliceSession, samSession.myUserId, object : TestApiCallback<Void?>(lock1) {
             override fun onSuccess(info: Void?) {
                 statuses["invite"] = "invite"
                 super.onSuccess(info)

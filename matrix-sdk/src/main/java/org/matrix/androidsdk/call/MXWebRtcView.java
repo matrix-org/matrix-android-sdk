@@ -3,7 +3,7 @@ package org.matrix.androidsdk.call;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Point;
-import android.support.v4.view.ViewCompat;
+import androidx.core.view.ViewCompat;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;

@@ -21,6 +21,7 @@ import android.text.TextUtils;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
 import org.matrix.androidsdk.core.model.MatrixError;
@@ -63,7 +64,7 @@ public class EventsRestClient extends RestClient<EventsApi> {
      * {@inheritDoc}
      */
     public EventsRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, EventsApi.class, "", false);
+        super(hsConfig, EventsApi.class, "", JsonUtils.getGson(false));
     }
 
     /**

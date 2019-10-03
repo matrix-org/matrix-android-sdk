@@ -21,6 +21,7 @@ package org.matrix.androidsdk.data;
 import android.os.Handler;
 import android.os.Looper;
 
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
@@ -68,7 +69,7 @@ public class MyUser extends User {
      * @param callback    the async callback
      */
     public void updateDisplayName(final String displayName, final ApiCallback<Void> callback) {
-        mDataHandler.getProfileRestClient().updateDisplayname(displayName, new SimpleApiCallback<Void>(callback) {
+        mDataHandler.getProfileRestClient().updateDisplayname(user_id, displayName, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
@@ -87,7 +88,7 @@ public class MyUser extends User {
      * @param callback  the async callback
      */
     public void updateAvatarUrl(final String avatarUrl, final ApiCallback<Void> callback) {
-        mDataHandler.getProfileRestClient().updateAvatarUrl(avatarUrl, new SimpleApiCallback<Void>(callback) {
+        mDataHandler.getProfileRestClient().updateAvatarUrl(user_id, avatarUrl, new SimpleApiCallback<Void>(callback) {
             @Override
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
@@ -99,48 +100,6 @@ public class MyUser extends User {
         });
     }
 
-    /**
-     * Request a validation token for an email address 3Pid
-     *
-     * @param pid      the pid to retrieve a token
-     * @param callback the callback when the operation is done
-     */
-    public void requestEmailValidationToken(ThreePid pid, ApiCallback<Void> callback) {
-        if (null != pid) {
-            pid.requestEmailValidationToken(mDataHandler.getProfileRestClient(), null, false, callback);
-        }
-    }
-
-    /**
-     * Request a validation token for a phone number 3Pid
-     *
-     * @param pid      the pid to retrieve a token
-     * @param callback the callback when the operation is done
-     */
-    public void requestPhoneNumberValidationToken(ThreePid pid, ApiCallback<Void> callback) {
-        if (null != pid) {
-            pid.requestPhoneNumberValidationToken(mDataHandler.getProfileRestClient(), false, callback);
-        }
-    }
-
-    /**
-     * Add a new pid to the account.
-     *
-     * @param pid      the pid to add.
-     * @param bind     true to add it.
-     * @param callback the async callback
-     */
-    public void add3Pid(final ThreePid pid, final boolean bind, final ApiCallback<Void> callback) {
-        if (null != pid) {
-            mDataHandler.getProfileRestClient().add3PID(pid, bind, new SimpleApiCallback<Void>(callback) {
-                @Override
-                public void onSuccess(Void info) {
-                    // refresh the third party identifiers lists
-                    refreshThirdPartyIdentifiers(callback);
-                }
-            });
-        }
-    }
 
     /**
      * Delete a 3pid from an account
@@ -159,6 +118,7 @@ public class MyUser extends User {
             });
         }
     }
+
 
     /**
      * Build the lists of identifiers
@@ -290,7 +250,7 @@ public class MyUser extends User {
      * Refresh the avatar url
      */
     private void refreshUserAvatarUrl() {
-        mDataHandler.getProfileRestClient().avatarUrl(user_id, new SimpleApiCallback<String>() {
+        mDataHandler.getProfileRestClient().avatarUrl(user_id, new ApiCallback<String>() {
             @Override
             public void onSuccess(String anAvatarUrl) {
                 if (mDataHandler.isAlive()) {
@@ -344,7 +304,7 @@ public class MyUser extends User {
      * Refresh the displayname.
      */
     private void refreshUserDisplayname() {
-        mDataHandler.getProfileRestClient().displayname(user_id, new SimpleApiCallback<String>() {
+        mDataHandler.getProfileRestClient().displayname(user_id, new ApiCallback<String>() {
             @Override
             public void onSuccess(String aDisplayname) {
                 if (mDataHandler.isAlive()) {
@@ -396,7 +356,7 @@ public class MyUser extends User {
      * Refresh the Third party identifiers i.e. the linked email to this account
      */
     public void refreshThirdPartyIdentifiers() {
-        mDataHandler.getProfileRestClient().threePIDs(new SimpleApiCallback<List<ThirdPartyIdentifier>>() {
+        mDataHandler.getProfileRestClient().threePIDs(new ApiCallback<List<ThirdPartyIdentifier>>() {
             @Override
             public void onSuccess(List<ThirdPartyIdentifier> identifiers) {
                 if (mDataHandler.isAlive()) {

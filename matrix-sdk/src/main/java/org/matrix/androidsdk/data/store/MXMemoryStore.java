@@ -21,7 +21,7 @@ package org.matrix.androidsdk.data.store;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.core.Log;

@@ -16,5 +16,10 @@
 package org.matrix.androidsdk.rest.model.pid;
 
 public class PidResponse {
+    /**
+     * Required. The Matrix user ID associated with the 3pid.
+     */
     public String mxid;
+
+    // Not that there are plenty of other data in the result, see https://matrix.org/docs/spec/identity_service/unstable#get-matrix-identity-api-v1-lookup
 }

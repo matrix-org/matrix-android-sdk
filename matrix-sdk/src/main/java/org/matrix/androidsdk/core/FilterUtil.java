@@ -16,8 +16,8 @@
 
 package org.matrix.androidsdk.core;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.filter.Filter;
@@ -131,6 +131,16 @@ public class FilterUtil {
                 }
             }
         }
+    }
+
+    /**
+     * Patch the roomEventFilter to enable or disable the lazy loading
+     *
+     * @param roomEventFilter the roomEventFilter to patch
+     * @param useLazyLoading  true to enable lazy loading
+     */
+    public static void enableLazyLoading(@NonNull RoomEventFilter roomEventFilter, boolean useLazyLoading) {
+        roomEventFilter.lazyLoadMembers = useLazyLoading;
     }
 
     /**

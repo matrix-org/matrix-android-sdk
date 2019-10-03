@@ -21,6 +21,10 @@ import java.util.List;
  * 3 pids request response
  */
 public class BulkLookupResponse {
+    /**
+     * Required. An array of array containing the 3PID Types with the medium in first position,
+     * the address in second position and Matrix user ID in third position.
+     */
     //  List of [medium, value, mxid]
     public List<List<String>> threepids;
 }

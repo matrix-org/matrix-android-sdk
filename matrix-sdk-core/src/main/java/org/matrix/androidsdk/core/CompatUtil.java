@@ -22,9 +22,9 @@ import android.os.Build;
 import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
-import android.support.annotation.Nullable;
-import android.support.annotation.RequiresApi;
-import android.support.v7.preference.PreferenceManager;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.preference.PreferenceManager;
 import android.util.Base64;
 
 import org.matrix.androidsdk.core.model.SecretKeyAndVersion;

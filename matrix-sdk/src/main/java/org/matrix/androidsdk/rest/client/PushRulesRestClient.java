@@ -18,9 +18,10 @@ package org.matrix.androidsdk.rest.client;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
-import org.matrix.androidsdk.core.rest.DefaultRetrofit2CallbackWrapper;
 import org.matrix.androidsdk.rest.api.PushRulesApi;
+import org.matrix.androidsdk.rest.callback.RestAdapterCallback;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
 import org.matrix.androidsdk.rest.model.bingrules.PushRulesResponse;
 
@@ -30,7 +31,7 @@ public class PushRulesRestClient extends RestClient<PushRulesApi> {
      * {@inheritDoc}
      */
     public PushRulesRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, PushRulesApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
+        super(hsConfig, PushRulesApi.class, RestClient.URI_API_PREFIX_PATH_R0, JsonUtils.getGson(false));
     }
 
     /**
@@ -39,7 +40,8 @@ public class PushRulesRestClient extends RestClient<PushRulesApi> {
      * @param callback the asynchronous callback.
      */
     public void getAllRules(final ApiCallback<PushRulesResponse> callback) {
-        mApi.getAllRules().enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+        mApi.getAllRules()
+                .enqueue(new RestAdapterCallback<>("getAllRules", null, callback, null));
     }
 
     /**
@@ -51,7 +53,8 @@ public class PushRulesRestClient extends RestClient<PushRulesApi> {
      * @param callback the asynchronous callback.
      */
     public void updateEnableRuleStatus(String Kind, String ruleId, boolean status, final ApiCallback<Void> callback) {
-        mApi.updateEnableRuleStatus(Kind, ruleId, status).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+        mApi.updateEnableRuleStatus(Kind, ruleId, status)
+                .enqueue(new RestAdapterCallback<>("updateEnableRuleStatus", null, callback, null));
     }
 
     /**
@@ -63,7 +66,8 @@ public class PushRulesRestClient extends RestClient<PushRulesApi> {
      * @param callback the asynchronous callback
      */
     public void updateRuleActions(String Kind, String ruleId, Object actions, final ApiCallback<Void> callback) {
-        mApi.updateRuleActions(Kind, ruleId, actions).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+        mApi.updateRuleActions(Kind, ruleId, actions)
+                .enqueue(new RestAdapterCallback<>("updateRuleActions", null, callback, null));
     }
 
     /**
@@ -74,7 +78,8 @@ public class PushRulesRestClient extends RestClient<PushRulesApi> {
      * @param callback the asynchronous callback
      */
     public void deleteRule(String Kind, String ruleId, final ApiCallback<Void> callback) {
-        mApi.deleteRule(Kind, ruleId).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+        mApi.deleteRule(Kind, ruleId)
+                .enqueue(new RestAdapterCallback<>("deleteRule", null, callback, null));
     }
 
     /**
@@ -84,6 +89,7 @@ public class PushRulesRestClient extends RestClient<PushRulesApi> {
      * @param callback the asynchronous callback
      */
     public void addRule(BingRule rule, final ApiCallback<Void> callback) {
-        mApi.addRule(rule.kind, rule.ruleId, rule.toJsonElement()).enqueue(new DefaultRetrofit2CallbackWrapper<>(callback));
+        mApi.addRule(rule.kind, rule.ruleId, rule.toJsonElement())
+                .enqueue(new RestAdapterCallback<>("addRule", null, callback, null));
     }
 }

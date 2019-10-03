@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.core;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -54,6 +54,10 @@ public class MXPatterns {
     // regex pattern to find message ids v3 in a string.
     private static final String MATRIX_EVENT_IDENTIFIER_V3_REGEX = "\\$[A-Z0-9/+]+";
     public static final Pattern PATTERN_CONTAIN_MATRIX_EVENT_IDENTIFIER_V3 = Pattern.compile(MATRIX_EVENT_IDENTIFIER_V3_REGEX, Pattern.CASE_INSENSITIVE);
+
+    // regex pattern to find message ids v4 in a string.
+    private static final String MATRIX_EVENT_IDENTIFIER_V4_REGEX = "\\$[A-Z0-9\\_\\-]+";
+    public static final Pattern PATTERN_CONTAIN_MATRIX_EVENT_IDENTIFIER_V4 = Pattern.compile(MATRIX_EVENT_IDENTIFIER_V4_REGEX, Pattern.CASE_INSENSITIVE);
 
     // regex pattern to find group ids in a string.
     private static final String MATRIX_GROUP_IDENTIFIER_REGEX = "\\+[A-Z0-9=_\\-./]+" + DOMAIN_REGEX;
@@ -128,7 +132,8 @@ public class MXPatterns {
      */
     public static boolean isEventId(@Nullable final String str) {
         return str != null
-                && (PATTERN_CONTAIN_MATRIX_EVENT_IDENTIFIER.matcher(str).matches() || PATTERN_CONTAIN_MATRIX_EVENT_IDENTIFIER_V3.matcher(str).matches());
+                && (PATTERN_CONTAIN_MATRIX_EVENT_IDENTIFIER.matcher(str).matches() || PATTERN_CONTAIN_MATRIX_EVENT_IDENTIFIER_V3.matcher(str).matches()
+                    || PATTERN_CONTAIN_MATRIX_EVENT_IDENTIFIER_V4.matcher(str).matches());
     }
 
     /**

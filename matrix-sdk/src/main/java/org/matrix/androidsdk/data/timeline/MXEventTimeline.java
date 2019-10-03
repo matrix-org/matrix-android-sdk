@@ -20,8 +20,8 @@ package org.matrix.androidsdk.data.timeline;
 
 import android.os.AsyncTask;
 import android.os.Looper;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.MXDataHandler;
@@ -429,12 +429,14 @@ class MXEventTimeline implements EventTimeline {
             mEventListeners.onEvent(snapshotedEvent.mEvent, Direction.BACKWARDS, snapshotedEvent.mState);
         }
 
-        // https://github.com/vector-im/vector-android/pull/354
-        // defines a new summary if the known is not supported
-        RoomSummary summary = mStore.getSummary(mRoomId);
-
-        if (null != latestSupportedEvent && (null == summary || !RoomSummary.isSupportedEvent(summary.getLatestReceivedEvent()))) {
-            mStore.storeSummary(new RoomSummary(null, latestSupportedEvent, getState(), mDataHandler.getUserId()));
+        // Update potentially the summary last event
+        if (null != latestSupportedEvent) {
+            RoomSummary summary = mStore.getSummary(mRoomId);
+            if (summary == null) {
+                mStore.storeSummary(new RoomSummary(null, latestSupportedEvent, getState(), mDataHandler.getUserId()));
+            } else if (!RoomSummary.isSupportedEvent(summary.getLatestReceivedEvent())) {
+                summary.setLatestReceivedEvent(latestSupportedEvent, getState());
+            }
         }
 
         Log.d(LOG_TAG, "manageEvents : commit");
@@ -685,7 +687,7 @@ class MXEventTimeline implements EventTimeline {
             return true;
         }
 
-        mDataHandler.getDataRetriever().backPaginate(mStore, mRoomId, getBackState().getToken(), eventCount, mDataHandler.isLazyLoadingEnabled(),
+        mDataHandler.getDataRetriever().backPaginate(mStore, mRoomId, getBackState().getToken(), eventCount, mDataHandler.getPaginationFilter(),
                 new SimpleApiCallback<TokensChunkEvents>(callback) {
                     @Override
                     public void onSuccess(TokensChunkEvents response) {
@@ -780,7 +782,7 @@ class MXEventTimeline implements EventTimeline {
 
         mIsForwardPaginating = true;
 
-        mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS, mDataHandler.isLazyLoadingEnabled(),
+        mDataHandler.getDataRetriever().paginate(mStore, mRoomId, mForwardsPaginationToken, Direction.FORWARDS, mDataHandler.getPaginationFilter(),
                 new SimpleApiCallback<TokensChunkEvents>(callback) {
                     @Override
                     public void onSuccess(TokensChunkEvents response) {

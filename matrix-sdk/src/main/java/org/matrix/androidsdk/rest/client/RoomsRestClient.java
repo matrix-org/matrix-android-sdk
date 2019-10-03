@@ -18,14 +18,16 @@
 
 package org.matrix.androidsdk.rest.client;
 
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
+
+import androidx.annotation.Nullable;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
+import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
 import org.matrix.androidsdk.core.model.MatrixError;
@@ -73,7 +75,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * {@inheritDoc}
      */
     public RoomsRestClient(HomeServerConnectionConfig hsConfig) {
-        super(hsConfig, RoomsApi.class, RestClient.URI_API_PREFIX_PATH_R0, false);
+        super(hsConfig, RoomsApi.class, RestClient.URI_API_PREFIX_PATH_R0, JsonUtils.getGson(false));
     }
 
     /**
@@ -192,8 +194,8 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param email    the email
      * @param callback the async callback
      */
-    public void inviteByEmailToRoom(final String roomId, final String email, final ApiCallback<Void> callback) {
-        inviteThreePidToRoom("email", email, roomId, callback);
+    public void inviteByEmailToRoom(String idServer, String idServerToken, final String roomId, final String email, final ApiCallback<Void> callback) {
+        inviteThreePidToRoom(idServer, idServerToken, "email", email, roomId, callback);
     }
 
     /**
@@ -204,22 +206,29 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * @param roomId   the room id
      * @param callback the async callback
      */
-    private void inviteThreePidToRoom(final String medium, final String address, final String roomId, final ApiCallback<Void> callback) {
+    private void inviteThreePidToRoom(String idServer,
+                                      String idAccessToken,
+                                      final String medium,
+                                      final String address,
+                                      final String roomId,
+                                      final ApiCallback<Void> callback) {
         // privacy
         //final String description = "inviteThreePidToRoom : medium " + medium + " address " + address + " roomId " + roomId;
         final String description = "inviteThreePidToRoom : medium " + medium + " roomId " + roomId;
 
-        // This request must not have the protocol part
-        String identityServer = mHsConfig.getIdentityServerUri().toString();
-
-        if (identityServer.startsWith("http://")) {
-            identityServer = identityServer.substring("http://".length());
-        } else if (identityServer.startsWith("https://")) {
-            identityServer = identityServer.substring("https://".length());
-        }
 
         Map<String, String> parameters = new HashMap<>();
-        parameters.put("id_server", identityServer);
+
+        // This request must not have the protocol part
+        if (idServer != null) {
+            parameters.put("id_server", idServer);
+
+            if (idAccessToken != null) {
+                parameters.put("id_access_token", idAccessToken);
+            }
+        }
+
+
         parameters.put("medium", medium);
         parameters.put("address", address);
 
@@ -227,7 +236,7 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        inviteThreePidToRoom(medium, address, roomId, callback);
+                        inviteThreePidToRoom(idServer, idAccessToken, medium, address, roomId, callback);
                     }
                 }));
     }
@@ -841,22 +850,23 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      * Add a tag to a room.
      * Use this method to update the order of an existing tag.
      *
+     * @param userId   the userId
      * @param roomId   the roomId
      * @param tag      the new tag to add to the room.
      * @param order    the order.
      * @param callback the operation callback
      */
-    public void addTag(final String roomId, final String tag, final Double order, final ApiCallback<Void> callback) {
+    public void addTag(final String userId, final String roomId, final String tag, final Double order, final ApiCallback<Void> callback) {
         final String description = "addTag : roomId " + roomId + " - tag " + tag + " - order " + order;
 
         Map<String, Object> hashMap = new HashMap<>();
         hashMap.put("order", order);
 
-        mApi.addTag(getCredentials().userId, roomId, tag, hashMap)
+        mApi.addTag(userId, roomId, tag, hashMap)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        addTag(roomId, tag, order, callback);
+                        addTag(userId, roomId, tag, order, callback);
                     }
                 }));
     }
@@ -864,18 +874,19 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * Remove a tag to a room.
      *
+     * @param userId   the userId
      * @param roomId   the roomId
      * @param tag      the new tag to add to the room.
      * @param callback the operation callback
      */
-    public void removeTag(final String roomId, final String tag, final ApiCallback<Void> callback) {
+    public void removeTag(final String userId, final String roomId, final String tag, final ApiCallback<Void> callback) {
         final String description = "removeTag : roomId " + roomId + " - tag " + tag;
 
-        mApi.removeTag(getCredentials().userId, roomId, tag)
+        mApi.removeTag(userId, roomId, tag)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        removeTag(roomId, tag, callback);
+                        removeTag(userId, roomId, tag, callback);
                     }
                 }));
     }
@@ -883,21 +894,22 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
     /**
      * Update the URL preview status
      *
+     * @param userId   the userId
      * @param roomId   the roomId
      * @param status   the new status
      * @param callback the operation callback
      */
-    public void updateURLPreviewStatus(final String roomId, final boolean status, final ApiCallback<Void> callback) {
+    public void updateURLPreviewStatus(final String userId, final String roomId, final boolean status, final ApiCallback<Void> callback) {
         final String description = "updateURLPreviewStatus : roomId " + roomId + " - status " + status;
 
         Map<String, Object> params = new HashMap<>();
         params.put(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE, !status);
 
-        mApi.updateAccountData(getCredentials().userId, roomId, Event.EVENT_TYPE_URL_PREVIEW, params)
+        mApi.updateAccountData(userId, roomId, Event.EVENT_TYPE_URL_PREVIEW, params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        updateURLPreviewStatus(roomId, status, callback);
+                        updateURLPreviewStatus(userId, roomId, status, callback);
                     }
                 }));
     }

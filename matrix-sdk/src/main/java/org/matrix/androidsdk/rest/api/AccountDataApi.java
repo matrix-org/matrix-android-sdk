@@ -15,11 +15,8 @@
  */
 package org.matrix.androidsdk.rest.api;
 
-import java.util.Map;
-
 import retrofit2.Call;
 import retrofit2.http.Body;
-import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
 
@@ -35,14 +32,4 @@ public interface AccountDataApi {
     @PUT("user/{userId}/account_data/{type}")
     Call<Void> setAccountData(@Path("userId") String userId, @Path("type") String type, @Body Object params);
 
-    /**
-     * Gets a bearer token from the homeserver that the user can
-     * present to a third party in order to prove their ownership
-     * of the Matrix account they are logged into.
-     *
-     * @param userId the user id
-     * @param body   the body content
-     */
-    @POST("user/{userId}/openid/request_token")
-    Call<Map<Object, Object>> openIdToken(@Path("userId") String userId, @Body Map<Object, Object> body);
 }

@@ -20,6 +20,7 @@ import android.text.TextUtils;
 import android.util.Base64;
 
 import org.matrix.androidsdk.core.Log;
+import org.matrix.androidsdk.core.StringUtilsKt;
 import org.matrix.androidsdk.crypto.model.crypto.EncryptedFileInfo;
 import org.matrix.androidsdk.crypto.model.crypto.EncryptedFileKey;
 
@@ -113,12 +114,12 @@ public class MXEncryptedAttachments implements Serializable {
             result.mEncryptedFileInfo.key.ext = true;
             result.mEncryptedFileInfo.key.key_ops = Arrays.asList("encrypt", "decrypt");
             result.mEncryptedFileInfo.key.kty = "oct";
-            result.mEncryptedFileInfo.key.k = base64ToBase64Url(Base64.encodeToString(key, Base64.DEFAULT));
+            result.mEncryptedFileInfo.key.k = StringUtilsKt.base64ToBase64Url(Base64.encodeToString(key, Base64.DEFAULT));
             result.mEncryptedFileInfo.iv = Base64.encodeToString(initVectorBytes, Base64.DEFAULT).replace("\n", "").replace("=", "");
             result.mEncryptedFileInfo.v = "v2";
 
             result.mEncryptedFileInfo.hashes = new HashMap<>();
-            result.mEncryptedFileInfo.hashes.put("sha256", base64ToUnpaddedBase64(Base64.encodeToString(messageDigest.digest(), Base64.DEFAULT)));
+            result.mEncryptedFileInfo.hashes.put("sha256", StringUtilsKt.base64ToUnpaddedBase64(Base64.encodeToString(messageDigest.digest(), Base64.DEFAULT)));
 
             result.mEncryptedStream = new ByteArrayInputStream(outStream.toByteArray());
             outStream.close();
@@ -183,7 +184,7 @@ public class MXEncryptedAttachments implements Serializable {
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 
         try {
-            byte[] key = Base64.decode(base64UrlToBase64(encryptedFileInfo.key.k), Base64.DEFAULT);
+            byte[] key = Base64.decode(StringUtilsKt.base64UrlToBase64(encryptedFileInfo.key.k), Base64.DEFAULT);
             byte[] initVectorBytes = Base64.decode(encryptedFileInfo.iv, Base64.DEFAULT);
 
             Cipher decryptCipher = Cipher.getInstance(CIPHER_ALGORITHM);
@@ -207,7 +208,7 @@ public class MXEncryptedAttachments implements Serializable {
             decodedBytes = decryptCipher.doFinal();
             outStream.write(decodedBytes);
 
-            String currentDigestValue = base64ToUnpaddedBase64(Base64.encodeToString(messageDigest.digest(), Base64.DEFAULT));
+            String currentDigestValue = StringUtilsKt.base64ToUnpaddedBase64(Base64.encodeToString(messageDigest.digest(), Base64.DEFAULT));
 
             if (!TextUtils.equals(encryptedFileInfo.hashes.get("sha256"), currentDigestValue)) {
                 Log.e(LOG_TAG, "## decryptAttachment() :  Digest value mismatch");
@@ -234,37 +235,5 @@ public class MXEncryptedAttachments implements Serializable {
         }
 
         return null;
-    }
-
-    /**
-     * Base64 URL conversion methods
-     */
-
-    private static String base64UrlToBase64(String base64Url) {
-        if (null != base64Url) {
-            base64Url = base64Url.replaceAll("-", "+");
-            base64Url = base64Url.replaceAll("_", "/");
-        }
-
-        return base64Url;
-    }
-
-    private static String base64ToBase64Url(String base64) {
-        if (null != base64) {
-            base64 = base64.replaceAll("\n", "");
-            base64 = base64.replaceAll("\\+", "-");
-            base64 = base64.replaceAll("/", "_");
-            base64 = base64.replaceAll("=", "");
-        }
-        return base64;
-    }
-
-    private static String base64ToUnpaddedBase64(String base64) {
-        if (null != base64) {
-            base64 = base64.replaceAll("\n", "");
-            base64 = base64.replaceAll("=", "");
-        }
-
-        return base64;
     }
 }

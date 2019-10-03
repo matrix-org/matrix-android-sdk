@@ -15,7 +15,7 @@
  */
 package org.matrix.androidsdk.crypto.verification
 
-import android.support.annotation.StringRes
+import androidx.annotation.StringRes
 import org.matrix.androidsdk.crypto.R
 
 object VerificationEmoji {

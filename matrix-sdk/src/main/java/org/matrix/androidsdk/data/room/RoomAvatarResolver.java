@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.data.room;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.matrix.androidsdk.data.Room;
