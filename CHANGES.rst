@@ -1,8 +1,5 @@
-Changes to Matrix Android SDK in 0.9.28 (2019-XX-XX)
+Changes to Matrix Android SDK in 0.9.28 (2019-10-03)
 =======================================================
-
-Features:
- -
 
 Improvements:
  - Display correctly the revoked third-party invites.
@@ -10,9 +7,6 @@ Improvements:
  - Use wellknown to discover the IS of a HS (vector-im/riot-android#3283)
  - Make identity server configurable
  - Privacy: MSC2290 (#3300)
-
-Bugfix:
- -
 
 API Change:
  - `MXSession.openIdToken()` callback has a more typed parameter
@@ -29,12 +23,6 @@ Others:
  - Remove ParentRestClient from crypto module and use a common parent Rest Client (dinsic-pim/tchap-android#539)
  - MXSession: Add doesServerRequireIdentityServerParam() and doesServerAcceptIdentityAccessToken() methods.
  - Remove the bind true flag from 3PID calls on registration (vector-im/riot-android#3252)
-
-Build:
- -
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.27 (2019-08-28)
 =======================================================
