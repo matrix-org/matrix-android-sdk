@@ -25,6 +25,7 @@ import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.MXPatterns
 import org.matrix.androidsdk.core.callback.ApiCallback
 import org.matrix.androidsdk.core.callback.SimpleApiCallback
+import org.matrix.androidsdk.core.model.HttpException
 import org.matrix.androidsdk.core.model.MatrixError
 import org.matrix.androidsdk.data.Room
 import org.matrix.androidsdk.features.terms.TermsNotSignedException
@@ -317,6 +318,14 @@ class IdentityServerManager(val mxSession: MXSession,
                     super.onMatrixError(e)
                 }
             }
+
+            override fun onUnexpectedError(e: Exception) {
+                if (e is HttpException && e.httpError.httpCode == 404) {
+                    callback.onUnexpectedError(IdentityServerV2ApiNotAvailable())
+                } else {
+                    super.onUnexpectedError(e)
+                }
+            }
         })
     }
 
@@ -583,34 +592,47 @@ class IdentityServerManager(val mxSession: MXSession,
                                 }
                             })
                 }
+
+                override fun onUnexpectedError(e: Exception) {
+                    if (e is IdentityServerV2ApiNotAvailable) {
+                        //mm ? request to HS?
+                        legacyDeleteAndRequestToken(threePid,callback,idServer)
+                    } else {
+                        super.onUnexpectedError(e)
+                    }
+                }
             })
 
         } else {
-            //It's the legacy flow, we need to remove then proxy the id call to the HS
-            val param = ThirdPartyIdentifier().apply {
-                address = threePid.emailAddress
-                medium = threePid.medium
-            }
-
-            mxSession.myUser?.delete3Pid(param, object : SimpleApiCallback<Void>(callback) {
-                override fun onSuccess(info: Void?) {
-
-                    mxSession.profileApiClient.requestEmailValidationToken(idServer,
-                            threePid.emailAddress,
-                            threePid.clientSecret,
-                            threePid.sendAttempt,
-                            null,
-                            false,
-                            object : SimpleApiCallback<RequestEmailValidationResponse>(callback) {
-                                override fun onSuccess(info: RequestEmailValidationResponse?) {
-                                    threePid.sid = info?.sid
-                                    mxSession.myUser?.refreshThirdPartyIdentifiers()
-                                    callback.onSuccess(threePid)
-                                }
-                            })
-                }
-            })
+            legacyDeleteAndRequestToken(threePid, callback, idServer)
         }
+    }
+
+    private fun legacyDeleteAndRequestToken(threePid: ThreePid, callback: ApiCallback<ThreePid>, idServer: String?) {
+        //It's the legacy flow, we need to remove then proxy the id call to the HS
+        val param = ThirdPartyIdentifier().apply {
+            address = threePid.emailAddress
+            medium = threePid.medium
+        }
+
+        mxSession.myUser?.delete3Pid(param, object : SimpleApiCallback<Void>(callback) {
+            override fun onSuccess(info: Void?) {
+
+                mxSession.profileApiClient.requestEmailValidationToken(idServer,
+                        threePid.emailAddress,
+                        threePid.clientSecret,
+                        threePid.sendAttempt,
+                        null,
+                        false,
+                        object : SimpleApiCallback<RequestEmailValidationResponse>(callback) {
+                            override fun onSuccess(info: RequestEmailValidationResponse?) {
+                                threePid.sid = info?.sid
+                                mxSession.myUser?.refreshThirdPartyIdentifiers()
+                                callback.onSuccess(threePid)
+                            }
+                        })
+            }
+        })
     }
 
     fun startBindSessionForPhoneNumber(msisdn: String, countryCode: String, nextLink: String?, callback: ApiCallback<ThreePid>) {
@@ -633,34 +655,47 @@ class IdentityServerManager(val mxSession: MXSession,
                                 }
                             })
                 }
+
+                override fun onUnexpectedError(e: Exception) {
+                    if (e is IdentityServerV2ApiNotAvailable) {
+                        //mm ? request to HS?
+                        legacyDeleteAndAddMsisdn(threePid,callback,idServer)
+                    } else {
+                        super.onUnexpectedError(e)
+                    }
+                }
             })
 
         } else {
-            //It's the legacy flow, we need to remove then proxy the id call to the HS
-            val param = ThirdPartyIdentifier().apply {
-                address = threePid.emailAddress
-                medium = threePid.medium
-            }
-
-            mxSession.myUser?.delete3Pid(param, object : SimpleApiCallback<Void>(callback) {
-                override fun onSuccess(info: Void?) {
-
-                    mxSession.profileApiClient.requestPhoneNumberValidationToken(idServer,
-                            threePid.phoneNumber,
-                            threePid.country,
-                            threePid.clientSecret,
-                            threePid.sendAttempt,
-                            false,
-                            object : SimpleApiCallback<RequestPhoneNumberValidationResponse>(callback) {
-                                override fun onSuccess(info: RequestPhoneNumberValidationResponse?) {
-                                    threePid.sid = info?.sid
-                                    mxSession.myUser?.refreshThirdPartyIdentifiers()
-                                    callback.onSuccess(threePid)
-                                }
-                            })
-                }
-            })
+            legacyDeleteAndAddMsisdn(threePid, callback, idServer)
         }
+    }
+
+    private fun legacyDeleteAndAddMsisdn(threePid: ThreePid, callback: ApiCallback<ThreePid>, idServer: String?) {
+        //It's the legacy flow, we need to remove then proxy the id call to the HS
+        val param = ThirdPartyIdentifier().apply {
+            address = threePid.emailAddress
+            medium = threePid.medium
+        }
+
+        mxSession.myUser?.delete3Pid(param, object : SimpleApiCallback<Void>(callback) {
+            override fun onSuccess(info: Void?) {
+
+                mxSession.profileApiClient.requestPhoneNumberValidationToken(idServer,
+                        threePid.phoneNumber,
+                        threePid.country,
+                        threePid.clientSecret,
+                        threePid.sendAttempt,
+                        false,
+                        object : SimpleApiCallback<RequestPhoneNumberValidationResponse>(callback) {
+                            override fun onSuccess(info: RequestPhoneNumberValidationResponse?) {
+                                threePid.sid = info?.sid
+                                mxSession.myUser?.refreshThirdPartyIdentifiers()
+                                callback.onSuccess(threePid)
+                            }
+                        })
+            }
+        })
     }
 
     /**
@@ -684,7 +719,6 @@ class IdentityServerManager(val mxSession: MXSession,
                     })
         } else {
             //It's the legacy flow, we need to remove then proxy the id call to the HS
-
             val param = ThirdPartyIdentifier().apply {
                 this.address = address
                 this.medium = medium
@@ -742,10 +776,18 @@ class IdentityServerManager(val mxSession: MXSession,
                     mxSession.profileApiClient.bind3PID(threePid, idServer, token, callback);
                 }
 
+                override fun onUnexpectedError(e: Exception) {
+                    if (e is IdentityServerV2ApiNotAvailable) {
+                        //mm ? request to HS?
+                        mxSession.profileApiClient.add3PIDLegacy(idServer, threePid, true, callback)
+                    } else {
+                        super.onUnexpectedError(e)
+                    }
+                }
+
             })
         } else {
             //we need to call old api on HS to add with bind true
-
             mxSession.profileApiClient.add3PIDLegacy(idServer, threePid, true, callback)
         }
     }
