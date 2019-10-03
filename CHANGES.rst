@@ -1,3 +1,30 @@
+Changes to Matrix Android SDK in 0.9.29 (2019-XX-XX)
+=======================================================
+
+Features:
+ -
+
+Improvements:
+ -
+
+Bugfix:
+ -
+
+API Change:
+ -
+
+Translations:
+ -
+
+Others:
+ -
+
+Build:
+ -
+
+Test:
+ -
+
 Changes to Matrix Android SDK in 0.9.28 (2019-10-03)
 =======================================================
 
