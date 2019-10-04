@@ -70,11 +70,6 @@ public class JsonUtils {
 
     private static final Gson basicGson = new Gson();
 
-    private static final Gson kotlinGson = new GsonBuilder()
-            .registerTypeAdapter(boolean.class, new BooleanDeserializer(false))
-            .registerTypeAdapter(Boolean.class, new BooleanDeserializer(true))
-            .create();
-
     private static final Gson gson = new GsonBuilder()
             .setFieldNamingStrategy(new MatrixFieldNamingStrategy())
             .excludeFieldsWithModifiers(Modifier.PRIVATE, Modifier.STATIC)
@@ -102,15 +97,6 @@ public class JsonUtils {
      */
     public static Gson getBasicGson() {
         return basicGson;
-    }
-
-    /**
-     * Provides the JSON parser for Kotlin.
-     *
-     * @return the kotlin JSON parser
-     */
-    public static Gson getKotlinGson() {
-        return kotlinGson;
     }
 
     /**

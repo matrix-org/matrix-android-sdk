@@ -100,7 +100,7 @@ public class RestClient<T> {
     private OkHttpClient mOkHttpClient;
 
     public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix) {
-        this(hsConfig, type, uriPrefix, GsonProvider.provideGson(), EndPointServer.HOME_SERVER);
+        this(hsConfig, type, uriPrefix, GsonProvider.provideKotlinGson(), EndPointServer.HOME_SERVER);
     }
 
     public RestClient(HomeServerConnectionConfig hsConfig, Class<T> type, String uriPrefix, Gson gson) {

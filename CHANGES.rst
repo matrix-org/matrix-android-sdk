@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Fix / Keysbackup not working (failed to get version)
 
 API Change:
  -
