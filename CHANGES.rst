@@ -1,3 +1,11 @@
+Changes to Matrix Android SDK in 0.9.29 (2019-10-04)
+=======================================================
+
+Corrective release
+
+Bugfix:
+ - Fix / Keysbackup not working (failed to get version)
+
 Changes to Matrix Android SDK in 0.9.28 (2019-10-03)
 =======================================================
 

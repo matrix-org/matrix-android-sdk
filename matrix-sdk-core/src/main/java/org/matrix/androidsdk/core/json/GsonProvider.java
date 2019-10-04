@@ -35,4 +35,15 @@ public class GsonProvider {
         return gson;
     }
 
+    // Can serialize/deserialise kt objects without the need to add @JVMField
+    private static final Gson kotlinGson = new GsonBuilder()
+            .registerTypeAdapter(boolean.class, new BooleanDeserializer(false))
+            .registerTypeAdapter(Boolean.class, new BooleanDeserializer(true))
+            .create();
+
+    public static Gson provideKotlinGson() {
+        return kotlinGson;
+    }
+
+
 }
