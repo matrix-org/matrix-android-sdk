@@ -170,4 +170,5 @@
     <string name="event_status_sending_message">메시지 보내는 중…</string>
     <string name="clear_timeline_send_queue">전송 대기 열 지우기</string>
 
-</resources>
+<string name="notice_room_third_party_revoked_invite">%1$s님이 %2$s님에게 방에 참가하라고 보낸 초대를 취소했습니다</string>
+    </resources>
