@@ -74,7 +74,7 @@ class IdentityServerManager(val mxSession: MXSession,
                 if (accountDataElement.type == AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER) {
                     // The identity server has been updated
                     val accountDataIdentityServer =
-                            mxSession.dataHandler.store.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER)
+                            mxSession.dataHandler.store?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER)
 
                     accountDataIdentityServer?.content?.let {
                         localSetIdentityServerUrl(it[AccountDataElement.ACCOUNT_DATA_KEY_IDENTITY_SERVER_BASE_URL] as String?)
@@ -124,7 +124,7 @@ class IdentityServerManager(val mxSession: MXSession,
      */
     private fun retrieveIdentityServerUrl(): String? {
         val accountDataIdentityServer =
-                mxSession.dataHandler.store.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER)
+                mxSession.dataHandler.store?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER)
 
         accountDataIdentityServer?.content?.let {
             return it[AccountDataElement.ACCOUNT_DATA_KEY_IDENTITY_SERVER_BASE_URL] as String?

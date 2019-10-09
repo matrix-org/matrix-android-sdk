@@ -17,7 +17,7 @@
 package org.matrix.androidsdk.crypto.interfaces
 
 interface CryptoDataHandler {
-    val store: CryptoStore
+    val store: CryptoStore?
     fun setCryptoEventsListener(eventListener: CryptoEventListener)
     fun getRoom(roomId: String): CryptoRoom
     fun onEventDecrypted(event: CryptoEvent)

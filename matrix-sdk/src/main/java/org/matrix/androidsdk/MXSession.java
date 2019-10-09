@@ -289,11 +289,16 @@ public class MXSession implements CryptoSession {
 
             @Override
             public void onStoreCorrupted(String accountId, String description) {
-                Log.d(LOG_TAG, "## onStoreCorrupted() : token " + getDataHandler().getStore().getEventStreamToken());
+                //NPE reported on store
+                if (getDataHandler().getStore() != null) {
+                    Log.d(LOG_TAG, "## onStoreCorrupted() : token " + getDataHandler().getStore().getEventStreamToken());
 
-                // nothing was saved
-                if (null == getDataHandler().getStore().getEventStreamToken()) {
-                    getDataHandler().onStoreReady();
+                    // nothing was saved
+                    if (null == getDataHandler().getStore().getEventStreamToken()) {
+                        getDataHandler().onStoreReady();
+                    }
+                } else {
+                    Log.d(LOG_TAG, "## onStoreCorrupted() : no store access ");
                 }
             }
 

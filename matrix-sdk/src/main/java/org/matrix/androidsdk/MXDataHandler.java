@@ -681,6 +681,7 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
      * @return the used store.
      */
     @Override
+    @Nullable
     public IMXStore getStore() {
         if (isAlive()) {
             return mStore;
@@ -1911,7 +1912,13 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
     public void updateEventState(Event event, Event.SentState newState) {
         if ((null != event) && (event.mSentState != newState)) {
             event.mSentState = newState;
-            getStore().flushRoomEvents(event.roomId);
+            //crash reported on app store
+            if (getStore() != null) {
+                getStore().flushRoomEvents(event.roomId);
+            } else {
+                Log.e(LOG_TAG, "#updateEventState Failed to access to store ");
+            }
+
             onEventSentStateUpdated(event);
         }
     }

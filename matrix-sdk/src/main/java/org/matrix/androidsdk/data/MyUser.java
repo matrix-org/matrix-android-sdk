@@ -124,17 +124,20 @@ public class MyUser extends User {
      * Build the lists of identifiers
      */
     private void buildIdentifiersLists() {
-        List<ThirdPartyIdentifier> identifiers = mDataHandler.getStore().thirdPartyIdentifiers();
         mEmailIdentifiers = new ArrayList<>();
         mPhoneNumberIdentifiers = new ArrayList<>();
-        for (ThirdPartyIdentifier identifier : identifiers) {
-            switch (identifier.medium) {
-                case ThreePid.MEDIUM_EMAIL:
-                    mEmailIdentifiers.add(identifier);
-                    break;
-                case ThreePid.MEDIUM_MSISDN:
-                    mPhoneNumberIdentifiers.add(identifier);
-                    break;
+        List<ThirdPartyIdentifier> identifiers = mDataHandler.getStore().thirdPartyIdentifiers();
+        //NPE reported on playstore
+        if (mDataHandler.getStore() != null) {
+            for (ThirdPartyIdentifier identifier : identifiers) {
+                switch (identifier.medium) {
+                    case ThreePid.MEDIUM_EMAIL:
+                        mEmailIdentifiers.add(identifier);
+                        break;
+                    case ThreePid.MEDIUM_MSISDN:
+                        mPhoneNumberIdentifiers.add(identifier);
+                        break;
+                }
             }
         }
     }
