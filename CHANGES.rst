@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - App won't start with some custom HS config #499
 
 API Change:
  -
