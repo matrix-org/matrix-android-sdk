@@ -18,5 +18,5 @@ package org.matrix.androidsdk.crypto.interfaces
 
 // For classical store
 interface CryptoStore {
-    val eventStreamToken: String
+    val eventStreamToken: String?
 }
