@@ -175,4 +175,5 @@
     <string name="initial_sync_start_importing_account_groups">Erste Synchronisation: Importiere Gemeinschaften</string>
     <string name="initial_sync_start_importing_account_data">Erste Synchronisation: Importiere Benutzerdaten</string>
 
-</resources>
+<string name="notice_room_third_party_revoked_invite">%1$s hat die Einladung an %2$s, den Raum zu betreten, zurückgezogen</string>
+    </resources>

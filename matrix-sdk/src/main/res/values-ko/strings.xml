@@ -52,7 +52,7 @@
     <string name="notice_crypto_unable_to_decrypt">** 암호를 해독할 수 없음: %s **</string>
     <string name="notice_crypto_error_unkwown_inbound_session_id">발신인의 기기에서 이 메시지의 키를 보내지 않았습니다.</string>
 
-    <string name="message_reply_to_prefix">질문한 사람</string>
+    <string name="message_reply_to_prefix">관련 대화</string>
 
     <string name="could_not_redact">검열할 수 없습니다</string>
     <string name="unable_to_send_message">메시지를 보낼 수 없습니다</string>
