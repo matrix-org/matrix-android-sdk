@@ -1,29 +1,12 @@
-Changes to Matrix Android SDK in 0.9.30 (2019-XX-XX)
+Changes to Matrix Android SDK in 0.9.30 (2019-10-09)
 =======================================================
-
-Features:
- -
-
-Improvements:
- -
 
 Bugfix:
  - App won't start with some custom HS config #499
 
-API Change:
- -
-
 Translations:
- -
+ - Updated translations
 
-Others:
- -
-
-Build:
- -
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.29 (2019-10-04)
 =======================================================
