@@ -126,9 +126,9 @@ public class MyUser extends User {
     private void buildIdentifiersLists() {
         mEmailIdentifiers = new ArrayList<>();
         mPhoneNumberIdentifiers = new ArrayList<>();
-        List<ThirdPartyIdentifier> identifiers = mDataHandler.getStore().thirdPartyIdentifiers();
         //NPE reported on playstore
         if (mDataHandler.getStore() != null) {
+            List<ThirdPartyIdentifier> identifiers = mDataHandler.getStore().thirdPartyIdentifiers();
             for (ThirdPartyIdentifier identifier : identifiers) {
                 switch (identifier.medium) {
                     case ThreePid.MEDIUM_EMAIL:
