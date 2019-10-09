@@ -314,7 +314,9 @@ public class MyUser extends User {
                     // local value
                     displayname = aDisplayname;
                     // store metadata
-                    mDataHandler.getStore().setDisplayName(aDisplayname, System.currentTimeMillis());
+                    if (mDataHandler.getStore() != null) {
+                        mDataHandler.getStore().setDisplayName(aDisplayname, System.currentTimeMillis());
+                    }
 
                     mIsDisplayNameRefreshed = true;
 
