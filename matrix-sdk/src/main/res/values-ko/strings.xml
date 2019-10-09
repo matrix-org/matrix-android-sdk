@@ -52,7 +52,7 @@
     <string name="notice_crypto_unable_to_decrypt">** 암호를 해독할 수 없음: %s **</string>
     <string name="notice_crypto_error_unkwown_inbound_session_id">발신인의 기기에서 이 메시지의 키를 보내지 않았습니다.</string>
 
-    <string name="message_reply_to_prefix">질문한 사람</string>
+    <string name="message_reply_to_prefix">관련 대화</string>
 
     <string name="could_not_redact">검열할 수 없습니다</string>
     <string name="unable_to_send_message">메시지를 보낼 수 없습니다</string>
@@ -170,4 +170,5 @@
     <string name="event_status_sending_message">메시지 보내는 중…</string>
     <string name="clear_timeline_send_queue">전송 대기 열 지우기</string>
 
-</resources>
+<string name="notice_room_third_party_revoked_invite">%1$s님이 %2$s님에게 방에 참가하라고 보낸 초대를 취소했습니다</string>
+    </resources>

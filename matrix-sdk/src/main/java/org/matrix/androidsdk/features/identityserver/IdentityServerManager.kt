@@ -74,7 +74,7 @@ class IdentityServerManager(val mxSession: MXSession,
                 if (accountDataElement.type == AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER) {
                     // The identity server has been updated
                     val accountDataIdentityServer =
-                            mxSession.dataHandler.store.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER)
+                            mxSession.dataHandler.store?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER)
 
                     accountDataIdentityServer?.content?.let {
                         localSetIdentityServerUrl(it[AccountDataElement.ACCOUNT_DATA_KEY_IDENTITY_SERVER_BASE_URL] as String?)
@@ -124,7 +124,7 @@ class IdentityServerManager(val mxSession: MXSession,
      */
     private fun retrieveIdentityServerUrl(): String? {
         val accountDataIdentityServer =
-                mxSession.dataHandler.store.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER)
+                mxSession.dataHandler.store?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_IDENTITY_SERVER)
 
         accountDataIdentityServer?.content?.let {
             return it[AccountDataElement.ACCOUNT_DATA_KEY_IDENTITY_SERVER_BASE_URL] as String?
@@ -270,12 +270,18 @@ class IdentityServerManager(val mxSession: MXSession,
             identityAuthRestClient = null
             thirdPidRestClient = null
         } else {
-            val alteredHsConfig = HomeServerConnectionConfig.Builder(mxSession.homeServerConfig)
-                    .withIdentityServerUri(Uri.parse(newUrl))
-                    .build()
+            try {
+                val alteredHsConfig = HomeServerConnectionConfig.Builder(mxSession.homeServerConfig)
+                        .withIdentityServerUri(Uri.parse(newUrl))
+                        .build()
 
-            identityAuthRestClient = IdentityAuthRestClient(alteredHsConfig)
-            thirdPidRestClient = ThirdPidRestClient(alteredHsConfig)
+                identityAuthRestClient = IdentityAuthRestClient(alteredHsConfig)
+                thirdPidRestClient = ThirdPidRestClient(alteredHsConfig)
+            } catch (t: Throwable) {
+                Log.e(LOG_TAG, "Failed to create IS Rest clients", t)
+                //What to do from there? this IS is invalid
+                return
+            }
         }
 
         synchronized(listeners) { listeners.forEach { it.onIdentityServerChange() } }
@@ -302,6 +308,11 @@ class IdentityServerManager(val mxSession: MXSession,
     }
 
     private fun requestIdentityServerToken(requestOpenIdTokenResponse: RequestOpenIdTokenResponse, callback: ApiCallback<String>) {
+        if (identityAuthRestClient == null) {
+            callback.onUnexpectedError(IdentityServerNotConfiguredException())
+            return
+        }
+
         identityAuthRestClient?.register(requestOpenIdTokenResponse, object : SimpleApiCallback<IdentityServerRegisterResponse>(callback) {
             override fun onSuccess(info: IdentityServerRegisterResponse) {
                 // Store the token for next time
@@ -596,7 +607,7 @@ class IdentityServerManager(val mxSession: MXSession,
                 override fun onUnexpectedError(e: Exception) {
                     if (e is IdentityServerV2ApiNotAvailable) {
                         //mm ? request to HS?
-                        legacyDeleteAndRequestToken(threePid,callback,idServer)
+                        legacyDeleteAndRequestToken(threePid, callback, idServer)
                     } else {
                         super.onUnexpectedError(e)
                     }
@@ -659,7 +670,7 @@ class IdentityServerManager(val mxSession: MXSession,
                 override fun onUnexpectedError(e: Exception) {
                     if (e is IdentityServerV2ApiNotAvailable) {
                         //mm ? request to HS?
-                        legacyDeleteAndAddMsisdn(threePid,callback,idServer)
+                        legacyDeleteAndAddMsisdn(threePid, callback, idServer)
                     } else {
                         super.onUnexpectedError(e)
                     }
