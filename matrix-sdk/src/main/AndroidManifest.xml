@@ -27,6 +27,5 @@
     <application
         android:supportsRtl="true"
         android:usesCleartextTraffic="true">
-        <receiver android:name=".sync.EventsThread$SyncDelayReceiver" />
     </application>
 </manifest>

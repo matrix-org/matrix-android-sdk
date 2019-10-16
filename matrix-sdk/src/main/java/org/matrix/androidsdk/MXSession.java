@@ -948,7 +948,7 @@ public class MXSession implements CryptoSession {
 
             final EventsThreadListener fEventsListener = (null == anEventsListener) ? new DefaultEventsThreadListener(mDataHandler) : anEventsListener;
 
-            mEventsThread = new EventsThread(mContext, mEventsRestClient, fEventsListener, initialToken);
+            mEventsThread = new EventsThread(mEventsRestClient, fEventsListener, initialToken);
             setSyncFilter(mCurrentFilter);
             mEventsThread.setMetricsListener(mMetricsListener);
             mEventsThread.setNetworkConnectivityReceiver(networkConnectivityReceiver);
