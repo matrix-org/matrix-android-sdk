@@ -172,5 +172,5 @@
     <string name="event_status_sending_message">Bericht wor verstuurd…</string>
     <string name="clear_timeline_send_queue">Uutgoande wachtreeke leegn</string>
 
-<string name="notice_room_third_party_revoked_invite">%1$s èt d’uutnodigienge vo %2$s vo ’t gesprek toe te treedn ingetrokkn</string>
-    </resources>
+    <string name="notice_room_third_party_revoked_invite">%1$s èt d’uutnodigienge vo %2$s vo ’t gesprek toe te treedn ingetrokkn</string>
+</resources>

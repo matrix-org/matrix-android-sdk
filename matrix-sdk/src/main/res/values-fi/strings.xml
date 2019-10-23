@@ -173,5 +173,5 @@
     <string name="event_status_sending_message">Lähetetään viestiä…</string>
     <string name="clear_timeline_send_queue">Tyhjennä lähetysjono</string>
 
-<string name="notice_room_third_party_revoked_invite">%1$s veti takaisin käyttäjän %2$s liittymiskutsun huoneeseen</string>
-    </resources>
+    <string name="notice_room_third_party_revoked_invite">%1$s veti takaisin käyttäjän %2$s liittymiskutsun huoneeseen</string>
+</resources>
