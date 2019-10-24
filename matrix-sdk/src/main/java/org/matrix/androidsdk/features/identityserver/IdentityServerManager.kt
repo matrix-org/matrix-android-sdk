@@ -21,6 +21,7 @@ import android.net.Uri
 import android.text.TextUtils
 import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.MXSession
+import org.matrix.androidsdk.core.JsonUtils
 import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.MXPatterns
 import org.matrix.androidsdk.core.callback.ApiCallback
@@ -38,6 +39,7 @@ import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse
 import org.matrix.androidsdk.rest.model.SuccessResult
 import org.matrix.androidsdk.rest.model.identityserver.HashDetailResponse
 import org.matrix.androidsdk.rest.model.identityserver.IdentityServerRegisterResponse
+import org.matrix.androidsdk.rest.model.login.AuthParams
 import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse
 import org.matrix.androidsdk.rest.model.pid.Invite3Pid
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier
@@ -550,7 +552,10 @@ class IdentityServerManager(val mxSession: MXSession,
 
     }
 
-    fun finalizeAddSessionForEmail(threePid: ThreePid, callback: ApiCallback<Void?>) {
+    /**
+     * @param callback the boolean indicates if the user should be prompted to authenticate to complete the action
+     */
+    fun finalize3pidAddSession(threePid: ThreePid, auth: AuthParams?, callback: ApiCallback<Void?>) {
         val idServer = identityServerStripProtocol()
         if (idServer == null && doesServerRequiresIdentityServer) {
             //we need an id server
@@ -558,13 +563,29 @@ class IdentityServerManager(val mxSession: MXSession,
             return
         }
         if (doesServerSeparatesAddAndBind) {
-            mxSession.profileApiClient.add3PID(threePid,
+            /// Make a first request to start user-interactive authentication
+            mxSession.profileApiClient.add3PID(threePid, auth?.takeIf { auth.session != null },
                     object : SimpleApiCallback<Void?>(callback) {
                         override fun onSuccess(info: Void?) {
                             mxSession.myUser.refreshThirdPartyIdentifiers()
                             callback.onSuccess(null)
                         }
 
+                        override fun onMatrixError(e: MatrixError) {
+                            if (auth != null) {
+                                if (e.mStatus == 401) {
+                                    if (e.errcode == null && e.mErrorBodyAsString.isNullOrBlank().not()) {
+                                        JsonUtils.toRegistrationFlowResponse(e.mErrorBodyAsString).session?.let {
+                                            // Retry but authenticated
+                                            auth.session = it
+                                            finalize3pidAddSession(threePid, auth, callback)
+                                            return
+                                        }
+                                    }
+                                }
+                            }
+                            super.onMatrixError(e)
+                        }
                     })
         } else {
             mxSession.profileApiClient.add3PIDLegacy(identityServerStripProtocol(), threePid, false,
@@ -574,6 +595,36 @@ class IdentityServerManager(val mxSession: MXSession,
                             callback.onSuccess(null)
                         }
                     })
+        }
+    }
+
+    /**
+     * Use this to check if a given authentication flow is supported by your homeserver for adding 3pid
+     * @param flow eg LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD
+     * @param done returns true if the given flow is supported (or null if no interactive auth is needed)
+     */
+    fun checkAdd3pidInteractiveFlow(stages: List<String>, callback: ApiCallback<Boolean?>) {
+        if (doesServerSeparatesAddAndBind) {
+            mxSession.profileApiClient.add3PID(ThreePid("", "").apply { sid = "" }, null,
+                    object : SimpleApiCallback<Void?>(callback) {
+                        override fun onSuccess(info: Void?) {
+                            callback.onUnexpectedError(Exception(""))
+                        }
+
+                        override fun onMatrixError(e: MatrixError) {
+                            if (e.mStatus == 401 && e.mErrorBodyAsString.isNullOrBlank().not()) {
+                                JsonUtils.toRegistrationFlowResponse(e.mErrorBodyAsString).flows?.let { flowList ->
+                                    callback.onSuccess(flowList.any {
+                                        it.stages == stages
+                                    })
+                                    return
+                                }
+                            }
+                            callback.onSuccess(null)
+                        }
+                    })
+        } else {
+            callback.onSuccess(null)
         }
     }
 
