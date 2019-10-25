@@ -11,7 +11,7 @@ Bugfix:
  -
 
 API Change:
- -
+ - /account/3pid/add requires user interactive Auth
 
 Translations:
  -
