@@ -17,6 +17,8 @@
 package org.matrix.androidsdk.rest.model;
 
 
+import org.matrix.androidsdk.rest.model.login.AuthParams;
+
 public class AddThreePidsParams {
 
     // the 3 pids sid
@@ -24,4 +26,7 @@ public class AddThreePidsParams {
 
     // a secret key
     public String client_secret;
+
+    // current account information
+    public AuthParams auth;
 }

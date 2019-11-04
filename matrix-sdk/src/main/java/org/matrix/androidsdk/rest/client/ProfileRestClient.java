@@ -42,6 +42,7 @@ import org.matrix.androidsdk.rest.model.SuccessResult;
 import org.matrix.androidsdk.rest.model.ThreePidCreds;
 import org.matrix.androidsdk.rest.model.Unbind3pidParams;
 import org.matrix.androidsdk.rest.model.User;
+import org.matrix.androidsdk.rest.model.login.AuthParams;
 import org.matrix.androidsdk.rest.model.login.AuthParamsEmailIdentity;
 import org.matrix.androidsdk.rest.model.login.AuthParamsLoginPassword;
 import org.matrix.androidsdk.rest.model.login.ThreePidCredentials;
@@ -482,19 +483,20 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                 }));
     }
 
-    public void add3PID(final ThreePid pid, final ApiCallback<Void> callback) {
+    public void add3PID(final ThreePid pid, final AuthParams auth, final ApiCallback<Void> callback) {
         final String description = "add3PID";
 
         AddThreePidsParams params = new AddThreePidsParams();
 
         params.sid = pid.getSid();
         params.client_secret = pid.getClientSecret();
+        params.auth = auth;
 
         mApi.add3PIDMSC2290(params)
                 .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        add3PID(pid, callback);
+                        add3PID(pid, auth, callback);
                     }
                 }));
     }
