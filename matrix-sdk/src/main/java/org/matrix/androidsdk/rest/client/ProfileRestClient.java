@@ -483,7 +483,7 @@ public class ProfileRestClient extends RestClient<ProfileApi> {
                 }));
     }
 
-    public void add3PID(final ThreePid pid, final AuthParams auth,  final ApiCallback<Void> callback) {
+    public void add3PID(final ThreePid pid, final AuthParams auth, final ApiCallback<Void> callback) {
         final String description = "add3PID";
 
         AddThreePidsParams params = new AddThreePidsParams();
