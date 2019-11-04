@@ -605,7 +605,7 @@ class IdentityServerManager(val mxSession: MXSession,
      */
     fun checkAdd3pidInteractiveFlow(stages: List<String>, callback: ApiCallback<Boolean?>) {
         if (doesServerSeparatesAddAndBind) {
-            mxSession.profileApiClient.add3PID(ThreePid("", "").apply { sid = "" }, null,
+            mxSession.profileApiClient.add3PID(ThreePid("", "", sid = "" }, null,
                     object : SimpleApiCallback<Void?>(callback) {
                         override fun onSuccess(info: Void?) {
                             callback.onUnexpectedError(Exception(""))
