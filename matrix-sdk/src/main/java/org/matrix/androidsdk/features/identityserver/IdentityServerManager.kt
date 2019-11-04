@@ -66,6 +66,12 @@ class IdentityServerManager(val mxSession: MXSession,
     var doesServerAcceptIdentityAccessToken: Boolean = false
     var doesServerSeparatesAddAndBind: Boolean = true
 
+    enum class SupportedFlowResult {
+        SUPPORTED,
+        NOT_SUPPORTED,
+        INTERACTIVE_AUTH_NOT_SUPPORTED
+    }
+
 
     init {
         localSetIdentityServerUrl(retrieveIdentityServerUrl())
@@ -553,7 +559,8 @@ class IdentityServerManager(val mxSession: MXSession,
     }
 
     /**
-     * @param callback the boolean indicates if the user should be prompted to authenticate to complete the action
+     * Check the server flags and call the correct API to add a 3pid.
+     * @param auth Recent server API will require the user to authenticate again to perform this action.
      */
     fun finalize3pidAddSession(threePid: ThreePid, auth: AuthParams?, callback: ApiCallback<Void?>) {
         val idServer = identityServerStripProtocol()
@@ -572,16 +579,17 @@ class IdentityServerManager(val mxSession: MXSession,
                         }
 
                         override fun onMatrixError(e: MatrixError) {
-                            if (auth != null) {
-                                if (e.mStatus == 401) {
-                                    if (e.errcode == null && e.mErrorBodyAsString.isNullOrBlank().not()) {
-                                        JsonUtils.toRegistrationFlowResponse(e.mErrorBodyAsString).session?.let {
-                                            // Retry but authenticated
-                                            auth.session = it
-                                            finalize3pidAddSession(threePid, auth, callback)
-                                            return
-                                        }
-                                    }
+                            if (auth != null
+                                    /* Avoid infinite loop */
+                                    && auth.session.isNullOrEmpty()
+                                    && e.mStatus == HttpsURLConnection.HTTP_UNAUTHORIZED /* 401 */
+                                    && e.errcode == null
+                                    && e.mErrorBodyAsString.isNullOrBlank().not()) {
+                                JsonUtils.toRegistrationFlowResponse(e.mErrorBodyAsString).session?.let {
+                                    // Retry but authenticated
+                                    auth.session = it
+                                    finalize3pidAddSession(threePid, auth, callback)
+                                    return
                                 }
                             }
                             super.onMatrixError(e)
@@ -600,12 +608,13 @@ class IdentityServerManager(val mxSession: MXSession,
 
     /**
      * Use this to check if a given authentication flow is supported by your homeserver for adding 3pid
-     * @param flow eg LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD
-     * @param done returns true if the given flow is supported (or null if no interactive auth is needed)
+     * @param stages eg list of stages to check eg listOf(LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD)
+     * @param done returns #SUPPORTED/#NOT_SUPPORTED if the flow is supported/not supported and #INTERACTIVE_AUTH_NOT_SUPPORTED
+     * if the server does not require the user to authenticate again to add 3pid
      */
-    fun checkAdd3pidInteractiveFlow(stages: List<String>, callback: ApiCallback<Boolean?>) {
+    fun checkAdd3pidInteractiveFlow(stages: List<String>, callback: ApiCallback<SupportedFlowResult>) {
         if (doesServerSeparatesAddAndBind) {
-            mxSession.profileApiClient.add3PID(ThreePid("", "", sid = "" }, null,
+            mxSession.profileApiClient.add3PID(ThreePid("", "", sid = ""), null,
                     object : SimpleApiCallback<Void?>(callback) {
                         override fun onSuccess(info: Void?) {
                             callback.onUnexpectedError(Exception(""))
@@ -614,17 +623,21 @@ class IdentityServerManager(val mxSession: MXSession,
                         override fun onMatrixError(e: MatrixError) {
                             if (e.mStatus == 401 && e.mErrorBodyAsString.isNullOrBlank().not()) {
                                 JsonUtils.toRegistrationFlowResponse(e.mErrorBodyAsString).flows?.let { flowList ->
-                                    callback.onSuccess(flowList.any {
-                                        it.stages == stages
-                                    })
+                                    callback.onSuccess(
+                                            if (flowList.any { it.stages == stages }) {
+                                                SupportedFlowResult.SUPPORTED
+                                            } else {
+                                                SupportedFlowResult.NOT_SUPPORTED
+                                            }
+                                    )
                                     return
                                 }
                             }
-                            callback.onSuccess(null)
+                            callback.onSuccess(SupportedFlowResult.INTERACTIVE_AUTH_NOT_SUPPORTED)
                         }
                     })
         } else {
-            callback.onSuccess(null)
+            callback.onSuccess(SupportedFlowResult.INTERACTIVE_AUTH_NOT_SUPPORTED)
         }
     }
 
