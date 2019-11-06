@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - Integration Manager preferences are now manage by SDK
 
 Bugfix:
  -
