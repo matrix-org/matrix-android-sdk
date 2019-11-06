@@ -22,13 +22,25 @@ import com.google.gson.reflect.TypeToken
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.callback.ApiCallback
+import org.matrix.androidsdk.core.callback.SimpleApiCallback
 import org.matrix.androidsdk.core.model.MatrixError
 import org.matrix.androidsdk.listeners.MXEventListener
 import org.matrix.androidsdk.login.AutoDiscovery
 import org.matrix.androidsdk.rest.model.WellKnownManagerConfig
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement
 
-
+/**
+ * The integration manager allows to
+ *  - Get the Integration Manager that a user has explicitly set for its account (via account data)
+ *  - Get the recommended/preferred Integration Manager list as defined by the HomeServer (via wellknown)
+ *  - Check if the user has disabled the integration manager feature
+ *  - Allow / Disallow Integration manager (propagated to other riot clients)
+ *
+ *  The integration manager listen to account data, and can notify observer for changes.
+ *
+ *  The wellknown is refreshed at each application fresh start
+ *
+ */
 class IntegrationManager(val mxSession: MXSession, val context: Context) {
 
 
@@ -62,6 +74,18 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
     private val listeners = HashSet<IntegrationManagerManagerListener>()
     fun addListener(listener: IntegrationManagerManagerListener) = synchronized(listeners) { listeners.add(listener) }
     fun removeListener(listener: IntegrationManagerManagerListener) = synchronized(listeners) { listeners.remove(listener) }
+
+    fun enableIntegrationManagerUsage(allowed: Boolean, callback: ApiCallback<Void>) {
+        mxSession.enableIntegrationManagerUsage(allowed, object : SimpleApiCallback<Void>(callback) {
+            override fun onSuccess(info: Void?) {
+                // Optimistic update before account data sync
+                if (integrationAllowed != allowed) {
+                    integrationAllowed = allowed
+                    notifyListeners()
+                }
+            }
+        })
+    }
 
     private val eventListener = object : MXEventListener() {
         override fun onAccountDataUpdated(accountDataElement: AccountDataElement) {
