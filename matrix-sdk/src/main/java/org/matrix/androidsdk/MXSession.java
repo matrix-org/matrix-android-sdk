@@ -2134,6 +2134,13 @@ public class MXSession implements CryptoSession {
         }
     }
 
+    public void enableIntegrationManagerUsage(Boolean enable, ApiCallback<Void> callback) {
+        Map<String, Object> enableImAccountDataEl = new HashMap<>();
+        enableImAccountDataEl.put("enabled", enable);
+
+        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataElement.ACCOUNT_DATA_TYPE_INTEGRATION_PROVISIONING, enableImAccountDataEl, callback);
+    }
+
     /**
      * @return the network receiver.
      */

@@ -62,7 +62,7 @@ class WellKnown {
     fun getIntegrationManagers(): List<WellKnownManagerConfig> {
         val managers = ArrayList<WellKnownManagerConfig>()
         integrations?.get("managers")?.let {
-            (it as? Array<*>)?.let { configs ->
+            (it as? ArrayList<*>)?.let { configs ->
                 configs.forEach { config ->
                     (config as? Map<*, *>)?.let { map ->
                         val apiUrl = map["api_url"] as? String

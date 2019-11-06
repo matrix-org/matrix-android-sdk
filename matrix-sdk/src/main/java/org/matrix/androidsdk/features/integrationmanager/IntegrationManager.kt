@@ -17,20 +17,43 @@
 package org.matrix.androidsdk.features.integrationmanager
 
 import android.content.Context
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.core.Log
+import org.matrix.androidsdk.core.callback.ApiCallback
+import org.matrix.androidsdk.core.model.MatrixError
 import org.matrix.androidsdk.listeners.MXEventListener
+import org.matrix.androidsdk.login.AutoDiscovery
+import org.matrix.androidsdk.rest.model.WellKnownManagerConfig
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement
 
 
-class IntegrationManager(val mxSession: MXSession, context: Context) {
+class IntegrationManager(val mxSession: MXSession, val context: Context) {
+
+
+    private val PREFS_IM = "IntegrationManager.Storage"
+    private val WELLKNOWN_KEY = "WellKnown"
 
     /**
      * Return the identity server url, either from AccountData if it has been set, or from the local storage
+     * This could return a non null value even if integrationAllowed is false, so always check integrationAllowed
+     * before using it
      */
     var integrationServerConfig: IntegrationManagerConfig? = retrieveIntegrationServerConfig()
         private set
 
+    /**
+     * Returns false if the user as disabled integration manager feature
+     */
+    var integrationAllowed = true
+        private set
+
+
+    fun getWellKnownIntegrationManagerConfigs(): List<WellKnownManagerConfig> {
+        //TODO check the 8h refresh for refresh
+        return getStoreWellknownIM()
+    }
 
     interface IntegrationManagerManagerListener {
         fun onIntegrationManagerChange(managerConfig: IntegrationManager)
@@ -40,31 +63,89 @@ class IntegrationManager(val mxSession: MXSession, context: Context) {
     fun addListener(listener: IntegrationManagerManagerListener) = synchronized(listeners) { listeners.add(listener) }
     fun removeListener(listener: IntegrationManagerManagerListener) = synchronized(listeners) { listeners.remove(listener) }
 
-    init {
-        mxSession.dataHandler.addListener(object : MXEventListener() {
-            override fun onAccountDataUpdated(accountDataElement: AccountDataElement) {
-                if (accountDataElement.type == AccountDataElement.ACCOUNT_DATA_TYPE_WIDGETS) {
-                    // The integration server has been updated
-                    val accountWidgets =
-                            mxSession.dataHandler.store?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_WIDGETS)
+    private val eventListener = object : MXEventListener() {
+        override fun onAccountDataUpdated(accountDataElement: AccountDataElement) {
+            if (accountDataElement.type == AccountDataElement.ACCOUNT_DATA_TYPE_WIDGETS) {
+                // The integration server has been updated
+                val accountWidgets =
+                        mxSession.dataHandler.store?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_WIDGETS)
 
-                    val integrationManager = accountWidgets?.content?.filter {
-                        val widgetContent = it.value as? Map<*, *>
-                        (widgetContent?.get("content") as? Map<*, *>)?.get("type") == INTEGRATION_MANAGER_WIDGET
-                    }?.entries?.first()
+                val integrationManager = accountWidgets?.content?.filter {
+                    val widgetContent = it.value as? Map<*, *>
+                    (widgetContent?.get("content") as? Map<*, *>)?.get("type") == INTEGRATION_MANAGER_WIDGET
+                }?.entries?.firstOrNull()
 
-                    val config = getConfigFromData(integrationManager)
-                    if (config != integrationServerConfig) {
-                        localSetIntegrationManagerConfig(config)
-                    }
+                val config = getConfigFromData(integrationManager)
+                if (config != integrationServerConfig) {
+                    localSetIntegrationManagerConfig(config)
                 }
             }
 
-            override fun onStoreReady() {
-                localSetIntegrationManagerConfig(retrieveIntegrationServerConfig())
+            if (accountDataElement.type == AccountDataElement.ACCOUNT_DATA_TYPE_INTEGRATION_PROVISIONING) {
+                val newValue = mxSession.dataHandler
+                        .store
+                        ?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_INTEGRATION_PROVISIONING)
+                        ?.content?.get("enabled") == true
+                if (integrationAllowed != newValue) {
+                    integrationAllowed = newValue
+                    notifyListeners()
+                }
+
             }
-        })
+        }
+
+        override fun onStoreReady() {
+            localSetIntegrationManagerConfig(retrieveIntegrationServerConfig())
+        }
     }
+
+    init {
+
+        //All listeners are cleared when session is closed, so no need to release this?
+        mxSession.dataHandler.addListener(eventListener)
+
+        //Refresh wellknown im if needed
+        AutoDiscovery().getServerPreferredIntegrationManagers(mxSession.homeServerConfig.homeserverUri.toString(),
+                object : ApiCallback<List<WellKnownManagerConfig>> {
+                    override fun onSuccess(info: List<WellKnownManagerConfig>) {
+                        setStoreWellknownIM(info)
+                    }
+
+                    override fun onUnexpectedError(e: Exception?) {
+                    }
+
+                    override fun onNetworkError(e: Exception?) {
+                    }
+
+                    override fun onMatrixError(e: MatrixError?) {
+                    }
+
+                })
+    }
+
+    private fun getStoreWellknownIM(): List<WellKnownManagerConfig> {
+        val prefs = context.getSharedPreferences(PREFS_IM, Context.MODE_PRIVATE)
+        return prefs.getString(WELLKNOWN_KEY, null)?.let {
+            try {
+                Gson().fromJson<List<WellKnownManagerConfig>>(it,
+                        object : TypeToken<List<WellKnownManagerConfig>>() {}.type)
+            } catch (any: Throwable) {
+                emptyList<WellKnownManagerConfig>()
+            }
+        } ?: emptyList<WellKnownManagerConfig>()
+
+    }
+
+    private fun setStoreWellknownIM(list: List<WellKnownManagerConfig>) {
+        val prefs = context.getSharedPreferences(PREFS_IM, Context.MODE_PRIVATE)
+        try {
+            val serialized = Gson().toJson(list)
+            prefs.edit().putString(WELLKNOWN_KEY, serialized).apply()
+        } catch (any: Throwable) {
+            //nop
+        }
+    }
+
 
     private fun localSetIntegrationManagerConfig(config: IntegrationManagerConfig?) {
         integrationServerConfig = config
@@ -90,7 +171,7 @@ class IntegrationManager(val mxSession: MXSession, context: Context) {
         val integrationManager = accountWidgets?.content?.filter {
             val widgetContent = it.value as? Map<*, *>
             (widgetContent?.get("content") as? Map<*, *>)?.get("type") == INTEGRATION_MANAGER_WIDGET
-        }?.entries?.first()
+        }?.entries?.firstOrNull()
 
         return getConfigFromData(integrationManager)
 
@@ -120,7 +201,7 @@ class IntegrationManager(val mxSession: MXSession, context: Context) {
             if (uiUrl.isNullOrBlank().not()) {
                 return IntegrationManagerConfig(uiUrl!!, apiUrl ?: uiUrl)
             } else {
-                return EmptyIntegrationManagerConfig
+                return null
             }
         }
         return null
@@ -131,11 +212,6 @@ class IntegrationManager(val mxSession: MXSession, context: Context) {
 
         private val LOG_TAG = IntegrationManager::class.java.simpleName
 
-        val EmptyIntegrationManagerConfig = IntegrationManagerConfig("", "")
-
     }
 
-}
-fun IntegrationManagerConfig.isEmptyConfig(): Boolean {
-    return this == IntegrationManager.EmptyIntegrationManagerConfig
 }
