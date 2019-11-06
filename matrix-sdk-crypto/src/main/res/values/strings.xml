@@ -36,7 +36,7 @@
     <string name="verification_emoji_robot">Robot</string>
     <string name="verification_emoji_hat">Hat</string>
     <string name="verification_emoji_glasses">Glasses</string>
-    <string name="verification_emoji_wrench">Spanner</string>
+    <string name="verification_emoji_wrench">Wrench</string>
     <string name="verification_emoji_santa">Santa</string>
     <string name="verification_emoji_thumbsup">Thumbs Up</string>
     <string name="verification_emoji_umbrella">Umbrella</string>
@@ -55,7 +55,7 @@
     <string name="verification_emoji_flag">Flag</string>
     <string name="verification_emoji_train">Train</string>
     <string name="verification_emoji_bicycle">Bicycle</string>
-    <string name="verification_emoji_airplane">Aeroplane</string>
+    <string name="verification_emoji_airplane">Airplane</string>
     <string name="verification_emoji_rocket">Rocket</string>
     <string name="verification_emoji_trophy">Trophy</string>
     <string name="verification_emoji_ball">Ball</string>
