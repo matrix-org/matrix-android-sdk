@@ -36,4 +36,9 @@ public class RegistrationParams {
     // Temporary flag to notify the server that we support msisdn flow. Used to prevent old app
     // versions to end up in fallback because the HS returns the msisdn flow which they don't support
     public Boolean x_show_msisdn;
+
+    // optional email binding: If true, the server binds the email used for authentication
+    // to the Matrix ID with the identity server.
+    @Deprecated
+    public Boolean bind_email;
 }
