@@ -32,6 +32,7 @@ public class AccountDataElement implements Serializable {
     public static final String ACCOUNT_DATA_TYPE_ACCEPTED_TERMS = "m.accepted_terms";
     public static final String ACCOUNT_DATA_TYPE_IDENTITY_SERVER = "m.identity_server";
     public static final String ACCOUNT_DATA_TYPE_INTEGRATION_PROVISIONING = "im.vector.setting.integration_provisioning";
+    public static final String ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS = "im.vector.setting.allowed_widgets";
 
     /**
      * Account data known possible values for key in {@link #content}

@@ -44,6 +44,10 @@ import org.matrix.androidsdk.rest.model.sync.AccountDataElement
 class IntegrationManager(val mxSession: MXSession, val context: Context) {
 
 
+    data class WidgetPermission(
+            val stateEventId: String,
+            val allowed: Boolean
+    )
     /**
      * Return the identity server url, either from AccountData if it has been set, or from the local storage
      * This could return a non null value even if integrationAllowed is false, so always check integrationAllowed
@@ -57,6 +61,8 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
      */
     var integrationAllowed = true
         private set
+
+    private var widgetPermissions = emptyList<WidgetPermission>()
 
 
     fun getWellKnownIntegrationManagerConfigs(): List<WellKnownManagerConfig> {
@@ -80,8 +86,49 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                     integrationAllowed = allowed
                     notifyListeners()
                 }
+                callback.onSuccess(null)
             }
         })
+    }
+
+    fun setWidgetAllowed(stateEventId: String, allowed: Boolean, callback: ApiCallback<Void?>?) {
+        val accountDataContent = widgetPermissions
+                //transform list to a map
+                .groupBy {
+                    it.stateEventId
+                }.mapValues {
+                    it.value.first().allowed
+                }.toMutableMap().also {
+                    it[stateEventId] = allowed
+                }
+
+        mxSession.accountDataRestClient.setAccountData(
+                mxSession.myUserId,
+                AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS,
+                HashMap<String, Any>().apply { this["widgets"] = accountDataContent },
+                object : SimpleApiCallback<Void>(callback) {
+                    override fun onSuccess(info: Void?) {
+                        //optimistic update
+                        widgetPermissions =
+                                if (widgetPermissions.any { it.stateEventId == stateEventId }) {
+                                    //modify it
+                                    widgetPermissions.map {
+                                        if (it.stateEventId == stateEventId) {
+                                            it.copy(allowed = allowed)
+                                        } else it
+                                    }
+                                } else {
+                                    //Add it
+                                    widgetPermissions + listOf(WidgetPermission(stateEventId, allowed))
+                                }
+                        notifyListeners()
+                        callback?.onSuccess(null)
+                    }
+                })
+    }
+
+    fun getKnownWidgetPermissions(): List<WidgetPermission> {
+        return widgetPermissions
     }
 
     private val eventListener = object : MXEventListener() {
@@ -100,9 +147,7 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                 if (config != integrationServerConfig) {
                     localSetIntegrationManagerConfig(config)
                 }
-            }
-
-            if (accountDataElement.type == AccountDataElement.ACCOUNT_DATA_TYPE_INTEGRATION_PROVISIONING) {
+            } else if (accountDataElement.type == AccountDataElement.ACCOUNT_DATA_TYPE_INTEGRATION_PROVISIONING) {
                 val newValue = mxSession.dataHandler
                         .store
                         ?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_INTEGRATION_PROVISIONING)
@@ -111,12 +156,27 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                     integrationAllowed = newValue
                     notifyListeners()
                 }
+            } else if (accountDataElement.type == AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS) {
+                // The integration server has been updated
+                val allowedWidgetList = extractWidgetPermissionFromAccountData()
+
+                //Check if there has been a changes in that list
+                val hasChanges = (widgetPermissions + allowedWidgetList)
+                        .groupBy { it.stateEventId }
+                        .any { it.value.size == 1 }
+
+                if (hasChanges) {
+                    widgetPermissions = allowedWidgetList
+                    notifyListeners()
+                }
 
             }
         }
 
         override fun onStoreReady() {
-            localSetIntegrationManagerConfig(retrieveIntegrationServerConfig())
+            localSetIntegrationManagerConfig(retrieveIntegrationServerConfig(), false)
+            widgetPermissions = extractWidgetPermissionFromAccountData()
+            notifyListeners()
         }
     }
 
@@ -144,6 +204,25 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                 })
     }
 
+    private fun extractWidgetPermissionFromAccountData(): List<WidgetPermission> {
+        val widgets = mxSession.dataHandler
+                .store
+                ?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS)
+                ?.content
+                ?.get("widgets")
+        return (widgets as? Map<*, *>)
+                ?.mapNotNull {
+                    (it.key as? String)?.let { eventId ->
+                        (it.value as? Boolean)?.let { allowed ->
+                            WidgetPermission(
+                                    stateEventId = eventId,
+                                    allowed = allowed
+                            )
+                        }
+                    }
+                } ?: emptyList()
+    }
+
     private fun getStoreWellknownIM(): List<WellKnownManagerConfig> {
         val prefs = context.getSharedPreferences(PREFS_IM, Context.MODE_PRIVATE)
         return prefs.getString(WELLKNOWN_KEY, null)?.let {
@@ -168,9 +247,9 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
     }
 
 
-    private fun localSetIntegrationManagerConfig(config: IntegrationManagerConfig?) {
+    private fun localSetIntegrationManagerConfig(config: IntegrationManagerConfig?, notify: Boolean = true) {
         integrationServerConfig = config
-        notifyListeners()
+        if (notify) notifyListeners()
     }
 
     private fun notifyListeners() {
