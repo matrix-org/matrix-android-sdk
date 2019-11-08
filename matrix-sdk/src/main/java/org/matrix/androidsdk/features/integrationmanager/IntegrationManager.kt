@@ -44,9 +44,6 @@ import org.matrix.androidsdk.rest.model.sync.AccountDataElement
 class IntegrationManager(val mxSession: MXSession, val context: Context) {
 
 
-    private val PREFS_IM = "IntegrationManager.Storage"
-    private val WELLKNOWN_KEY = "WellKnown"
-
     /**
      * Return the identity server url, either from AccountData if it has been set, or from the local storage
      * This could return a non null value even if integrationAllowed is false, so always check integrationAllowed
@@ -233,6 +230,8 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
 
     companion object {
         private const val INTEGRATION_MANAGER_WIDGET = "m.integration_manager"
+        private const val PREFS_IM = "IntegrationManager.Storage"
+        private const val WELLKNOWN_KEY = "WellKnown"
 
         private val LOG_TAG = IntegrationManager::class.java.simpleName
 
