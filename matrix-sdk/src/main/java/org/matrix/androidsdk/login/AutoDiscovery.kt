@@ -28,6 +28,7 @@ import org.matrix.androidsdk.rest.client.LoginRestClient
 import org.matrix.androidsdk.rest.client.WellKnownRestClient
 import org.matrix.androidsdk.rest.model.Versions
 import org.matrix.androidsdk.rest.model.WellKnown
+import org.matrix.androidsdk.rest.model.WellKnownManagerConfig
 import java.io.EOFException
 import java.net.MalformedURLException
 import java.net.URL
@@ -193,6 +194,19 @@ class AutoDiscovery {
                     object : SimpleApiCallback<WellKnown>(callback) {
                         override fun onSuccess(info: WellKnown) {
                             callback.onSuccess(info.identityServer?.baseURL)
+                        }
+                    })
+        } else {
+            callback.onUnexpectedError(InvalidParameterException("malformed url"))
+        }
+    }
+
+    fun getServerPreferredIntegrationManagers(homeServerUrl: String, callback: ApiCallback<List<WellKnownManagerConfig>>) {
+        if (homeServerUrl.startsWith("https://")) {
+            wellKnownRestClient.getWellKnown(homeServerUrl.substring("https://".length),
+                    object : SimpleApiCallback<WellKnown>(callback) {
+                        override fun onSuccess(info: WellKnown) {
+                            callback.onSuccess(info.getIntegrationManagers())
                         }
                     })
         } else {
