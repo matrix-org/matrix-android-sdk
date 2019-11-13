@@ -48,6 +48,7 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
             val stateEventId: String,
             val allowed: Boolean
     )
+
     /**
      * Return the identity server url, either from AccountData if it has been set, or from the local storage
      * This could return a non null value even if integrationAllowed is false, so always check integrationAllowed
@@ -163,7 +164,12 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                 //Check if there has been a changes in that list
                 val hasChanges = (widgetPermissions + allowedWidgetList)
                         .groupBy { it.stateEventId }
-                        .any { it.value.size == 1 }
+                        .any {
+                            //If size is one, that means that this event is in one list but not in the other
+                            it.value.size == 1
+                                    // If event is in the 2 lists but with different allowed state
+                                    || it.value[0].allowed != it.value[1].allowed
+                        }
 
                 if (hasChanges) {
                     widgetPermissions = allowedWidgetList
