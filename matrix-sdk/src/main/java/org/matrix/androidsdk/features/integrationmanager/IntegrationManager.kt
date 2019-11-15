@@ -97,31 +97,33 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                 //transform list to a map
                 .groupBy {
                     it.stateEventId
-                }.mapValues {
+                }
+                .mapValues {
                     it.value.first().allowed
-                }.toMutableMap().also {
+                }
+                .toMutableMap()
+                .also {
                     it[stateEventId] = allowed
                 }
 
         mxSession.accountDataRestClient.setAccountData(
                 mxSession.myUserId,
                 AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS,
-                HashMap<String, Any>().apply { this["widgets"] = accountDataContent },
+                mapOf("widgets" to accountDataContent),
                 object : SimpleApiCallback<Void>(callback) {
                     override fun onSuccess(info: Void?) {
                         //optimistic update
                         widgetPermissions =
-                                if (widgetPermissions.any { it.stateEventId == stateEventId }) {
-                                    //modify it
-                                    widgetPermissions.map {
-                                        if (it.stateEventId == stateEventId) {
+                                widgetPermissions.filter { it.stateEventId == stateEventId }
+                                        .takeIf { it.isNotEmpty() }
+                                        ?.map {
+                                            // If found, modify it
                                             it.copy(allowed = allowed)
-                                        } else it
-                                    }
-                                } else {
-                                    //Add it
-                                    widgetPermissions + listOf(WidgetPermission(stateEventId, allowed))
-                                }
+                                        }
+                                        ?: run {
+                                            // Else add it
+                                            widgetPermissions + listOf(WidgetPermission(stateEventId, allowed))
+                                        }
                         notifyListeners()
                         callback?.onSuccess(null)
                     }
@@ -161,7 +163,7 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                 // The integration server has been updated
                 val allowedWidgetList = extractWidgetPermissionFromAccountData()
 
-                //Check if there has been a changes in that list
+                //Check if there has been a change in that list
                 val hasChanges = (widgetPermissions + allowedWidgetList)
                         .groupBy { it.stateEventId }
                         .any {
@@ -175,7 +177,6 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                     widgetPermissions = allowedWidgetList
                     notifyListeners()
                 }
-
             }
         }
 
