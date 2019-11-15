@@ -17,7 +17,7 @@ package org.matrix.androidsdk.rest.api
 
 import org.matrix.androidsdk.rest.model.identityserver.IdentityAccountResponse
 import org.matrix.androidsdk.rest.model.identityserver.IdentityServerRegisterResponse
-import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse
+import org.matrix.androidsdk.rest.model.openid.RegisterOpenIdTokenParams
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -42,7 +42,7 @@ interface IdentityAuthApi {
      * @param body the body content
      */
     @POST("account/register")
-    fun register(@Body requestOpenIdTokenResponse: RequestOpenIdTokenResponse): Call<IdentityServerRegisterResponse>
+    fun register(@Body registerParamsParams: RegisterOpenIdTokenParams): Call<IdentityServerRegisterResponse>
 
     /**
      * unregister to the server

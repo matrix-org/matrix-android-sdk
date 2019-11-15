@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 New Vector Ltd
+ * Copyright 2019 The Matrix.org Foundation C.I.C
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,27 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.matrix.androidsdk.rest.model.openid
 
 import com.google.gson.annotations.SerializedName
 
-/**
- * Ref: https://matrix.org/docs/spec/client_server/latest#post-matrix-client-r0-user-userid-openid-request-token
- */
-data class RequestOpenIdTokenResponse(
-        /**
-         * Required. An access token the consumer may use to verify the identity of the person who generated the token.
-         * This is given to the federation API GET /openid/userinfo.
-         */
+data class RegisterOpenIdTokenParams(
+
         @JvmField
         @SerializedName("access_token")
-        @Deprecated("Replaced by token")
-        val accessToken: String?,
-
-
-        @JvmField
-        @SerializedName("token")
         val token: String?,
 
         /**
@@ -57,5 +44,14 @@ data class RequestOpenIdTokenResponse(
         @SerializedName("expires_in")
         val expiresIn: Int
 ) {
-    val openIdToken: String = token ?: accessToken ?: ""
+    companion object {
+        fun from(req: RequestOpenIdTokenResponse): RegisterOpenIdTokenParams {
+            return RegisterOpenIdTokenParams(
+                    token = req.openIdToken,
+                    tokenType = req.tokenType,
+                    matrixServerName = req.matrixServerName,
+                    expiresIn = req.expiresIn
+            )
+        }
+    }
 }
