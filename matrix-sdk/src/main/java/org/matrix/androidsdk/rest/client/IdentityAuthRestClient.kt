@@ -23,14 +23,13 @@ import org.matrix.androidsdk.rest.api.IdentityAuthApi
 import org.matrix.androidsdk.rest.callback.RestAdapterCallback
 import org.matrix.androidsdk.rest.model.identityserver.IdentityAccountResponse
 import org.matrix.androidsdk.rest.model.identityserver.IdentityServerRegisterResponse
-import org.matrix.androidsdk.rest.model.openid.RegisterOpenIdTokenParams
 import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse
 
 class IdentityAuthRestClient(hsConfig: HomeServerConnectionConfig) :
         RestClient<IdentityAuthApi>(hsConfig, IdentityAuthApi::class.java, URI_IDENTITY_PATH_V2, JsonUtils.getGson(false), true) {
 
     fun register(openIdTokenResponse: RequestOpenIdTokenResponse, callback: ApiCallback<IdentityServerRegisterResponse>) {
-        mApi.register(RegisterOpenIdTokenParams.from(openIdTokenResponse)).enqueue(RestAdapterCallback("register", null, callback, null))
+        mApi.register(openIdTokenResponse).enqueue(RestAdapterCallback("register", null, callback, null))
     }
 
     fun checkAccount(token: String, callback: ApiCallback<IdentityAccountResponse>) {

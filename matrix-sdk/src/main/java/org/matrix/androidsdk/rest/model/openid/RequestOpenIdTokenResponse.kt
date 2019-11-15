@@ -28,13 +28,7 @@ data class RequestOpenIdTokenResponse(
          */
         @JvmField
         @SerializedName("access_token")
-        @Deprecated("Replaced by token")
-        val accessToken: String?,
-
-
-        @JvmField
-        @SerializedName("token")
-        val token: String?,
+        val openIdToken: String,
 
         /**
          * Required. The string Bearer.
@@ -56,6 +50,4 @@ data class RequestOpenIdTokenResponse(
         @JvmField
         @SerializedName("expires_in")
         val expiresIn: Int
-) {
-    val openIdToken: String = token ?: accessToken ?: ""
-}
+)
