@@ -114,16 +114,8 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                     override fun onSuccess(info: Void?) {
                         //optimistic update
                         widgetPermissions =
-                                widgetPermissions.filter { it.stateEventId == stateEventId }
-                                        .takeIf { it.isNotEmpty() }
-                                        ?.map {
-                                            // If found, modify it
-                                            it.copy(allowed = allowed)
-                                        }
-                                        ?: run {
-                                            // Else add it
-                                            widgetPermissions + listOf(WidgetPermission(stateEventId, allowed))
-                                        }
+                                // Remove existing perm for current widget if any, then add updated state
+                                widgetPermissions.filterNot { it.stateEventId == stateEventId } + listOf(WidgetPermission(stateEventId, allowed))
                         notifyListeners()
                         callback?.onSuccess(null)
                     }
