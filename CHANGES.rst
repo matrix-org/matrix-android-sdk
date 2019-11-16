@@ -2,10 +2,10 @@ Changes to Matrix Android SDK in 0.9.X (2019-XX-XX)
 =======================================================
 
 Features:
- -
+ - Integrations / Manage Widget Permissions in Account Data
 
 Improvements:
- - Integration Manager preferences are now manage by SDK
+ - Integration Manager preferences are now managed by SDK
 
 Bugfix:
  - Crash on Realm crypto DB (vector-im/riot-android#3373)
