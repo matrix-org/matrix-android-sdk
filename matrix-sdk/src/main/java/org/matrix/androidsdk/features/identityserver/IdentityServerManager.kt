@@ -323,6 +323,10 @@ class IdentityServerManager(val mxSession: MXSession,
 
         identityAuthRestClient?.register(requestOpenIdTokenResponse, object : SimpleApiCallback<IdentityServerRegisterResponse>(callback) {
             override fun onSuccess(info: IdentityServerRegisterResponse) {
+                if (info.identityServerAccessToken == null) {
+                    callback.onUnexpectedError(Exception("Missing Access Token"))
+                    return
+                }
                 // Store the token for next time
                 identityServerTokensStore.setToken(mxSession.myUserId, identityServerUrl!!, info.identityServerAccessToken)
 

@@ -9,6 +9,7 @@ Improvements:
 
 Bugfix:
  - Crash on Realm crypto DB (vector-im/riot-android#3373)
+ - Match identity server registration to the IS r0.3.0 spec (#3382)
 
 API Change:
  - /account/3pid/add requires user interactive Auth
