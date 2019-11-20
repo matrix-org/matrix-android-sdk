@@ -49,6 +49,11 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
             val allowed: Boolean
     )
 
+    data class DomainPermission(
+            val domain: String,
+            val allowed: Boolean
+    )
+
     /**
      * Return the identity server url, either from AccountData if it has been set, or from the local storage
      * This could return a non null value even if integrationAllowed is false, so always check integrationAllowed
@@ -64,6 +69,7 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
         private set
 
     private var widgetPermissions = emptyList<WidgetPermission>()
+    private var videoConfDomainPermissions = emptyList<DomainPermission>()
 
 
     fun getWellKnownIntegrationManagerConfigs(): List<WellKnownManagerConfig> {
@@ -106,17 +112,66 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                     it[stateEventId] = allowed
                 }
 
+        val updatedMap = (
+                mxSession.dataHandler.store
+                        ?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS)
+                        ?.content ?: HashMap()
+                ).apply {
+            set("widgets", accountDataContent)
+        }
+
+        //optimistic update
+        widgetPermissions =
+                // Remove existing perm for current widget if any, then add updated state
+                widgetPermissions.filterNot { it.stateEventId == stateEventId } + listOf(WidgetPermission(stateEventId, allowed))
+        notifyListeners()
+
         mxSession.accountDataRestClient.setAccountData(
                 mxSession.myUserId,
                 AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS,
-                mapOf("widgets" to accountDataContent),
+                updatedMap,
                 object : SimpleApiCallback<Void>(callback) {
                     override fun onSuccess(info: Void?) {
-                        //optimistic update
-                        widgetPermissions =
-                                // Remove existing perm for current widget if any, then add updated state
-                                widgetPermissions.filterNot { it.stateEventId == stateEventId } + listOf(WidgetPermission(stateEventId, allowed))
-                        notifyListeners()
+                        callback?.onSuccess(null)
+                    }
+                })
+    }
+
+    fun seVideoConfDomainAllowed(domain: String, allowed: Boolean, callback: ApiCallback<Void?>?) {
+        val accountDataContent = videoConfDomainPermissions
+                //transform list to a map
+                .groupBy {
+                    it.domain
+                }
+                .mapValues {
+                    it.value.first().allowed
+                }
+                .toMutableMap()
+                .also {
+                    it[domain] = allowed
+                }
+
+        //Avoid to override delete unknwon keys
+        val updatedMap = (
+                mxSession.dataHandler.store
+                        ?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS)
+                        ?.content ?: HashMap()
+                ).apply {
+            set("jitsi", accountDataContent)
+        }
+
+        //optimistic update
+        videoConfDomainPermissions =
+                // Remove existing perm for current widget if any, then add updated state
+                videoConfDomainPermissions.filterNot { it.domain == domain } + listOf(DomainPermission(domain, allowed))
+        notifyListeners()
+
+        mxSession.accountDataRestClient.setAccountData(
+                mxSession.myUserId,
+                AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS,
+                updatedMap,
+                object : SimpleApiCallback<Void>(callback) {
+                    override fun onSuccess(info: Void?) {
                         callback?.onSuccess(null)
                     }
                 })
@@ -124,6 +179,14 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
 
     fun getKnownWidgetPermissions(): List<WidgetPermission> {
         return widgetPermissions
+    }
+
+    fun getKnownVideoConfDomainPermissions(): List<DomainPermission> {
+        return videoConfDomainPermissions
+    }
+
+    fun isVideoConfDomainAllowed(domain: String?): Boolean {
+        return videoConfDomainPermissions.find { it.domain == domain }?.allowed ?: false
     }
 
     private val eventListener = object : MXEventListener() {
@@ -154,6 +217,7 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
             } else if (accountDataElement.type == AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS) {
                 // The integration server has been updated
                 val allowedWidgetList = extractWidgetPermissionFromAccountData()
+                val allowedJitsiDomaintList = extractJitsiDomainPermissionFromAccountData()
 
                 //Check if there has been a change in that list
                 val hasChanges = (widgetPermissions + allowedWidgetList)
@@ -164,9 +228,18 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                                     // If event is in the 2 lists but with different allowed state
                                     || it.value[0].allowed != it.value[1].allowed
                         }
+                        || (videoConfDomainPermissions + allowedJitsiDomaintList)
+                        .groupBy { it.domain }
+                        .any {
+                            //If size is one, that means that this event is in one list but not in the other
+                            it.value.size == 1
+                                    // If event is in the 2 lists but with different allowed state
+                                    || it.value[0].allowed != it.value[1].allowed
+                        }
 
                 if (hasChanges) {
                     widgetPermissions = allowedWidgetList
+                    videoConfDomainPermissions = allowedJitsiDomaintList
                     notifyListeners()
                 }
             }
@@ -221,6 +294,26 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                     }
                 } ?: emptyList()
     }
+
+    private fun extractJitsiDomainPermissionFromAccountData(): List<DomainPermission> {
+        val jitsiDomain = mxSession.dataHandler
+                .store
+                ?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS)
+                ?.content
+                ?.get("jitsi")
+        return (jitsiDomain as? Map<*, *>)
+                ?.mapNotNull {
+                    (it.key as? String)?.let { domain ->
+                        (it.value as? Boolean)?.let { allowed ->
+                            DomainPermission(
+                                    domain = domain,
+                                    allowed = allowed
+                            )
+                        }
+                    }
+                } ?: emptyList()
+    }
+
 
     private fun getStoreWellknownIM(): List<WellKnownManagerConfig> {
         val prefs = context.getSharedPreferences(PREFS_IM, Context.MODE_PRIVATE)
