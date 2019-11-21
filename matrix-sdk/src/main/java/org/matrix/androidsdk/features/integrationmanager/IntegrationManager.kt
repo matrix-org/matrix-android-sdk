@@ -86,13 +86,14 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
     fun removeListener(listener: IntegrationManagerManagerListener) = synchronized(listeners) { listeners.remove(listener) }
 
     fun enableIntegrationManagerUsage(allowed: Boolean, callback: ApiCallback<Void>) {
+        // Optimistic update before account data sync
+        if (integrationAllowed != allowed) {
+            integrationAllowed = allowed
+            notifyListeners()
+        }
+        
         mxSession.enableIntegrationManagerUsage(allowed, object : SimpleApiCallback<Void>(callback) {
             override fun onSuccess(info: Void?) {
-                // Optimistic update before account data sync
-                if (integrationAllowed != allowed) {
-                    integrationAllowed = allowed
-                    notifyListeners()
-                }
                 callback.onSuccess(null)
             }
         })
