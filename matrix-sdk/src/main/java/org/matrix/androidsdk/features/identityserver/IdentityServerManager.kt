@@ -21,6 +21,7 @@ import android.net.Uri
 import android.text.TextUtils
 import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.MXSession
+import org.matrix.androidsdk.core.JsonUtils
 import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.MXPatterns
 import org.matrix.androidsdk.core.callback.ApiCallback
@@ -38,6 +39,7 @@ import org.matrix.androidsdk.rest.model.RequestPhoneNumberValidationResponse
 import org.matrix.androidsdk.rest.model.SuccessResult
 import org.matrix.androidsdk.rest.model.identityserver.HashDetailResponse
 import org.matrix.androidsdk.rest.model.identityserver.IdentityServerRegisterResponse
+import org.matrix.androidsdk.rest.model.login.AuthParams
 import org.matrix.androidsdk.rest.model.openid.RequestOpenIdTokenResponse
 import org.matrix.androidsdk.rest.model.pid.Invite3Pid
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier
@@ -63,6 +65,12 @@ class IdentityServerManager(val mxSession: MXSession,
     var doesServerRequiresIdentityServer: Boolean = true
     var doesServerAcceptIdentityAccessToken: Boolean = false
     var doesServerSeparatesAddAndBind: Boolean = true
+
+    enum class SupportedFlowResult {
+        SUPPORTED,
+        NOT_SUPPORTED,
+        INTERACTIVE_AUTH_NOT_SUPPORTED
+    }
 
 
     init {
@@ -315,6 +323,10 @@ class IdentityServerManager(val mxSession: MXSession,
 
         identityAuthRestClient?.register(requestOpenIdTokenResponse, object : SimpleApiCallback<IdentityServerRegisterResponse>(callback) {
             override fun onSuccess(info: IdentityServerRegisterResponse) {
+                if (info.identityServerAccessToken == null) {
+                    callback.onUnexpectedError(Exception("Missing Access Token"))
+                    return
+                }
                 // Store the token for next time
                 identityServerTokensStore.setToken(mxSession.myUserId, identityServerUrl!!, info.identityServerAccessToken)
 
@@ -550,7 +562,11 @@ class IdentityServerManager(val mxSession: MXSession,
 
     }
 
-    fun finalizeAddSessionForEmail(threePid: ThreePid, callback: ApiCallback<Void?>) {
+    /**
+     * Check the server flags and call the correct API to add a 3pid.
+     * @param auth Recent server API will require the user to authenticate again to perform this action.
+     */
+    fun finalize3pidAddSession(threePid: ThreePid, auth: AuthParams?, callback: ApiCallback<Void?>) {
         val idServer = identityServerStripProtocol()
         if (idServer == null && doesServerRequiresIdentityServer) {
             //we need an id server
@@ -558,13 +574,30 @@ class IdentityServerManager(val mxSession: MXSession,
             return
         }
         if (doesServerSeparatesAddAndBind) {
-            mxSession.profileApiClient.add3PID(threePid,
+            /// Make a first request to start user-interactive authentication
+            mxSession.profileApiClient.add3PID(threePid, auth?.takeIf { auth.session != null },
                     object : SimpleApiCallback<Void?>(callback) {
                         override fun onSuccess(info: Void?) {
                             mxSession.myUser.refreshThirdPartyIdentifiers()
                             callback.onSuccess(null)
                         }
 
+                        override fun onMatrixError(e: MatrixError) {
+                            if (auth != null
+                                    /* Avoid infinite loop */
+                                    && auth.session.isNullOrEmpty()
+                                    && e.mStatus == HttpsURLConnection.HTTP_UNAUTHORIZED /* 401 */
+                                    && e.errcode == null
+                                    && e.mErrorBodyAsString.isNullOrBlank().not()) {
+                                JsonUtils.toRegistrationFlowResponse(e.mErrorBodyAsString).session?.let {
+                                    // Retry but authenticated
+                                    auth.session = it
+                                    finalize3pidAddSession(threePid, auth, callback)
+                                    return
+                                }
+                            }
+                            super.onMatrixError(e)
+                        }
                     })
         } else {
             mxSession.profileApiClient.add3PIDLegacy(identityServerStripProtocol(), threePid, false,
@@ -574,6 +607,41 @@ class IdentityServerManager(val mxSession: MXSession,
                             callback.onSuccess(null)
                         }
                     })
+        }
+    }
+
+    /**
+     * Use this to check if a given authentication flow is supported by your homeserver for adding 3pid
+     * @param stages eg list of stages to check eg listOf(LoginRestClient.LOGIN_FLOW_TYPE_PASSWORD)
+     * @param done returns #SUPPORTED/#NOT_SUPPORTED if the flow is supported/not supported and #INTERACTIVE_AUTH_NOT_SUPPORTED
+     * if the server does not require the user to authenticate again to add 3pid
+     */
+    fun checkAdd3pidInteractiveFlow(stages: List<String>, callback: ApiCallback<SupportedFlowResult>) {
+        if (doesServerSeparatesAddAndBind) {
+            mxSession.profileApiClient.add3PID(ThreePid("", "", sid = ""), null,
+                    object : SimpleApiCallback<Void?>(callback) {
+                        override fun onSuccess(info: Void?) {
+                            callback.onUnexpectedError(Exception(""))
+                        }
+
+                        override fun onMatrixError(e: MatrixError) {
+                            if (e.mStatus == 401 && e.mErrorBodyAsString.isNullOrBlank().not()) {
+                                JsonUtils.toRegistrationFlowResponse(e.mErrorBodyAsString).flows?.let { flowList ->
+                                    callback.onSuccess(
+                                            if (flowList.any { it.stages == stages }) {
+                                                SupportedFlowResult.SUPPORTED
+                                            } else {
+                                                SupportedFlowResult.NOT_SUPPORTED
+                                            }
+                                    )
+                                    return
+                                }
+                            }
+                            callback.onSuccess(SupportedFlowResult.INTERACTIVE_AUTH_NOT_SUPPORTED)
+                        }
+                    })
+        } else {
+            callback.onSuccess(SupportedFlowResult.INTERACTIVE_AUTH_NOT_SUPPORTED)
         }
     }
 

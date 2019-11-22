@@ -27,6 +27,17 @@ import com.google.gson.annotations.SerializedName
  *     "m.identity_server": {
  *         "base_url": "https://vector.im"
  *     }
+ *     "m.integrations": {
+ *          "managers": [
+ *              {
+ *                  "api_url": "https://integrations.example.org",
+ *                  "ui_url": "https://integrations.example.org/ui"
+ *              },
+ *              {
+ *                  "api_url": "https://bots.example.org"
+ *              }
+ *          ]
+ *    }
  * }
  * </pre>
  */
@@ -39,4 +50,35 @@ class WellKnown {
     @JvmField
     @SerializedName("m.identity_server")
     var identityServer: WellKnownBaseConfig? = null
+
+
+    @JvmField
+    @SerializedName("m.integrations")
+    var integrations: Map<String, *>? = null
+
+    /**
+     * Returns the list of integration managers proposed
+     */
+    fun getIntegrationManagers(): List<WellKnownManagerConfig> {
+        val managers = ArrayList<WellKnownManagerConfig>()
+        integrations?.get("managers")?.let {
+            (it as? ArrayList<*>)?.let { configs ->
+                configs.forEach { config ->
+                    (config as? Map<*, *>)?.let { map ->
+                        val apiUrl = map["api_url"] as? String
+                        val uiUrl = map["ui_url"] as? String ?: apiUrl
+                        if (apiUrl != null
+                                && apiUrl.startsWith("https://")
+                                && uiUrl!!.startsWith("https://")) {
+                            managers.add(WellKnownManagerConfig(
+                                    apiUrl = apiUrl,
+                                    uiUrl = uiUrl
+                            ))
+                        }
+                    }
+                }
+            }
+        }
+        return managers
+    }
 }

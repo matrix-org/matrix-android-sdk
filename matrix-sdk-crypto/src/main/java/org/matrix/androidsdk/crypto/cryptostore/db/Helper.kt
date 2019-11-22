@@ -50,41 +50,36 @@ fun String.hash() = try {
  * Get realm, invoke the action, close realm, and return the result of the action
  */
 fun <T> doWithRealm(realmConfiguration: RealmConfiguration, action: (Realm) -> T): T {
-    val realm = Realm.getInstance(realmConfiguration)
-    val result = action.invoke(realm)
-    realm.close()
-    return result
+    return Realm.getInstance(realmConfiguration).use {
+        action.invoke(it)
+    }
 }
 
 /**
  * Get realm, do the query, copy from realm, close realm, and return the copied result
  */
 fun <T : RealmObject> doRealmQueryAndCopy(realmConfiguration: RealmConfiguration, action: (Realm) -> T?): T? {
-    val realm = Realm.getInstance(realmConfiguration)
-    val result = action.invoke(realm)
-    val copiedResult = result?.let { realm.copyFromRealm(result) }
-    realm.close()
-    return copiedResult
+    return Realm.getInstance(realmConfiguration).use { realm ->
+        action.invoke(realm)?.let { realm.copyFromRealm(it) }
+    }
 }
 
 /**
  * Get realm, do the list query, copy from realm, close realm, and return the copied result
  */
 fun <T : RealmObject> doRealmQueryAndCopyList(realmConfiguration: RealmConfiguration, action: (Realm) -> Iterable<T>): Iterable<T> {
-    val realm = Realm.getInstance(realmConfiguration)
-    val result = action.invoke(realm)
-    val copiedResult = realm.copyFromRealm(result)
-    realm.close()
-    return copiedResult
+    return Realm.getInstance(realmConfiguration).use { realm ->
+        action.invoke(realm).let { realm.copyFromRealm(it) }
+    }
 }
 
 /**
  * Get realm instance, invoke the action in a transaction and close realm
  */
 fun doRealmTransaction(realmConfiguration: RealmConfiguration, action: (Realm) -> Unit) {
-    val realm = Realm.getInstance(realmConfiguration)
-    realm.executeTransaction { action.invoke(it) }
-    realm.close()
+    Realm.getInstance(realmConfiguration).use { realm ->
+        realm.executeTransaction { action.invoke(it) }
+    }
 }
 
 /**

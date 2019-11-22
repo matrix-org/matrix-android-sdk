@@ -100,7 +100,7 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
 
     override fun open() {
         // Ensure CryptoMetadataEntity is inserted in DB
-        doWithRealm(realmConfiguration) { realm ->
+        doRealmTransaction(realmConfiguration) { realm ->
             var currentMetadata = realm.where<CryptoMetadataEntity>().findFirst()
 
             var deleteAll = false
@@ -118,15 +118,13 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
             }
 
             if (currentMetadata == null) {
-                realm.executeTransaction {
-                    if (deleteAll) {
-                        it.deleteAll()
-                    }
+                if (deleteAll) {
+                    realm.deleteAll()
+                }
 
-                    // Metadata not found, or database cleaned, create it
-                    it.createObject(CryptoMetadataEntity::class.java, credentials.getUserId()).apply {
-                        deviceId = credentials.getDeviceId()
-                    }
+                // Metadata not found, or database cleaned, create it
+                realm.createObject(CryptoMetadataEntity::class.java, credentials.getUserId()).apply {
+                    deviceId = credentials.getDeviceId()
                 }
             }
         }

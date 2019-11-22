@@ -13,22 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.matrix.androidsdk.rest.model
 
-package org.matrix.androidsdk.rest.model.identityserver
 
-import com.google.gson.annotations.SerializedName
-
-data class IdentityServerRegisterResponse(
-
-        @JvmField
-        @SerializedName("access_token")
-        @Deprecated("The spec is `token`, but we used `access_token` for a Sydent release")
-        val accessToken: String? = null,
-
-        @JvmField
-        @SerializedName("token")
-        val token: String? = null
-) {
-    // XXX: The spec is `token`, but we used `access_token` for a Sydent release.
-    val identityServerAccessToken = token ?: accessToken
-}
+data class WellKnownManagerConfig(
+        val apiUrl : String,
+        val uiUrl: String
+)

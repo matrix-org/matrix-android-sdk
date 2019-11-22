@@ -70,6 +70,7 @@ import org.matrix.androidsdk.db.MXLatestChatMessageCache;
 import org.matrix.androidsdk.db.MXMediaCache;
 import org.matrix.androidsdk.features.identityserver.IdentityServerManager;
 import org.matrix.androidsdk.features.identityserver.IdentityServerNotConfiguredException;
+import org.matrix.androidsdk.features.integrationmanager.IntegrationManager;
 import org.matrix.androidsdk.features.terms.TermsManager;
 import org.matrix.androidsdk.groups.GroupsManager;
 import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
@@ -178,6 +179,8 @@ public class MXSession implements CryptoSession {
     private TermsManager termsManager;
 
     private IdentityServerManager mIdentityServerManager;
+
+    private IntegrationManager mIntegrationManager;
 
     private boolean mIsAliveSession = true;
 
@@ -384,6 +387,8 @@ public class MXSession implements CryptoSession {
         termsManager = new TermsManager(this);
 
         mIdentityServerManager = new IdentityServerManager(this, appContext);
+
+        mIntegrationManager = new IntegrationManager(this, appContext);
     }
 
     private void checkIfAlive() {
@@ -567,6 +572,11 @@ public class MXSession implements CryptoSession {
     public IdentityServerManager getIdentityServerManager() {
         checkIfAlive();
         return mIdentityServerManager;
+    }
+
+    public IntegrationManager getIntegrationManager() {
+        checkIfAlive();
+        return mIntegrationManager;
     }
 
     public CallRestClient getCallRestClient() {
@@ -2122,6 +2132,13 @@ public class MXSession implements CryptoSession {
                 updateUsers(userIdsToIgnore, callback);
             }
         }
+    }
+
+    public void enableIntegrationManagerUsage(Boolean enable, ApiCallback<Void> callback) {
+        Map<String, Object> enableImAccountDataEl = new HashMap<>();
+        enableImAccountDataEl.put("enabled", enable);
+
+        mAccountDataRestClient.setAccountData(getMyUserId(), AccountDataElement.ACCOUNT_DATA_TYPE_INTEGRATION_PROVISIONING, enableImAccountDataEl, callback);
     }
 
     /**
