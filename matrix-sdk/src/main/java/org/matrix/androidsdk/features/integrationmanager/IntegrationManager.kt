@@ -22,7 +22,6 @@ import com.google.gson.reflect.TypeToken
 import org.matrix.androidsdk.MXSession
 import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.callback.ApiCallback
-import org.matrix.androidsdk.core.callback.SimpleApiCallback
 import org.matrix.androidsdk.core.model.MatrixError
 import org.matrix.androidsdk.listeners.MXEventListener
 import org.matrix.androidsdk.login.AutoDiscovery
@@ -43,12 +42,6 @@ import org.matrix.androidsdk.rest.model.sync.AccountDataElement
  */
 class IntegrationManager(val mxSession: MXSession, val context: Context) {
 
-
-    data class WidgetPermission(
-            val stateEventId: String,
-            val allowed: Boolean
-    )
-
     /**
      * Return the identity server url, either from AccountData if it has been set, or from the local storage
      * This could return a non null value even if integrationAllowed is false, so always check integrationAllowed
@@ -63,7 +56,20 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
     var integrationAllowed = true
         private set
 
-    private var widgetPermissions = emptyList<WidgetPermission>()
+    /**
+     * Map of stateEventId to Allowed
+     */
+    private var widgetPermissions = emptyMap<String, Boolean>()
+    /**
+     * Map of native widgetType to a map of domain to Allowed
+     * {
+     *      "jitsi" : {
+     *            "jisit.domain.org"  : true,
+     *            "jisit.other.org"  : false
+     *      }
+     * }
+     */
+    private var nativeWidgetPermissions = emptyMap<String, Map<String, Boolean>>()
 
 
     fun getWellKnownIntegrationManagerConfigs(): List<WellKnownManagerConfig> {
@@ -80,50 +86,76 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
     fun removeListener(listener: IntegrationManagerManagerListener) = synchronized(listeners) { listeners.remove(listener) }
 
     fun enableIntegrationManagerUsage(allowed: Boolean, callback: ApiCallback<Void>) {
-        mxSession.enableIntegrationManagerUsage(allowed, object : SimpleApiCallback<Void>(callback) {
-            override fun onSuccess(info: Void?) {
-                // Optimistic update before account data sync
-                if (integrationAllowed != allowed) {
-                    integrationAllowed = allowed
-                    notifyListeners()
-                }
-                callback.onSuccess(null)
-            }
-        })
+        // Optimistic update before account data sync
+        if (integrationAllowed != allowed) {
+            integrationAllowed = allowed
+            notifyListeners()
+        }
+
+        mxSession.enableIntegrationManagerUsage(allowed, callback)
     }
 
     fun setWidgetAllowed(stateEventId: String, allowed: Boolean, callback: ApiCallback<Void?>?) {
-        val accountDataContent = widgetPermissions
-                //transform list to a map
-                .groupBy {
-                    it.stateEventId
-                }
-                .mapValues {
-                    it.value.first().allowed
-                }
-                .toMutableMap()
-                .also {
-                    it[stateEventId] = allowed
-                }
+        val accountDataContent = widgetPermissions.toMutableMap().apply {
+            put(stateEventId, allowed)
+        }
+
+        val updatedMap = (
+                mxSession.dataHandler.store
+                        ?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS)
+                        ?.content ?: HashMap()
+                ).apply {
+            set("widgets", accountDataContent)
+        }
+
+        //optimistic update
+        widgetPermissions = accountDataContent
+        notifyListeners()
 
         mxSession.accountDataRestClient.setAccountData(
                 mxSession.myUserId,
                 AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS,
-                mapOf("widgets" to accountDataContent),
-                object : SimpleApiCallback<Void>(callback) {
-                    override fun onSuccess(info: Void?) {
-                        //optimistic update
-                        widgetPermissions =
-                                // Remove existing perm for current widget if any, then add updated state
-                                widgetPermissions.filterNot { it.stateEventId == stateEventId } + listOf(WidgetPermission(stateEventId, allowed))
-                        notifyListeners()
-                        callback?.onSuccess(null)
-                    }
-                })
+                updatedMap,
+                callback)
     }
 
-    fun getKnownWidgetPermissions(): List<WidgetPermission> {
-        return widgetPermissions
+    fun isWidgetAllowed(stateEventId: String): Boolean {
+        return widgetPermissions[stateEventId] ?: false
+    }
+
+    fun setNativeWidgetDomainAllowed(widgetType: String, domain: String, allowed: Boolean, callback: ApiCallback<Void?>?) {
+        val accountDataContent = nativeWidgetPermissions.toMutableMap().apply {
+            (get(widgetType))?.let {
+                set(widgetType, it.toMutableMap().apply { set(domain, allowed) })
+            } ?: run {
+                set(widgetType, mapOf(domain to allowed))
+            }
+        }
+
+
+        //Avoid to override delete unknwon keys
+        val updatedMap = (
+                mxSession.dataHandler.store
+                        ?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS)
+                        ?.content ?: HashMap()
+                ).apply {
+
+            set("native_widgets", accountDataContent)
+        }
+
+        //optimistic update
+        nativeWidgetPermissions = accountDataContent
+        notifyListeners()
+
+        mxSession.accountDataRestClient.setAccountData(
+                mxSession.myUserId,
+                AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS,
+                updatedMap,
+                callback)
+    }
+
+    fun isNativeWidgetAllowed(widgetType: String, domain: String?): Boolean {
+        return nativeWidgetPermissions[widgetType]?.get(domain) ?: false
     }
 
     private val eventListener = object : MXEventListener() {
@@ -143,10 +175,7 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                     localSetIntegrationManagerConfig(config)
                 }
             } else if (accountDataElement.type == AccountDataElement.ACCOUNT_DATA_TYPE_INTEGRATION_PROVISIONING) {
-                val newValue = mxSession.dataHandler
-                        .store
-                        ?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_INTEGRATION_PROVISIONING)
-                        ?.content?.get("enabled") == true
+                val newValue = extractIntegrationProvisioning()
                 if (integrationAllowed != newValue) {
                     integrationAllowed = newValue
                     notifyListeners()
@@ -154,19 +183,14 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
             } else if (accountDataElement.type == AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS) {
                 // The integration server has been updated
                 val allowedWidgetList = extractWidgetPermissionFromAccountData()
+                val allowedNativeWidgets = extractNativeWidgetsPermissionFromAccountData()
 
-                //Check if there has been a change in that list
-                val hasChanges = (widgetPermissions + allowedWidgetList)
-                        .groupBy { it.stateEventId }
-                        .any {
-                            //If size is one, that means that this event is in one list but not in the other
-                            it.value.size == 1
-                                    // If event is in the 2 lists but with different allowed state
-                                    || it.value[0].allowed != it.value[1].allowed
-                        }
+                val hasChanges = allowedWidgetList != widgetPermissions
+                        || allowedNativeWidgets != nativeWidgetPermissions
 
                 if (hasChanges) {
                     widgetPermissions = allowedWidgetList
+                    nativeWidgetPermissions = allowedNativeWidgets
                     notifyListeners()
                 }
             }
@@ -174,9 +198,18 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
 
         override fun onStoreReady() {
             localSetIntegrationManagerConfig(retrieveIntegrationServerConfig(), false)
+            integrationAllowed = extractIntegrationProvisioning()
             widgetPermissions = extractWidgetPermissionFromAccountData()
+            nativeWidgetPermissions = extractNativeWidgetsPermissionFromAccountData()
             notifyListeners()
         }
+    }
+
+    private fun extractIntegrationProvisioning(): Boolean {
+        return mxSession.dataHandler
+                .store
+                ?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_INTEGRATION_PROVISIONING)
+                ?.content?.get("enabled") == true
     }
 
     init {
@@ -203,7 +236,7 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                 })
     }
 
-    private fun extractWidgetPermissionFromAccountData(): List<WidgetPermission> {
+    private fun extractWidgetPermissionFromAccountData(): Map<String, Boolean> {
         val widgets = mxSession.dataHandler
                 .store
                 ?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS)
@@ -213,14 +246,34 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
                 ?.mapNotNull {
                     (it.key as? String)?.let { eventId ->
                         (it.value as? Boolean)?.let { allowed ->
-                            WidgetPermission(
-                                    stateEventId = eventId,
-                                    allowed = allowed
-                            )
+                            eventId to allowed
                         }
                     }
-                } ?: emptyList()
+                }?.toMap() ?: emptyMap()
     }
+
+    private fun extractNativeWidgetsPermissionFromAccountData(): Map<String, Map<String, Boolean>> {
+        val nativeWidgets = mxSession.dataHandler
+                .store
+                ?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_ALLOWED_WIDGETS)
+                ?.content
+                ?.get("native_widgets")
+        return (nativeWidgets as? Map<*, *>)
+                ?.mapNotNull {
+                    (it.key as? String)?.let { widgetType ->
+                        (it.value as? Map<*, *>)?.let { allowed ->
+                            widgetType to allowed.mapNotNull { permsMap ->
+                                (permsMap.key as? String)?.let { eventId ->
+                                    (permsMap.value as? Boolean)?.let { allowed ->
+                                        eventId to allowed
+                                    }
+                                }
+                            }.toMap()
+                        }
+                    }
+                }?.toMap() ?: emptyMap()
+    }
+
 
     private fun getStoreWellknownIM(): List<WellKnownManagerConfig> {
         val prefs = context.getSharedPreferences(PREFS_IM, Context.MODE_PRIVATE)

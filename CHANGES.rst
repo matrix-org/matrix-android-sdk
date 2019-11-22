@@ -6,6 +6,7 @@ Features:
 
 Improvements:
  - Integration Manager preferences are now managed by SDK
+ - Integrations / Manage Jitsi Domain Permissions in Account Data
 
 Bugfix:
  - Crash on Realm crypto DB (vector-im/riot-android#3373)
