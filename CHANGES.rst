@@ -1,4 +1,4 @@
-Changes to Matrix Android SDK in 0.9.X (2019-XX-XX)
+Changes to Matrix Android SDK in 0.9.31 (2019-11-22)
 =======================================================
 
 Features:
@@ -15,17 +15,6 @@ Bugfix:
 API Change:
  - /account/3pid/add requires user interactive Auth
 
-Translations:
- -
-
-Others:
- -
-
-Build:
- -
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.30 (2019-10-09)
 =======================================================
