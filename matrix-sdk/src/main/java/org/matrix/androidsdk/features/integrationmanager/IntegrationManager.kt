@@ -56,7 +56,19 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
     var integrationAllowed = true
         private set
 
+    /**
+     * Map of stateEventId to Allowed
+     */
     private var widgetPermissions = emptyMap<String, Boolean>()
+    /**
+     * Map of native widgetType to a map of domain to Allowed
+     * {
+     *      "jitsi" : {
+     *            "jisit.domain.org"  : true,
+     *            "jisit.other.org"  : false
+     *      }
+     * }
+     */
     private var nativeWidgetPermissions = emptyMap<String, Map<String, Boolean>>()
 
 
