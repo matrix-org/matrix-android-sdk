@@ -209,7 +209,7 @@ class IntegrationManager(val mxSession: MXSession, val context: Context) {
         return mxSession.dataHandler
                 .store
                 ?.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_INTEGRATION_PROVISIONING)
-                ?.content?.get("enabled") == true
+                ?.content?.get("enabled") as? Boolean ?: true
     }
 
     init {
