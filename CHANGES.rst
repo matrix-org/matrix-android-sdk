@@ -1,3 +1,10 @@
+Changes to Matrix Android SDK in 0.9.32 (2019-11-25)
+=======================================================
+
+Bugfix:
+ - Fix / Integration Manager was not allowed by default
+
+
 Changes to Matrix Android SDK in 0.9.31 (2019-11-22)
 =======================================================
 
