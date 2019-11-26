@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Fix bad constant values for homeserver CS api versions
 
 API Change:
  -

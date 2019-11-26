@@ -34,7 +34,7 @@ import retrofit2.http.POST;
 public interface LoginApi {
 
     /**
-     * Get the different login flows supported by the server.
+     * Get the supported versions of the homeserver
      */
     @GET(RestClient.URI_API_PREFIX_PATH + "versions")
     Call<Versions> versions();
