@@ -258,9 +258,6 @@ public class MXWebRtcCall extends MXCall {
                 PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(context).createInitializationOptions());
 
                 mIsInitialized = true;
-
-                PeerConnectionFactory.initializeFieldTrials(null);
-
                 mIsSupported = true;
                 Log.d(LOG_TAG, "## initializeAndroidGlobals(): mIsInitialized=" + mIsInitialized);
             } catch (Throwable e) {
@@ -572,13 +569,12 @@ public class MXWebRtcCall extends MXCall {
         }
 
         // define constraints
-        MediaConstraints pcConstraints = new MediaConstraints();
-        pcConstraints.optional.add(new MediaConstraints.KeyValuePair("RtpDataChannels", "true"));
+        PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(iceServers);
+        rtcConfig.enableRtpDataChannel = true;
 
         // start connecting to the other peer by creating the peer connection
         mPeerConnection = mPeerConnectionFactory.createPeerConnection(
-                iceServers,
-                pcConstraints,
+                rtcConfig,
                 new PeerConnection.Observer() {
                     @Override
                     public void onSignalingChange(PeerConnection.SignalingState signalingState) {

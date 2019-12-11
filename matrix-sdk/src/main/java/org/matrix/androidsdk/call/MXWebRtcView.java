@@ -142,7 +142,7 @@ public class MXWebRtcView extends ViewGroup {
     private ScalingType scalingType;
 
     /**
-     * The {@link View} and {@link VideoRenderer} implementation which
+     * The {@link View} and {@link org.webrtc.VideoSink} implementation which
      * actually renders {@link #videoTrack} on behalf of this instance.
      */
     private final SurfaceViewRenderer surfaceViewRenderer;
