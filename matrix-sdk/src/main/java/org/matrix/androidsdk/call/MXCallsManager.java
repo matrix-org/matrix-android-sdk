@@ -61,16 +61,6 @@ import java.util.TimerTask;
 public class MXCallsManager {
     private static final String LOG_TAG = MXCallsManager.class.getSimpleName();
 
-    /**
-     * Defines the call classes.
-     */
-    public enum CallClass {
-        // disabled because of https://github.com/vector-im/riot-android/issues/1660
-        //CHROME_CLASS,
-        WEBRTC_CLASS,
-        DEFAULT_CLASS
-    }
-
     private MXSession mSession = null;
     private Context mContext = null;
 
@@ -78,8 +68,6 @@ public class MXCallsManager {
     private JsonElement mTurnServer = null;
     private Timer mTurnServerTimer = null;
     private boolean mSuspendTurnServerRefresh = false;
-
-    private CallClass mPreferredCallClass = CallClass.WEBRTC_CLASS;
 
     // active calls
     private final Map<String, IMXCall> mCallsByCallId = new HashMap<>();
@@ -162,50 +150,11 @@ public class MXCallsManager {
     }
 
     /**
+     * @apiNote Performs an implicit initialization of the PeerConnectionFactory
      * @return true if the call feature is supported
      */
     public boolean isSupported() {
-        return /*MXChromeCall.isSupported() || */ MXWebRtcCall.isSupported(mContext);
-    }
-
-    /**
-     * @return the list of supported classes
-     */
-    public Collection<CallClass> supportedClass() {
-        List<CallClass> list = new ArrayList<>();
-
-        /*if (MXChromeCall.isSupported()) {
-            list.add(CallClass.CHROME_CLASS);
-        }*/
-
-        if (MXWebRtcCall.isSupported(mContext)) {
-            list.add(CallClass.WEBRTC_CLASS);
-        }
-
-        Log.d(LOG_TAG, "supportedClass " + list);
-
-        return list;
-    }
-
-    /**
-     * @param callClass set the default callClass
-     */
-    public void setDefaultCallClass(CallClass callClass) {
-        Log.d(LOG_TAG, "setDefaultCallClass " + callClass);
-
-        boolean isUpdatable = false;
-
-        /*if (callClass == CallClass.CHROME_CLASS) {
-            isUpdatable = MXChromeCall.isSupported();
-        }*/
-
-        if (callClass == CallClass.WEBRTC_CLASS) {
-            isUpdatable = MXWebRtcCall.isSupported(mContext);
-        }
-
-        if (isUpdatable) {
-            mPreferredCallClass = callClass;
-        }
+        return MXWebRtcCall.isSupported(mContext);
     }
 
     /**
@@ -219,23 +168,14 @@ public class MXCallsManager {
 
         IMXCall call = null;
 
-        // default
-        /*if (((CallClass.CHROME_CLASS == mPreferredCallClass) || (CallClass.DEFAULT_CLASS == mPreferredCallClass)) && MXChromeCall.isSupported()) {
-            call = new MXChromeCall(mSession, mContext, getTurnServer());
-        }*/
-
-        // webrtc
-//        if (null == call) {
         try {
             call = new MXWebRtcCall(mSession, mContext, getTurnServer(), defaultStunServerUri);
+            // a valid callid is provided
+            if (null != callId) {
+                call.setCallId(callId);
+            }
         } catch (Exception e) {
             Log.e(LOG_TAG, "createCall " + e.getMessage(), e);
-        }
-//        }
-
-        // a valid callid is provided
-        if (null != callId) {
-            call.setCallId(callId);
         }
 
         return call;
@@ -387,7 +327,7 @@ public class MXCallsManager {
             Log.d(LOG_TAG, "handleCallEvent " + event.getType());
 
             // always run the call event in the UI thread
-            // MXChromeCall does not work properly in other thread (because of the webview)
+            // TODO: This was introduced because of MXChromeCall, check if it is required for MXWebRtcCall as well
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
