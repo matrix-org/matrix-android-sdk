@@ -184,14 +184,11 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
                 mIsHeadsetPlugged = newState;
 
                 // wait a little else route to BT headset does not work.
-                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (isBTHeadsetUpdate) {
-                            onBluetoothHeadsetUpdate(mIsHeadsetPlugged);
-                        } else {
-                            onWiredHeadsetUpdate(mIsHeadsetPlugged);
-                        }
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    if (isBTHeadsetUpdate) {
+                        onBluetoothHeadsetUpdate(mIsHeadsetPlugged);
+                    } else {
+                        onWiredHeadsetUpdate(mIsHeadsetPlugged);
                     }
                 }, 1000);
             }
@@ -220,6 +217,7 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
     public static boolean isHeadsetPlugged(Context context) {
         if (null == mIsHeadsetPlugged) {
             AudioManager audioManager = getAudioManager(context);
+            //noinspection deprecation
             mIsHeadsetPlugged = isBTHeadsetPlugged() || audioManager.isWiredHeadsetOn();
         }
 

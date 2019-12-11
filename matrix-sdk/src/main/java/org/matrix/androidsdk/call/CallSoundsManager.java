@@ -166,50 +166,47 @@ public class CallSoundsManager {
     // audio focus management
     private final Set<OnAudioFocusListener> mAudioFocusListeners = new HashSet<>();
 
-    private final AudioManager.OnAudioFocusChangeListener mFocusListener = new AudioManager.OnAudioFocusChangeListener() {
-        @Override
-        public void onAudioFocusChange(int aFocusEvent) {
-            switch (aFocusEvent) {
-                case AudioManager.AUDIOFOCUS_GAIN:
-                    Log.d(LOG_TAG, "## OnAudioFocusChangeListener(): AUDIOFOCUS_GAIN");
-                    // TODO resume voip call (ex: ending GSM call)
-                    break;
+    private final AudioManager.OnAudioFocusChangeListener mFocusListener = aFocusEvent -> {
+        switch (aFocusEvent) {
+            case AudioManager.AUDIOFOCUS_GAIN:
+                Log.d(LOG_TAG, "## OnAudioFocusChangeListener(): AUDIOFOCUS_GAIN");
+                // TODO resume voip call (ex: ending GSM call)
+                break;
 
-                case AudioManager.AUDIOFOCUS_LOSS:
-                    Log.d(LOG_TAG, "## OnAudioFocusChangeListener(): AUDIOFOCUS_LOSS");
-                    // TODO pause voip call (ex: incoming GSM call)
-                    break;
+            case AudioManager.AUDIOFOCUS_LOSS:
+                Log.d(LOG_TAG, "## OnAudioFocusChangeListener(): AUDIOFOCUS_LOSS");
+                // TODO pause voip call (ex: incoming GSM call)
+                break;
 
-                case AudioManager.AUDIOFOCUS_GAIN_TRANSIENT:
-                    Log.d(LOG_TAG, "## OnAudioFocusChangeListener(): AUDIOFOCUS_GAIN_TRANSIENT");
-                    break;
+            case AudioManager.AUDIOFOCUS_GAIN_TRANSIENT:
+                Log.d(LOG_TAG, "## OnAudioFocusChangeListener(): AUDIOFOCUS_GAIN_TRANSIENT");
+                break;
 
-                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
-                    Log.d(LOG_TAG, "## OnAudioFocusChangeListener(): AUDIOFOCUS_LOSS_TRANSIENT");
-                    // TODO pause voip call (ex: incoming GSM call)
-                    break;
+            case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                Log.d(LOG_TAG, "## OnAudioFocusChangeListener(): AUDIOFOCUS_LOSS_TRANSIENT");
+                // TODO pause voip call (ex: incoming GSM call)
+                break;
 
-                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
-                    // TODO : continue playing at an attenuated level
-                    Log.d(LOG_TAG, "## OnAudioFocusChangeListener(): AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK");
-                    break;
+            case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+                // TODO : continue playing at an attenuated level
+                Log.d(LOG_TAG, "## OnAudioFocusChangeListener(): AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK");
+                break;
 
-                case AudioManager.AUDIOFOCUS_REQUEST_FAILED:
-                    Log.d(LOG_TAG, "## OnAudioFocusChangeListener(): AUDIOFOCUS_REQUEST_FAILED");
-                    break;
+            case AudioManager.AUDIOFOCUS_REQUEST_FAILED:
+                Log.d(LOG_TAG, "## OnAudioFocusChangeListener(): AUDIOFOCUS_REQUEST_FAILED");
+                break;
 
-                default:
-                    break;
-            }
+            default:
+                break;
+        }
 
-            synchronized (LOG_TAG) {
-                // notify listeners
-                for (OnAudioFocusListener listener : mAudioFocusListeners) {
-                    try {
-                        listener.onFocusChanged(aFocusEvent);
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## onFocusChanged() failed " + e.getMessage(), e);
-                    }
+        synchronized (LOG_TAG) {
+            // notify listeners
+            for (OnAudioFocusListener listener : mAudioFocusListeners) {
+                try {
+                    listener.onFocusChanged(aFocusEvent);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## onFocusChanged() failed " + e.getMessage(), e);
                 }
             }
         }
@@ -496,18 +493,15 @@ public class CallSoundsManager {
                 listener.onMediaPlay();
             }
 
-            mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mp) {
-                    if (null != listener) {
-                        listener.onMediaCompleted();
-                    }
-                    mPlayingSound = -1;
+            mMediaPlayer.setOnCompletionListener(mp -> {
+                if (null != listener) {
+                    listener.onMediaCompleted();
+                }
+                mPlayingSound = -1;
 
-                    if (null != mMediaPlayer) {
-                        mMediaPlayer.release();
-                        mMediaPlayer = null;
-                    }
+                if (null != mMediaPlayer) {
+                    mMediaPlayer.release();
+                    mMediaPlayer = null;
                 }
             });
 
@@ -540,7 +534,7 @@ public class CallSoundsManager {
                 File ringFile = new File(ringToneUri.toString());
 
                 // check if the file exists
-                if ((null != ringFile) && ringFile.exists() && ringFile.canRead()) {
+                if (ringFile.exists() && ringFile.canRead()) {
                     // provide it
                     return ringToneUri;
                 }
