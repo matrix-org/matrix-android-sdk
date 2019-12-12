@@ -108,12 +108,12 @@ public class MXCall implements IMXCall {
     private boolean mIsConference = false;
 
     /**
-     * List of events to sends to mCallSignalingRoom
+     * List of events to send to mCallSignalingRoom
      */
     protected final List<Event> mPendingEvents = new ArrayList<>();
 
     /**
-     * The sending eevent.
+     * The sending event.
      */
     private Event mPendingEvent;
 
@@ -539,7 +539,7 @@ public class MXCall implements IMXCall {
      * @param newState the new state
      */
     protected void dispatchOnStateDidChange(String newState) {
-        Log.d(LOG_TAG, "## dispatchOnCallErrorOnStateDidChange(): " + newState);
+        Log.d(LOG_TAG, "## dispatchOnStateDidChange(): " + newState);
 
         // set the call start time
         if (TextUtils.equals(CALL_STATE_CONNECTED, newState) && (-1 == mStartTime)) {
