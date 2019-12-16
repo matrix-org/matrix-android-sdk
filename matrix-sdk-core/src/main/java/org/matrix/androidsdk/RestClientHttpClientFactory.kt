@@ -45,6 +45,10 @@ class RestClientHttpClientFactory(private val testInterceptor: Interceptor? = nu
                 .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .addInterceptor(authenticationInterceptor)
 
+        hsConfig.proxyConfig?.let {
+            okHttpClientBuilder.proxy(it)
+        }
+
         if (BuildConfig.DEBUG) {
             val loggingInterceptor = HttpLoggingInterceptor(FormattedJsonHttpLogger())
             loggingInterceptor.level = BuildConfig.OKHTTP_LOGGING_LEVEL
