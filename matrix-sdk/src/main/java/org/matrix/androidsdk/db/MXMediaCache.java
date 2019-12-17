@@ -126,7 +126,11 @@ public class MXMediaCache {
      * @param userID                      the account user Id.
      * @param context                     the context
      */
-    public MXMediaCache(HomeServerConnectionConfig hsConfig, ContentManager contentManager, NetworkConnectivityReceiver networkConnectivityReceiver, String userID, Context context) {
+    public MXMediaCache(HomeServerConnectionConfig hsConfig,
+                        ContentManager contentManager,
+                        NetworkConnectivityReceiver networkConnectivityReceiver,
+                        String userID,
+                        Context context) {
         mHsConfig = hsConfig;
         mContentManager = contentManager;
         mNetworkConnectivityReceiver = networkConnectivityReceiver;

@@ -22,12 +22,13 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
-import androidx.annotation.Nullable;
-import androidx.collection.LruCache;
 import android.text.TextUtils;
 import android.util.Pair;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
+
+import androidx.annotation.Nullable;
+import androidx.collection.LruCache;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -739,7 +740,7 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
 
             try {
                 Proxy proxyConfig = mHsConfig.getProxyConfig();
-                if( proxyConfig == null) {
+                if (proxyConfig == null) {
                     proxyConfig = Proxy.NO_PROXY;
                 }
                 connection = (HttpURLConnection) url.openConnection(proxyConfig);
