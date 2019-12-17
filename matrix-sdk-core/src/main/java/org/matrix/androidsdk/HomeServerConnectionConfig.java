@@ -65,7 +65,7 @@ public class HomeServerConnectionConfig {
     // Force usage of TLS versions
     private boolean mForceUsageTlsVersions;
     // the proxy hostname
-    private String mProxyHostname = null;
+    private String mProxyHostname;
     // the proxy port
     private int mProxyPort = -1;
 
@@ -592,7 +592,7 @@ public class HomeServerConnectionConfig {
          * @param proxyPort     Proxy Port
          * @return this builder
          */
-        public Builder withProxy(@NonNull String proxyHostname, int proxyPort) {
+        public Builder withProxy(@Nullable String proxyHostname, int proxyPort) {
             mHomeServerConnectionConfig.mProxyHostname = proxyHostname;
             mHomeServerConnectionConfig.mProxyPort = proxyPort;
             return this;

@@ -136,6 +136,8 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
     private EventsRestClient mEventsRestClient;
     private AccountDataRestClient mAccountDataRestClient;
 
+    private HomeServerConnectionConfig mHsConfig;
+
     private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
 
     private MyUser mMyUser;
@@ -294,6 +296,23 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
      */
     public void setAccountDataRestClient(AccountDataRestClient accountDataRestClient) {
         mAccountDataRestClient = accountDataRestClient;
+    }
+
+
+    /**
+     * Set home server connection config
+     *
+     * @param hsConfig the home server connection config
+     */
+    public void setHomeServerConnectionConfig(HomeServerConnectionConfig hsConfig) {
+        mHsConfig = hsConfig;
+    }
+
+    /**
+     * @return the HomeServerConnectionConfig
+     */
+    public HomeServerConnectionConfig getHomeServerConnectionConfig() {
+        return mHsConfig;
     }
 
     /**

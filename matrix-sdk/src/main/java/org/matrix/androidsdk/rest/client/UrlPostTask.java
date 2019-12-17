@@ -21,6 +21,7 @@ import android.os.AsyncTask;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.Log;
 
@@ -29,6 +30,7 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.Proxy;
 import java.net.URL;
 
 /**
@@ -57,13 +59,25 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
     // the post listener
     private IPostTaskListener mListener;
 
+    // the home server connection config
+    private HomeServerConnectionConfig mHsConfig;
+
+    public UrlPostTask(HomeServerConnectionConfig hsConfig) {
+        mHsConfig = hsConfig;
+    }
+
     @Override
     protected String doInBackground(String... params) {
         String result = "";
 
         try {
+            Proxy proxyConfig = mHsConfig.getProxyConfig();
+            if (proxyConfig == null) {
+                proxyConfig = Proxy.NO_PROXY;
+            }
+
             URL url = new URL(params[0]);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection(proxyConfig);
             if (RestClient.getUserAgent() != null) {
                 conn.setRequestProperty("User-Agent", RestClient.getUserAgent());
             }

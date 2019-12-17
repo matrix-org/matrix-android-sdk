@@ -63,6 +63,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
+import java.net.Proxy;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -737,7 +738,11 @@ class MXMediaDownloadWorkerTask extends AsyncTask<Void, Void, JsonElement> {
             HttpURLConnection connection = null;
 
             try {
-                connection = (HttpURLConnection) url.openConnection();
+                Proxy proxyConfig = mHsConfig.getProxyConfig();
+                if( proxyConfig == null) {
+                    proxyConfig = Proxy.NO_PROXY;
+                }
+                connection = (HttpURLConnection) url.openConnection(proxyConfig);
 
                 if (RestClient.getUserAgent() != null) {
                     connection.setRequestProperty("User-Agent", RestClient.getUserAgent());
