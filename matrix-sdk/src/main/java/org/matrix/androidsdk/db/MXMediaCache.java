@@ -26,10 +26,11 @@ import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
-import androidx.annotation.Nullable;
 import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
+
+import androidx.annotation.Nullable;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.core.ContentManager;
@@ -78,13 +79,20 @@ public class MXMediaCache {
     private static final String MXMEDIA_STORE_IMAGES_FOLDER = "Images";
     private static final String MXMEDIA_STORE_OTHERS_FOLDER = "Others";
     private static final String MXMEDIA_STORE_TMP_FOLDER = "tmp";
-    /**@deprecated*/
+    /**
+     * @deprecated
+     */
     private static final String MXMEDIA_STORE_SHARE_FOLDER = "share";
 
     /**
      * The content manager
      */
     private ContentManager mContentManager;
+
+    /**
+     * The home server connection config
+     */
+    private HomeServerConnectionConfig mHsConfig;
 
     /**
      * The media folders list.
@@ -118,7 +126,12 @@ public class MXMediaCache {
      * @param userID                      the account user Id.
      * @param context                     the context
      */
-    public MXMediaCache(ContentManager contentManager, NetworkConnectivityReceiver networkConnectivityReceiver, String userID, Context context) {
+    public MXMediaCache(HomeServerConnectionConfig hsConfig,
+                        ContentManager contentManager,
+                        NetworkConnectivityReceiver networkConnectivityReceiver,
+                        String userID,
+                        Context context) {
+        mHsConfig = hsConfig;
         mContentManager = contentManager;
         mNetworkConnectivityReceiver = networkConnectivityReceiver;
 
@@ -1432,7 +1445,8 @@ public class MXMediaCache {
                               String uploadId,
                               IMXMediaUploadListener listener) {
         try {
-            new MXMediaUploadWorkerTask(mContentManager,
+            new MXMediaUploadWorkerTask(mHsConfig,
+                    mContentManager,
                     contentStream,
                     mimeType,
                     uploadId,

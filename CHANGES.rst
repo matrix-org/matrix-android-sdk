@@ -2,7 +2,7 @@ Changes to Matrix Android SDK in 0.9.X (2019-XX-XX)
 =======================================================
 
 Features:
- -
+ - HTTP Proxy configuration using HomeServerConnectionConfig
 
 Improvements:
  -
