@@ -21,7 +21,7 @@ import android.os.AsyncTask;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import org.matrix.androidsdk.HomeServerConnectionConfig;
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.Log;
 
@@ -59,11 +59,11 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
     // the post listener
     private IPostTaskListener mListener;
 
-    // the home server connection config
-    private HomeServerConnectionConfig mHsConfig;
+    // the MX Session
+    private MXSession mMXSession;
 
-    public UrlPostTask(HomeServerConnectionConfig hsConfig) {
-        mHsConfig = hsConfig;
+    public UrlPostTask(MXSession mxSession) {
+        mMXSession = mxSession;
     }
 
     @Override
@@ -71,7 +71,7 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
         String result = "";
 
         try {
-            Proxy proxyConfig = mHsConfig.getProxyConfig();
+            Proxy proxyConfig = mMXSession.getHomeServerConfig().getProxyConfig();
             if (proxyConfig == null) {
                 proxyConfig = Proxy.NO_PROXY;
             }

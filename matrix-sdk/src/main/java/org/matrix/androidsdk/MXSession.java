@@ -343,7 +343,6 @@ public class MXSession implements CryptoSession {
         mDataHandler.setRoomsRestClient(mRoomsRestClient);
         mDataHandler.setEventsRestClient(mEventsRestClient);
         mDataHandler.setAccountDataRestClient(mAccountDataRestClient);
-        mDataHandler.setHomeServerConnectionConfig(hsConfig);
 
         mNetworkConnectivityReceiver = new NetworkConnectivityReceiver();
         mNetworkConnectivityReceiver.checkNetworkConnection(appContext);
