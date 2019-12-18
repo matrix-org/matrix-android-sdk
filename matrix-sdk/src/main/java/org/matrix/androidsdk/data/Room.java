@@ -682,7 +682,7 @@ public class Room implements CryptoRoom {
             join(alias, callback);
         } else {
             String url = thirdPartySignedUrl + "&mxid=" + mMyUserId;
-            UrlPostTask task = new UrlPostTask(session);
+            UrlPostTask task = new UrlPostTask(session.getHomeServerConfig().getProxyConfig());
 
             task.setListener(new UrlPostTask.IPostTaskListener() {
                 @Override

@@ -18,10 +18,12 @@ package org.matrix.androidsdk.rest.client;
 
 import android.os.AsyncTask;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.Log;
 
@@ -59,11 +61,16 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
     // the post listener
     private IPostTaskListener mListener;
 
-    // the MX Session
-    private MXSession mMXSession;
+    // the proxy
+    @NonNull
+    private Proxy mProxy;
 
-    public UrlPostTask(MXSession mxSession) {
-        mMXSession = mxSession;
+    public UrlPostTask(@Nullable Proxy proxy) {
+        if (proxy == null) {
+            mProxy = Proxy.NO_PROXY;
+        } else {
+            mProxy = proxy;
+        }
     }
 
     @Override
@@ -71,13 +78,8 @@ public class UrlPostTask extends AsyncTask<String, Void, String> {
         String result = "";
 
         try {
-            Proxy proxyConfig = mMXSession.getHomeServerConfig().getProxyConfig();
-            if (proxyConfig == null) {
-                proxyConfig = Proxy.NO_PROXY;
-            }
-
             URL url = new URL(params[0]);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection(proxyConfig);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection(mProxy);
             if (RestClient.getUserAgent() != null) {
                 conn.setRequestProperty("User-Agent", RestClient.getUserAgent());
             }
