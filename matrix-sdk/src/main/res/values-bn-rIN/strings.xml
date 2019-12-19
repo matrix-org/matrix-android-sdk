@@ -149,7 +149,7 @@
     <string name="verification_emoji_folder">ফোল্ডার</string>
     <string name="verification_emoji_pin">পিন</string>
 
-<string name="notice_room_update">%s এই ঘরটিকে আপগ্রেড করেছে।</string>
+    <string name="notice_room_update">%s এই ঘরটিকে আপগ্রেড করেছে।</string>
 
     <string name="notice_room_third_party_revoked_invite">%1$s %2$s এর কক্ষে যোগদানের আমন্ত্রণ বাতিল করে দিয়েছিল</string>
     <string name="initial_sync_start_importing_account">প্রাথমিক সিঙ্ক:

@@ -77,12 +77,12 @@
         <item quantity="one">%1$s a 1 další</item>
         <item quantity="few">%1$s a %2$d další</item>
         <item quantity="many">%1$s a %2$d dalších</item>
-        <item quantity="other"/>
+        <item quantity="other" />
     </plurals>
 
     <string name="room_displayname_empty_room">Prázdná místnost</string>
 
-<string name="notice_room_update">%s upravil/a tuto místnost.</string>
+    <string name="notice_room_update">%s upravil/a tuto místnost.</string>
 
     <string name="notice_event_redacted_with_reason">Zpráva byla smazána [důvod: %1$s]</string>
     <string name="notice_event_redacted_by_with_reason">Zpráva smazána [smazal/a %1$s] [důvod: %2$s]</string>
@@ -164,4 +164,4 @@
 \nImportuji data účtu</string>
 
     <string name="event_status_sending_message">Posílám zprávu…</string>
-    </resources>
+</resources>

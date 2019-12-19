@@ -167,7 +167,7 @@
     <string name="event_status_sending_message">正在发送消息…</string>
     <string name="clear_timeline_send_queue">清除正在发送队列</string>
 
-<string name="notice_room_third_party_revoked_invite">%1$s 撤回了对 %2$s 邀请</string>
+    <string name="notice_room_third_party_revoked_invite">%1$s 撤回了对 %2$s 邀请</string>
     <string name="verification_emoji_pin">置顶</string>
 
-    </resources>
+</resources>

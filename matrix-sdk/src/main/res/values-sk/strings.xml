@@ -78,7 +78,7 @@
         <item quantity="one">%1$s a 1 ďalší</item>
         <item quantity="few">%1$s a %2$d ďalší</item>
         <item quantity="many">%1$s a %2$d ďalších</item>
-        <item quantity="other"/>
+        <item quantity="other" />
     </plurals>
 
 
@@ -173,5 +173,5 @@
     <string name="event_status_sending_message">Odosielanie správy…</string>
     <string name="clear_timeline_send_queue">Vymazať správy na odoslanie</string>
 
-<string name="notice_room_third_party_revoked_invite">%1$s zamietol pozvanie používateľa %2$s vstúpiť do miestnosti</string>
-    </resources>
+    <string name="notice_room_third_party_revoked_invite">%1$s zamietol pozvanie používateľa %2$s vstúpiť do miestnosti</string>
+</resources>
