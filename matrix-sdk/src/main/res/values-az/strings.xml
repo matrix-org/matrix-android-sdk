@@ -19,7 +19,7 @@
     <string name="notice_display_name_changed_from">%1$s ekran adını %2$s-dan %3$s-ya dəyişdi</string>
     <string name="notice_display_name_removed">%1$s onların göstərilən adlarını sildi (%2$s)</string>
     <string name="notice_room_topic_changed">%1$s mövzunu dəyişdi: %2$s</string>
-    <string name="notice_room_name_changed">%1$s otaq adını dəyişdirdi: % 2 $ s</string>
+    <string name="notice_room_name_changed">%1$s otaq adını dəyişdirdi: %2$s</string>
     <string name="notice_placed_video_call">%s video zəng etdi.</string>
     <string name="notice_placed_voice_call">%s səsli zəng etdi.</string>
     <string name="notice_answered_call">%s zəngə cavab verdi.</string>
