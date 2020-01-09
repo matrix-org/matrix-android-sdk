@@ -173,7 +173,7 @@
     <string name="clear_timeline_send_queue">Vider la file d’envoi</string>
 
     <string name="notice_room_third_party_revoked_invite">%1$s a révoqué l’invitation pour %2$s à rejoindre le salon</string>
-<string name="notice_room_invite_no_invitee_with_reason">Invitation de %1$s. Raison : %2$s</string>
+    <string name="notice_room_invite_no_invitee_with_reason">Invitation de %1$s. Raison : %2$s</string>
     <string name="notice_room_invite_with_reason">%1$s a invité %2$s. Raison : %3$s</string>
     <string name="notice_room_invite_you_with_reason">%1$s vous a invité. Raison : %2$s</string>
     <string name="notice_room_join_with_reason">%1$s a rejoint le salon. Raison : %2$s</string>

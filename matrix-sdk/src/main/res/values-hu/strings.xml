@@ -172,7 +172,7 @@
     <string name="clear_timeline_send_queue">Küldő sor ürítése</string>
 
     <string name="notice_room_third_party_revoked_invite">%1$s visszavonta a meghívót a belépéshez ebbe a szobába: %2$s</string>
-<string name="notice_room_invite_no_invitee_with_reason">%1$s meghívója. Ok: %2$s</string>
+    <string name="notice_room_invite_no_invitee_with_reason">%1$s meghívója. Ok: %2$s</string>
     <string name="notice_room_invite_with_reason">%1$s meghívta őt: %2$s. Ok: %3$s</string>
     <string name="notice_room_invite_you_with_reason">%1$s meghívott. Ok: %2$s</string>
     <string name="notice_room_join_with_reason">%1$s csatlakozott. Ok: %2$s</string>

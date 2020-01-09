@@ -90,7 +90,7 @@
         <item quantity="one">%1$s и 1 другой</item>
         <item quantity="few">%1$s и %2$d другие</item>
         <item quantity="many">%1$s и %2$d других</item>
-        <item quantity="other"/>
+        <item quantity="other" />
     </plurals>
 
 
@@ -186,7 +186,7 @@
     <string name="clear_timeline_send_queue">Очистить очередь отправки</string>
 
     <string name="notice_room_third_party_revoked_invite">%1$s отозвал приглашение %2$s присоединиться к комнате</string>
-<string name="notice_room_invite_no_invitee_with_reason">Приглашение %1$s. Причина: %2$s</string>
+    <string name="notice_room_invite_no_invitee_with_reason">Приглашение %1$s. Причина: %2$s</string>
     <string name="notice_room_invite_with_reason">%1$s приглашен %2$s. Причина: %3$s</string>
     <string name="notice_room_invite_you_with_reason">%1$s пригласил вас. Причина: %2$s</string>
     <string name="notice_room_join_with_reason">%1$s присоединился. Причина: %2$s</string>

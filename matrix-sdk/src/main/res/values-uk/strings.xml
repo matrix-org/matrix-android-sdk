@@ -80,12 +80,12 @@
         <item quantity="one">%1$s та 1 інший</item>
         <item quantity="few">%1$s та %2$d інші</item>
         <item quantity="many">%1$s та %2$d інших</item>
-        <item quantity="other"/>
+        <item quantity="other" />
     </plurals>
 
-<string name="notice_room_update">%s вдосконалили цю кімнату.</string>
+    <string name="notice_room_update">%s вдосконалили цю кімнату.</string>
 
     <string name="notice_event_redacted">Повідомлення видалено</string>
     <string name="notice_event_redacted_by">%1$s видалили повідомлення</string>
     <string name="notice_event_redacted_with_reason">Повідомлення видалено [причина: %1$s]</string>
-    </resources>
+</resources>

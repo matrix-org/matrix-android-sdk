@@ -171,7 +171,7 @@
     <string name="clear_timeline_send_queue">清除傳送佇列</string>
 
     <string name="notice_room_third_party_revoked_invite">%1$s 撤銷了 %2$s 加入聊天室的邀請</string>
-<string name="notice_room_invite_no_invitee_with_reason">%1$s 的邀請。理由：%2$s</string>
+    <string name="notice_room_invite_no_invitee_with_reason">%1$s 的邀請。理由：%2$s</string>
     <string name="notice_room_invite_with_reason">%1$s 邀請了 %2$s。理由：%3$s</string>
     <string name="notice_room_invite_you_with_reason">%1$s 邀請了您。理由：%2$s</string>
     <string name="notice_room_join_with_reason">%1$s 已加入。理由：%2$s</string>
