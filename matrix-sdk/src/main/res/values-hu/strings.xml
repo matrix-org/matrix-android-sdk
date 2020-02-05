@@ -199,6 +199,6 @@
     <string name="notice_room_aliases_added_and_removed">%1$s a szobához adta ezeket:%2$s és törölte ezeket: %3$s.</string>
 
     <string name="notice_room_canonical_alias_set">%1$s a szoba elsődleges címét erre állította be: %2$s.</string>
-    <string name="notice_room_canonical_alias_unset">%1$ eltávolította a szoba elsődleges címét.</string>
+    <string name="notice_room_canonical_alias_unset">%1$s eltávolította a szoba elsődleges címét.</string>
 
 </resources>
