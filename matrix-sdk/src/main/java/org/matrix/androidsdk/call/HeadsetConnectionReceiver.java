@@ -173,7 +173,13 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
                 }
                 isBTHeadsetUpdate = false;
             } else {
-                int state = BluetoothAdapter.getDefaultAdapter().getProfileConnectionState(BluetoothProfile.HEADSET);
+                int state;
+                BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                if (bluetoothAdapter == null) {
+                    state = BluetoothAdapter.STATE_DISCONNECTED;
+                } else {
+                    state = bluetoothAdapter.getProfileConnectionState(BluetoothProfile.HEADSET);
+                }
 
                 Log.d(LOG_TAG, "bluetooth headset state " + state);
                 newState = (BluetoothAdapter.STATE_CONNECTED == state);
@@ -228,6 +234,11 @@ public class HeadsetConnectionReceiver extends BroadcastReceiver {
      * @return true if bluetooth headset is plugged
      */
     public static boolean isBTHeadsetPlugged() {
-        return (BluetoothAdapter.STATE_CONNECTED == BluetoothAdapter.getDefaultAdapter().getProfileConnectionState(BluetoothProfile.HEADSET));
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (bluetoothAdapter == null) {
+            return false;
+        } else {
+            return (BluetoothAdapter.STATE_CONNECTED == bluetoothAdapter.getProfileConnectionState(BluetoothProfile.HEADSET));
+        }
     }
 }
