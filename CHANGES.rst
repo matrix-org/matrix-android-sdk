@@ -9,6 +9,7 @@ Improvements:
 
 Bugfix:
  - Fix bad constant values for homeserver CS api versions
+ - Ensure custom fields are sent for `m.room.message` Events (#515)
 
 API Change:
  -

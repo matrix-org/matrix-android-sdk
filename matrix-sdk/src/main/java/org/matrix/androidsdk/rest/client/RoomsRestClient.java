@@ -50,7 +50,6 @@ import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.UserIdAndReason;
 import org.matrix.androidsdk.rest.model.filter.RoomEventFilter;
-import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
@@ -83,20 +82,23 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
      *
      * @param transactionId the unique transaction id (it should avoid duplicated messages)
      * @param roomId        the room id
-     * @param message       the message
+     * @param content       the message
      * @param callback      the callback containing the created event if successful
      */
-    public void sendMessage(final String transactionId, final String roomId, final Message message, final ApiCallback<CreatedEvent> callback) {
+    public void sendMessage(final String transactionId,
+                            final String roomId,
+                            final JsonObject content,
+                            final ApiCallback<CreatedEvent> callback) {
         // privacy
         // final String description = "SendMessage : roomId " + roomId + " - message " + message.body;
         final String description = "SendMessage : roomId " + roomId;
 
         // the messages have their dedicated method in MXSession to be resent if there is no available network
-        mApi.sendMessage(transactionId, roomId, message)
+        mApi.sendMessage(transactionId, roomId, content)
                 .enqueue(new RestAdapterCallback<CreatedEvent>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
                     @Override
                     public void onRetry() {
-                        sendMessage(transactionId, roomId, message, callback);
+                        sendMessage(transactionId, roomId, content, callback);
                     }
                 }));
     }
