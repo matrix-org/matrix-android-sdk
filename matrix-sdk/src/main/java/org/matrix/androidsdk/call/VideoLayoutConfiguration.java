@@ -16,6 +16,8 @@
 
 package org.matrix.androidsdk.call;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.Serializable;
 
 /**
@@ -24,6 +26,7 @@ import java.io.Serializable;
 public class VideoLayoutConfiguration implements Serializable {
     public final static int INVALID_VALUE = -1;
 
+    @NotNull
     @Override
     public String toString() {
         return "VideoLayoutConfiguration{" +

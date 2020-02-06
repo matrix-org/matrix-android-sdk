@@ -132,12 +132,7 @@ public class MXWebRtcView extends ViewGroup {
      * initializing new instances on every (method) call.
      */
     private final Runnable requestSurfaceViewRendererLayoutRunnable
-            = new Runnable() {
-        @Override
-        public void run() {
-            requestSurfaceViewRendererLayout();
-        }
-    };
+            = this::requestSurfaceViewRendererLayout;
 
     /**
      * The scaling type this {@code WebRTCView} is to apply to the video
@@ -147,7 +142,7 @@ public class MXWebRtcView extends ViewGroup {
     private ScalingType scalingType;
 
     /**
-     * The {@link View} and {@link VideoRenderer} implementation which
+     * The {@link View} and {@link org.webrtc.VideoSink} implementation which
      * actually renders {@link #videoTrack} on behalf of this instance.
      */
     private final SurfaceViewRenderer surfaceViewRenderer;
@@ -177,7 +172,7 @@ public class MXWebRtcView extends ViewGroup {
      *
      * @return The {@code SurfaceViewRenderer} which renders {@code videoTrack}.
      */
-    private final SurfaceViewRenderer getSurfaceViewRenderer() {
+    private SurfaceViewRenderer getSurfaceViewRenderer() {
         return surfaceViewRenderer;
     }
 
@@ -297,8 +292,6 @@ public class MXWebRtcView extends ViewGroup {
                 frameWidth = this.frameWidth;
                 scalingType = this.scalingType;
             }
-
-            SurfaceViewRenderer surfaceViewRenderer = getSurfaceViewRenderer();
 
             switch (scalingType) {
                 case SCALE_ASPECT_FILL:

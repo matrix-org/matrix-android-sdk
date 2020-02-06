@@ -17,7 +17,7 @@ Translations:
  -
 
 Others:
- -
+ - Cleanup in org.matrix.androisdk.call
 
 Build:
  -

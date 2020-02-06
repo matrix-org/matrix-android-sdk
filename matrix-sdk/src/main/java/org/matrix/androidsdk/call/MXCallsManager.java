@@ -61,25 +61,13 @@ import java.util.TimerTask;
 public class MXCallsManager {
     private static final String LOG_TAG = MXCallsManager.class.getSimpleName();
 
-    /**
-     * Defines the call classes.
-     */
-    public enum CallClass {
-        // disabled because of https://github.com/vector-im/riot-android/issues/1660
-        //CHROME_CLASS,
-        WEBRTC_CLASS,
-        DEFAULT_CLASS
-    }
+    private MXSession mSession;
+    private Context mContext;
 
-    private MXSession mSession = null;
-    private Context mContext = null;
-
-    private CallRestClient mCallResClient = null;
+    private CallRestClient mCallResClient;
     private JsonElement mTurnServer = null;
     private Timer mTurnServerTimer = null;
     private boolean mSuspendTurnServerRefresh = false;
-
-    private CallClass mPreferredCallClass = CallClass.WEBRTC_CLASS;
 
     // active calls
     private final Map<String, IMXCall> mCallsByCallId = new HashMap<>();
@@ -95,7 +83,7 @@ public class MXCallsManager {
 
     public static String defaultStunServerUri;
 
-    /**
+    /*
      * To create an outgoing call
      * 1- CallsManager.createCallInRoom()
      * 2- on success, IMXCall.createCallView
@@ -163,49 +151,10 @@ public class MXCallsManager {
 
     /**
      * @return true if the call feature is supported
+     * @apiNote Performs an implicit initialization of the PeerConnectionFactory
      */
     public boolean isSupported() {
-        return /*MXChromeCall.isSupported() || */ MXWebRtcCall.isSupported(mContext);
-    }
-
-    /**
-     * @return the list of supported classes
-     */
-    public Collection<CallClass> supportedClass() {
-        List<CallClass> list = new ArrayList<>();
-
-        /*if (MXChromeCall.isSupported()) {
-            list.add(CallClass.CHROME_CLASS);
-        }*/
-
-        if (MXWebRtcCall.isSupported(mContext)) {
-            list.add(CallClass.WEBRTC_CLASS);
-        }
-
-        Log.d(LOG_TAG, "supportedClass " + list);
-
-        return list;
-    }
-
-    /**
-     * @param callClass set the default callClass
-     */
-    public void setDefaultCallClass(CallClass callClass) {
-        Log.d(LOG_TAG, "setDefaultCallClass " + callClass);
-
-        boolean isUpdatable = false;
-
-        /*if (callClass == CallClass.CHROME_CLASS) {
-            isUpdatable = MXChromeCall.isSupported();
-        }*/
-
-        if (callClass == CallClass.WEBRTC_CLASS) {
-            isUpdatable = MXWebRtcCall.isSupported(mContext);
-        }
-
-        if (isUpdatable) {
-            mPreferredCallClass = callClass;
-        }
+        return MXWebRtcCall.isSupported(mContext);
     }
 
     /**
@@ -219,23 +168,14 @@ public class MXCallsManager {
 
         IMXCall call = null;
 
-        // default
-        /*if (((CallClass.CHROME_CLASS == mPreferredCallClass) || (CallClass.DEFAULT_CLASS == mPreferredCallClass)) && MXChromeCall.isSupported()) {
-            call = new MXChromeCall(mSession, mContext, getTurnServer());
-        }*/
-
-        // webrtc
-//        if (null == call) {
         try {
             call = new MXWebRtcCall(mSession, mContext, getTurnServer(), defaultStunServerUri);
+            // a valid callid is provided
+            if (null != callId) {
+                call.setCallId(callId);
+            }
         } catch (Exception e) {
             Log.e(LOG_TAG, "createCall " + e.getMessage(), e);
-        }
-//        }
-
-        // a valid callid is provided
-        if (null != callId) {
-            call.setCallId(callId);
         }
 
         return call;
@@ -358,7 +298,7 @@ public class MXCallsManager {
             for (String callId : callIds) {
                 IMXCall call = mCallsByCallId.get(callId);
 
-                if (TextUtils.equals(call.getCallState(), IMXCall.CALL_STATE_ENDED)) {
+                if (null != call && TextUtils.equals(call.getCallState(), IMXCall.CALL_STATE_ENDED)) {
                     Log.d(LOG_TAG, "# hasActiveCalls() : the call " + callId + " is not anymore valid");
                     callIdsToRemove.add(callId);
                 } else {
@@ -387,7 +327,7 @@ public class MXCallsManager {
             Log.d(LOG_TAG, "handleCallEvent " + event.getType());
 
             // always run the call event in the UI thread
-            // MXChromeCall does not work properly in other thread (because of the webview)
+            // TODO: This was introduced because of MXChromeCall, check if it is required for MXWebRtcCall as well
             mUIThreadHandler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -484,15 +424,12 @@ public class MXCallsManager {
                                 }
 
                                 // warn that a call has been hung up
-                                mUIThreadHandler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        // must warn anyway any listener that the call has been killed
-                                        // for example, when the device is in locked screen
-                                        // the callview is not created but the device is ringing
-                                        // if the other participant ends the call, the ring should stop
-                                        dispatchOnCallHangUp(call);
-                                    }
+                                mUIThreadHandler.post(() -> {
+                                    // must warn anyway any listener that the call has been killed
+                                    // for example, when the device is in locked screen
+                                    // the callview is not created but the device is ringing
+                                    // if the other participant ends the call, the ring should stop
+                                    dispatchOnCallHangUp(call);
                                 });
                             }
                         }
@@ -508,127 +445,125 @@ public class MXCallsManager {
     public void checkPendingIncomingCalls() {
         //Log.d(LOG_TAG, "checkPendingIncomingCalls");
 
-        mUIThreadHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (mxPendingIncomingCallId.size() > 0) {
-                    for (String callId : mxPendingIncomingCallId) {
-                        final IMXCall call = getCallWithCallId(callId);
+        mUIThreadHandler.post(() -> {
+            if (mxPendingIncomingCallId.size() > 0) {
+                for (String callId : mxPendingIncomingCallId) {
+                    final IMXCall call = getCallWithCallId(callId);
 
-                        if (null != call) {
-                            final Room room = call.getRoom();
+                    if (null != call) {
+                        final Room room = call.getRoom();
 
-                            // for encrypted rooms with 2 members
-                            // check if there are some unknown devices before warning
-                            // of the incoming call.
-                            // If there are some unknown devices, the answer event would not be encrypted.
-                            if ((null != room)
-                                    && room.isEncrypted()
-                                    && mSession.getCrypto().warnOnUnknownDevices()
-                                    && room.getNumberOfJoinedMembers() == 2) {
+                        // for encrypted rooms with 2 members
+                        // check if there are some unknown devices before warning
+                        // of the incoming call.
+                        // If there are some unknown devices, the answer event would not be encrypted.
+                        if ((null != room)
+                                && room.isEncrypted()
+                                && mSession.getCrypto() != null
+                                && mSession.getCrypto().warnOnUnknownDevices()
+                                && room.getNumberOfJoinedMembers() == 2) {
 
-                                // test if the encrypted events are sent only to the verified devices (any room)
-                                mSession.getCrypto().getGlobalBlacklistUnverifiedDevices(new SimpleApiCallback<Boolean>() {
-                                    @Override
-                                    public void onSuccess(Boolean sendToVerifiedDevicesOnly) {
-                                        if (sendToVerifiedDevicesOnly) {
-                                            dispatchOnIncomingCall(call, null);
-                                        } else {
-                                            //  test if the encrypted events are sent only to the verified devices (only this room)
-                                            mSession.getCrypto().isRoomBlacklistUnverifiedDevices(room.getRoomId(), new SimpleApiCallback<Boolean>() {
-                                                @Override
-                                                public void onSuccess(Boolean sendToVerifiedDevicesOnly) {
-                                                    if (sendToVerifiedDevicesOnly) {
-                                                        dispatchOnIncomingCall(call, null);
-                                                    } else {
-                                                        room.getJoinedMembersAsync(new ApiCallback<List<RoomMember>>() {
+                            // test if the encrypted events are sent only to the verified devices (any room)
+                            mSession.getCrypto().getGlobalBlacklistUnverifiedDevices(new SimpleApiCallback<Boolean>() {
+                                @Override
+                                public void onSuccess(Boolean sendToVerifiedDevicesOnly) {
+                                    if (sendToVerifiedDevicesOnly) {
+                                        dispatchOnIncomingCall(call, null);
+                                    } else {
+                                        //  test if the encrypted events are sent only to the verified devices (only this room)
+                                        mSession.getCrypto().isRoomBlacklistUnverifiedDevices(room.getRoomId(), new SimpleApiCallback<Boolean>() {
+                                            @Override
+                                            public void onSuccess(Boolean sendToVerifiedDevicesOnly) {
+                                                if (sendToVerifiedDevicesOnly) {
+                                                    dispatchOnIncomingCall(call, null);
+                                                } else {
+                                                    room.getJoinedMembersAsync(new ApiCallback<List<RoomMember>>() {
 
-                                                            @Override
-                                                            public void onNetworkError(Exception e) {
-                                                                dispatchOnIncomingCall(call, null);
-                                                            }
+                                                        @Override
+                                                        public void onNetworkError(Exception e) {
+                                                            dispatchOnIncomingCall(call, null);
+                                                        }
 
-                                                            @Override
-                                                            public void onMatrixError(MatrixError e) {
-                                                                dispatchOnIncomingCall(call, null);
-                                                            }
+                                                        @Override
+                                                        public void onMatrixError(MatrixError e) {
+                                                            dispatchOnIncomingCall(call, null);
+                                                        }
 
-                                                            @Override
-                                                            public void onUnexpectedError(Exception e) {
-                                                                dispatchOnIncomingCall(call, null);
-                                                            }
+                                                        @Override
+                                                        public void onUnexpectedError(Exception e) {
+                                                            dispatchOnIncomingCall(call, null);
+                                                        }
 
-                                                            @Override
-                                                            public void onSuccess(List<RoomMember> members) {
-                                                                String userId1 = members.get(0).getUserId();
-                                                                String userId2 = members.get(1).getUserId();
+                                                        @Override
+                                                        public void onSuccess(List<RoomMember> members) {
+                                                            String userId1 = members.get(0).getUserId();
+                                                            String userId2 = members.get(1).getUserId();
 
-                                                                Log.d(LOG_TAG, "## checkPendingIncomingCalls() : check the unknown devices");
+                                                            Log.d(LOG_TAG, "## checkPendingIncomingCalls() : check the unknown devices");
 
-                                                                //
-                                                                mSession.getCrypto()
-                                                                        .checkUnknownDevices(Arrays.asList(userId1, userId2), new ApiCallback<Void>() {
-                                                                            @Override
-                                                                            public void onSuccess(Void anything) {
-                                                                                Log.d(LOG_TAG, "## checkPendingIncomingCalls() : no unknown device");
-                                                                                dispatchOnIncomingCall(call, null);
-                                                                            }
+                                                            //
+                                                            mSession.getCrypto()
+                                                                    .checkUnknownDevices(Arrays.asList(userId1, userId2), new ApiCallback<Void>() {
+                                                                        @Override
+                                                                        public void onSuccess(Void anything) {
+                                                                            Log.d(LOG_TAG, "## checkPendingIncomingCalls() : no unknown device");
+                                                                            dispatchOnIncomingCall(call, null);
+                                                                        }
 
-                                                                            @Override
-                                                                            public void onNetworkError(Exception e) {
-                                                                                Log.e(LOG_TAG,
-                                                                                        "## checkPendingIncomingCalls() : checkUnknownDevices failed "
-                                                                                                + e.getMessage(), e);
-                                                                                dispatchOnIncomingCall(call, null);
-                                                                            }
+                                                                        @Override
+                                                                        public void onNetworkError(Exception e) {
+                                                                            Log.e(LOG_TAG,
+                                                                                    "## checkPendingIncomingCalls() : checkUnknownDevices failed "
+                                                                                            + e.getMessage(), e);
+                                                                            dispatchOnIncomingCall(call, null);
+                                                                        }
 
-                                                                            @Override
-                                                                            public void onMatrixError(MatrixError e) {
-                                                                                MXUsersDevicesMap<MXDeviceInfo> unknownDevices = null;
+                                                                        @Override
+                                                                        public void onMatrixError(MatrixError e) {
+                                                                            MXUsersDevicesMap<MXDeviceInfo> unknownDevices = null;
 
-                                                                                if (e instanceof MXCryptoError) {
-                                                                                    MXCryptoError cryptoError = (MXCryptoError) e;
+                                                                            if (e instanceof MXCryptoError) {
+                                                                                MXCryptoError cryptoError = (MXCryptoError) e;
 
-                                                                                    if (MXCryptoError.UNKNOWN_DEVICES_CODE.equals(cryptoError.errcode)) {
-                                                                                        unknownDevices =
-                                                                                                (MXUsersDevicesMap<MXDeviceInfo>) cryptoError.mExceptionData;
-                                                                                    }
+                                                                                if (MXCryptoError.UNKNOWN_DEVICES_CODE.equals(cryptoError.errcode)) {
+                                                                                    unknownDevices =
+                                                                                            (MXUsersDevicesMap<MXDeviceInfo>) cryptoError.mExceptionData;
                                                                                 }
-
-                                                                                if (null != unknownDevices) {
-                                                                                    Log.d(LOG_TAG, "## checkPendingIncomingCalls() :" +
-                                                                                            " checkUnknownDevices found some unknown devices");
-                                                                                } else {
-                                                                                    Log.e(LOG_TAG, "## checkPendingIncomingCalls() :" +
-                                                                                            " checkUnknownDevices failed " + e.getMessage());
-                                                                                }
-
-                                                                                dispatchOnIncomingCall(call, unknownDevices);
                                                                             }
 
-                                                                            @Override
-                                                                            public void onUnexpectedError(Exception e) {
+                                                                            if (null != unknownDevices) {
+                                                                                Log.d(LOG_TAG, "## checkPendingIncomingCalls() :" +
+                                                                                        " checkUnknownDevices found some unknown devices");
+                                                                            } else {
                                                                                 Log.e(LOG_TAG, "## checkPendingIncomingCalls() :" +
-                                                                                        " checkUnknownDevices failed " + e.getMessage(), e);
-                                                                                dispatchOnIncomingCall(call, null);
+                                                                                        " checkUnknownDevices failed " + e.getMessage());
                                                                             }
-                                                                        });
-                                                            }
-                                                        });
-                                                    }
+
+                                                                            dispatchOnIncomingCall(call, unknownDevices);
+                                                                        }
+
+                                                                        @Override
+                                                                        public void onUnexpectedError(Exception e) {
+                                                                            Log.e(LOG_TAG, "## checkPendingIncomingCalls() :" +
+                                                                                    " checkUnknownDevices failed " + e.getMessage(), e);
+                                                                            dispatchOnIncomingCall(call, null);
+                                                                        }
+                                                                    });
+                                                        }
+                                                    });
                                                 }
-                                            });
-                                        }
+                                            }
+                                        });
                                     }
-                                });
-                            } else {
-                                dispatchOnIncomingCall(call, null);
-                            }
+                                }
+                            });
+                        } else {
+                            dispatchOnIncomingCall(call, null);
                         }
                     }
                 }
-                mxPendingIncomingCallId.clear();
             }
+            mxPendingIncomingCallId.clear();
         });
     }
 
@@ -661,7 +596,7 @@ public class MXCallsManager {
                         // when a room is encrypted, test first there is no unknown device
                         // else the call will fail.
                         // So it seems safer to reject the call creation it it will fail.
-                        if (room.isEncrypted() && mSession.getCrypto().warnOnUnknownDevices()) {
+                        if (room.isEncrypted() && mSession.getCrypto() != null && mSession.getCrypto().warnOnUnknownDevices()) {
                             room.getJoinedMembersAsync(new SimpleApiCallback<List<RoomMember>>(callback) {
                                 @Override
                                 public void onSuccess(List<RoomMember> members) {
@@ -684,12 +619,7 @@ public class MXCallsManager {
                                             dispatchOnOutgoingCall(call);
 
                                             if (null != callback) {
-                                                mUIThreadHandler.post(new Runnable() {
-                                                    @Override
-                                                    public void run() {
-                                                        callback.onSuccess(call);
-                                                    }
-                                                });
+                                                mUIThreadHandler.post(() -> callback.onSuccess(call));
                                             }
                                         }
                                     });
@@ -702,12 +632,7 @@ public class MXCallsManager {
                             call.setRooms(room, room);
 
                             if (null != callback) {
-                                mUIThreadHandler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        callback.onSuccess(call);
-                                    }
-                                });
+                                mUIThreadHandler.post(() -> callback.onSuccess(call));
                             }
                         }
                     } else {
@@ -731,12 +656,7 @@ public class MXCallsManager {
                                         dispatchOnOutgoingCall(call);
 
                                         if (null != callback) {
-                                            mUIThreadHandler.post(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    callback.onSuccess(call);
-                                                }
-                                            });
+                                            mUIThreadHandler.post(() -> callback.onSuccess(call));
                                         }
                                     }
 
@@ -880,99 +800,94 @@ public class MXCallsManager {
 
         Log.d(LOG_TAG, "## refreshTurnServer () starts");
 
-        mUIThreadHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                mCallResClient.getTurnServer(new ApiCallback<JsonObject>() {
-                    private void restartAfter(int msDelay) {
-                        // reported by GA
-                        // "ttl" seems invalid
-                        if (msDelay <= 0) {
-                            Log.e(LOG_TAG, "## refreshTurnServer() : invalid delay " + msDelay);
-                        } else {
-                            if (null != mTurnServerTimer) {
-                                mTurnServerTimer.cancel();
-                            }
+        mUIThreadHandler.post(() -> mCallResClient.getTurnServer(new ApiCallback<JsonObject>() {
+            private void restartAfter(int msDelay) {
+                // reported by GA
+                // "ttl" seems invalid
+                if (msDelay <= 0) {
+                    Log.e(LOG_TAG, "## refreshTurnServer() : invalid delay " + msDelay);
+                } else {
+                    if (null != mTurnServerTimer) {
+                        mTurnServerTimer.cancel();
+                    }
 
-                            try {
-                                mTurnServerTimer = new Timer();
-                                mTurnServerTimer.schedule(new TimerTask() {
-                                    @Override
-                                    public void run() {
-                                        if (mTurnServerTimer != null) {
-                                            mTurnServerTimer.cancel();
-                                            mTurnServerTimer = null;
-                                        }
-
-                                        refreshTurnServer();
-                                    }
-                                }, msDelay);
-                            } catch (Throwable e) {
-                                Log.e(LOG_TAG, "## refreshTurnServer() failed to start the timer", e);
-
-                                if (null != mTurnServerTimer) {
+                    try {
+                        mTurnServerTimer = new Timer();
+                        mTurnServerTimer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                if (mTurnServerTimer != null) {
                                     mTurnServerTimer.cancel();
                                     mTurnServerTimer = null;
                                 }
+
                                 refreshTurnServer();
                             }
+                        }, msDelay);
+                    } catch (Throwable e) {
+                        Log.e(LOG_TAG, "## refreshTurnServer() failed to start the timer", e);
+
+                        if (null != mTurnServerTimer) {
+                            mTurnServerTimer.cancel();
+                            mTurnServerTimer = null;
                         }
+                        refreshTurnServer();
                     }
-
-                    @Override
-                    public void onSuccess(JsonObject info) {
-                        // privacy
-                        Log.d(LOG_TAG, "## refreshTurnServer () : onSuccess");
-                        //Log.d(LOG_TAG, "onSuccess " + info);
-
-                        if (null != info) {
-                            if (info.has("uris")) {
-                                synchronized (LOG_TAG) {
-                                    mTurnServer = info;
-                                }
-                            }
-
-                            if (info.has("ttl")) {
-                                int ttl = 60000;
-
-                                try {
-                                    ttl = info.get("ttl").getAsInt();
-                                    // restart a 90 % before ttl expires
-                                    ttl = ttl * 9 / 10;
-                                } catch (Exception e) {
-                                    Log.e(LOG_TAG, "Fail to retrieve ttl " + e.getMessage(), e);
-                                }
-
-                                Log.d(LOG_TAG, "## refreshTurnServer () : onSuccess : retry after " + ttl + " seconds");
-                                restartAfter(ttl * 1000);
-                            }
-                        }
-                    }
-
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "## refreshTurnServer () : onNetworkError", e);
-                        restartAfter(60000);
-                    }
-
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "## refreshTurnServer () : onMatrixError() : " + e.errcode);
-
-                        if (TextUtils.equals(e.errcode, MatrixError.LIMIT_EXCEEDED) && (null != e.retry_after_ms)) {
-                            Log.e(LOG_TAG, "## refreshTurnServer () : onMatrixError() : retry after " + e.retry_after_ms + " ms");
-                            restartAfter(e.retry_after_ms);
-                        }
-                    }
-
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        // should never happen
-                        Log.e(LOG_TAG, "## refreshTurnServer () : onUnexpectedError()", e);
-                    }
-                });
+                }
             }
-        });
+
+            @Override
+            public void onSuccess(JsonObject info) {
+                // privacy
+                Log.d(LOG_TAG, "## refreshTurnServer () : onSuccess");
+                //Log.d(LOG_TAG, "onSuccess " + info);
+
+                if (null != info) {
+                    if (info.has("uris")) {
+                        synchronized (LOG_TAG) {
+                            mTurnServer = info;
+                        }
+                    }
+
+                    if (info.has("ttl")) {
+                        int ttl = 60000;
+
+                        try {
+                            ttl = info.get("ttl").getAsInt();
+                            // restart a 90 % before ttl expires
+                            ttl = ttl * 9 / 10;
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "Fail to retrieve ttl " + e.getMessage(), e);
+                        }
+
+                        Log.d(LOG_TAG, "## refreshTurnServer () : onSuccess : retry after " + ttl + " seconds");
+                        restartAfter(ttl * 1000);
+                    }
+                }
+            }
+
+            @Override
+            public void onNetworkError(Exception e) {
+                Log.e(LOG_TAG, "## refreshTurnServer () : onNetworkError", e);
+                restartAfter(60000);
+            }
+
+            @Override
+            public void onMatrixError(MatrixError e) {
+                Log.e(LOG_TAG, "## refreshTurnServer () : onMatrixError() : " + e.errcode);
+
+                if (TextUtils.equals(e.errcode, MatrixError.LIMIT_EXCEEDED) && (null != e.retry_after_ms)) {
+                    Log.e(LOG_TAG, "## refreshTurnServer () : onMatrixError() : retry after " + e.retry_after_ms + " ms");
+                    restartAfter(e.retry_after_ms);
+                }
+            }
+
+            @Override
+            public void onUnexpectedError(Exception e) {
+                // should never happen
+                Log.e(LOG_TAG, "## refreshTurnServer () : onUnexpectedError()", e);
+            }
+        }));
     }
 
     //==============================================================================================================
@@ -1069,12 +984,7 @@ public class MXCallsManager {
         RoomMember conferenceMember = room.getMember(conferenceUserId);
 
         if ((null != conferenceMember) && TextUtils.equals(conferenceMember.membership, RoomMember.MEMBERSHIP_JOIN)) {
-            mUIThreadHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    callback.onSuccess(null);
-                }
-            });
+            mUIThreadHandler.post(() -> callback.onSuccess(null));
         } else {
             room.invite(mSession, conferenceUserId, callback);
         }
