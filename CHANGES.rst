@@ -9,6 +9,7 @@ Improvements:
 
 Bugfix:
  - Fix bad constant values for homeserver CS api versions
+ - Fix issue of blocked UI after a video call (#496, vector-im/riot-android#3311)
 
 API Change:
  -
