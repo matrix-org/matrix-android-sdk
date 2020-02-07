@@ -2315,7 +2315,7 @@ public class Room implements CryptoRoom {
 
             if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
                 mDataHandler.getDataRetriever().getRoomsRestClient()
-                        .sendMessage(event.eventId, getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
+                        .sendMessage(event.eventId, getRoomId(), event.getContentAsJsonObject(), localCB);
             } else {
                 mDataHandler.getDataRetriever().getRoomsRestClient()
                         .sendEventToRoom(event.eventId, getRoomId(), event.getType(), event.getContentAsJsonObject(), localCB);
