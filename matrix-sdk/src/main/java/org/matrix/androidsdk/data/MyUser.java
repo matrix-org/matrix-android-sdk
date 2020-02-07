@@ -21,11 +21,11 @@ package org.matrix.androidsdk.data;
 import android.os.Handler;
 import android.os.Looper;
 
-import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
 import org.matrix.androidsdk.core.model.MatrixError;
+import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.pid.ThirdPartyIdentifier;
 import org.matrix.androidsdk.rest.model.pid.ThreePid;
@@ -74,7 +74,10 @@ public class MyUser extends User {
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
                 MyUser.this.displayname = displayName;
-                mDataHandler.getStore().setDisplayName(displayName, System.currentTimeMillis());
+                IMXStore store = mDataHandler.getStore();
+                if (store != null) {
+                    store.setDisplayName(displayName, System.currentTimeMillis());
+                }
 
                 callback.onSuccess(info);
             }
@@ -93,7 +96,10 @@ public class MyUser extends User {
             public void onSuccess(Void info) {
                 // Update the object member before calling the given callback
                 setAvatarUrl(avatarUrl);
-                mDataHandler.getStore().setAvatarURL(avatarUrl, System.currentTimeMillis());
+                IMXStore store = mDataHandler.getStore();
+                if (store != null) {
+                    store.setAvatarURL(avatarUrl, System.currentTimeMillis());
+                }
 
                 callback.onSuccess(info);
             }
@@ -127,8 +133,9 @@ public class MyUser extends User {
         mEmailIdentifiers = new ArrayList<>();
         mPhoneNumberIdentifiers = new ArrayList<>();
         //NPE reported on playstore
-        if (mDataHandler.getStore() != null) {
-            List<ThirdPartyIdentifier> identifiers = mDataHandler.getStore().thirdPartyIdentifiers();
+        IMXStore store = mDataHandler.getStore();
+        if (store != null) {
+            List<ThirdPartyIdentifier> identifiers = store.thirdPartyIdentifiers();
             for (ThirdPartyIdentifier identifier : identifiers) {
                 switch (identifier.medium) {
                     case ThreePid.MEDIUM_EMAIL:
@@ -259,10 +266,13 @@ public class MyUser extends User {
                 if (mDataHandler.isAlive()) {
                     // local value
                     setAvatarUrl(anAvatarUrl);
-                    // metadata file
-                    mDataHandler.getStore().setAvatarURL(anAvatarUrl, System.currentTimeMillis());
-                    // user
-                    mDataHandler.getStore().storeUser(MyUser.this);
+                    IMXStore store = mDataHandler.getStore();
+                    if (store != null) {
+                        // metadata file
+                        store.setAvatarURL(anAvatarUrl, System.currentTimeMillis());
+                        // user
+                        store.storeUser(MyUser.this);
+                    }
 
                     mIsAvatarRefreshed = true;
 
@@ -314,8 +324,9 @@ public class MyUser extends User {
                     // local value
                     displayname = aDisplayname;
                     // store metadata
-                    if (mDataHandler.getStore() != null) {
-                        mDataHandler.getStore().setDisplayName(aDisplayname, System.currentTimeMillis());
+                    IMXStore store = mDataHandler.getStore();
+                    if (store != null) {
+                        store.setDisplayName(aDisplayname, System.currentTimeMillis());
                     }
 
                     mIsDisplayNameRefreshed = true;
@@ -366,7 +377,10 @@ public class MyUser extends User {
             public void onSuccess(List<ThirdPartyIdentifier> identifiers) {
                 if (mDataHandler.isAlive()) {
                     // store
-                    mDataHandler.getStore().setThirdPartyIdentifiers(identifiers);
+                    IMXStore store = mDataHandler.getStore();
+                    if (store != null) {
+                        store.setThirdPartyIdentifiers(identifiers);
+                    }
 
                     buildIdentifiersLists();
 
