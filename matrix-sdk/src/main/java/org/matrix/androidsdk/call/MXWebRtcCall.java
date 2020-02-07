@@ -79,10 +79,10 @@ public class MXWebRtcCall extends MXCall {
     private static final int CAMERA_TYPE_REAR = 2;
     private static final int CAMERA_TYPE_UNDEFINED = -1;
 
-    static private PeerConnectionFactory mPeerConnectionFactory = null;
-    static private String mFrontCameraName = null;
-    static private String mBackCameraName = null;
-    static private CameraVideoCapturer mCameraVideoCapturer = null;
+    private static PeerConnectionFactory mPeerConnectionFactory = null;
+    private static String mFrontCameraName = null;
+    private static String mBackCameraName = null;
+    private static CameraVideoCapturer mCameraVideoCapturer = null;
 
     private RelativeLayout mCallView = null;
 
@@ -337,7 +337,8 @@ public class MXWebRtcCall extends MXCall {
         // mPeerConnectionFactory is static so it might be used by another call
         // so we test that the current has been created
         if (isPeerConnectionFactoryAllowed && (null != mPeerConnectionFactory)) {
-            mPeerConnectionFactory.dispose();
+            Log.w(LOG_TAG, "Call to mPeerConnectionFactory.dispose() has been removed");
+            // mPeerConnectionFactory.dispose();
             mPeerConnectionFactory = null;
         }
 
