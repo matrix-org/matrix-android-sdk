@@ -1,32 +1,16 @@
-Changes to Matrix Android SDK in 0.9.X (2019-XX-XX)
+Changes to Matrix Android SDK in 0.9.33 (2020-02-10)
 =======================================================
 
 Features:
  - HTTP Proxy configuration using HomeServerConnectionConfig
-
-Improvements:
- -
 
 Bugfix:
  - Fix bad constant values for homeserver CS api versions
  - Ensure custom fields are sent for `m.room.message` Events (#515)
  - Fix issue of blocked UI after a video call (#496, vector-im/riot-android#3311)
 
-API Change:
- -
-
-Translations:
- -
-
 Others:
  - Cleanup in org.matrix.androisdk.call
-
-Build:
- -
-
-Test:
- -
-
 
 Changes to Matrix Android SDK in 0.9.32 (2019-11-25)
 =======================================================
@@ -1658,7 +1642,7 @@ Features:
 =======================================================
 
 
-Changes to Matrix Android SDK in 0.9.X (2019-XX-XX)
+Changes to Matrix Android SDK in 0.9.X (2020-XX-XX)
 =======================================================
 
 Features:
