@@ -43,6 +43,7 @@ class RestClientHttpClientFactory(private val testInterceptor: Interceptor? = nu
                 .connectTimeout(RestClient.CONNECTION_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
                 .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                 .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .proxy(hsConfig.proxyConfig)
                 .addInterceptor(authenticationInterceptor)
 
         if (BuildConfig.DEBUG) {

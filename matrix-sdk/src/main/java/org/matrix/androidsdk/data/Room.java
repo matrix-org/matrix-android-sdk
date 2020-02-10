@@ -60,7 +60,6 @@ import org.matrix.androidsdk.data.store.IMXStore;
 import org.matrix.androidsdk.data.timeline.EventTimeline;
 import org.matrix.androidsdk.data.timeline.EventTimelineFactory;
 import org.matrix.androidsdk.db.MXMediaCache;
-import org.matrix.androidsdk.features.identityserver.IdentityServerManager;
 import org.matrix.androidsdk.listeners.IMXEventListener;
 import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.listeners.MXRoomEventListener;
@@ -93,7 +92,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -679,12 +677,12 @@ public class Room implements CryptoRoom {
      * @param thirdPartySignedUrl the thirdPartySigned url
      * @param callback            the callback
      */
-    public void joinWithThirdPartySigned(final String alias, final String thirdPartySignedUrl, final ApiCallback<Void> callback) {
+    public void joinWithThirdPartySigned(final MXSession session, final String alias, final String thirdPartySignedUrl, final ApiCallback<Void> callback) {
         if (null == thirdPartySignedUrl) {
             join(alias, callback);
         } else {
             String url = thirdPartySignedUrl + "&mxid=" + mMyUserId;
-            UrlPostTask task = new UrlPostTask();
+            UrlPostTask task = new UrlPostTask(session.getHomeServerConfig().getProxyConfig());
 
             task.setListener(new UrlPostTask.IPostTaskListener() {
                 @Override
@@ -2317,7 +2315,7 @@ public class Room implements CryptoRoom {
 
             if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
                 mDataHandler.getDataRetriever().getRoomsRestClient()
-                        .sendMessage(event.eventId, getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
+                        .sendMessage(event.eventId, getRoomId(), event.getContentAsJsonObject(), localCB);
             } else {
                 mDataHandler.getDataRetriever().getRoomsRestClient()
                         .sendEventToRoom(event.eventId, getRoomId(), event.getType(), event.getContentAsJsonObject(), localCB);
@@ -2431,7 +2429,7 @@ public class Room implements CryptoRoom {
      */
     public void invite(final MXSession session, List<String> identifiers, ApiCallback<Void> callback) {
         if (null != identifiers) {
-            session.getIdentityServerManager().inviteInRoom(this,identifiers.iterator(),callback);
+            session.getIdentityServerManager().inviteInRoom(this, identifiers.iterator(), callback);
         }
     }
 

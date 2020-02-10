@@ -173,4 +173,33 @@
     <string name="clear_timeline_send_queue">Cancella la coda di invio</string>
 
     <string name="notice_room_third_party_revoked_invite">%1$s ha revocato l\'invito a %2$s di unirsi alla stanza</string>
+    <string name="notice_room_invite_no_invitee_with_reason">Invito di %1$s. Motivo: %2$s</string>
+    <string name="notice_room_invite_with_reason">%1$s ha invitato %2$s. Motivo: %3$s</string>
+    <string name="notice_room_invite_you_with_reason">%1$s ti ha invitato. Motivo: %2$s</string>
+    <string name="notice_room_join_with_reason">%1$s è entrato. Motivo: %2$s</string>
+    <string name="notice_room_leave_with_reason">%1$s è uscito. Motivo: %2$s</string>
+    <string name="notice_room_reject_with_reason">%1$s ha rifiutato l\'invito. Motivo: %2$s</string>
+    <string name="notice_room_kick_with_reason">%1$s ha buttato fuori %2$s. Motivo: %3$s</string>
+    <string name="notice_room_unban_with_reason">%1$s ha riammesso %2$s. Motivo: %3$s</string>
+    <string name="notice_room_ban_with_reason">%1$s ha bandito %2$s. Motivo: %3$s</string>
+    <string name="notice_room_third_party_invite_with_reason">%1$s ha inviato un invito a %2$s di unirsi alla stanza. Motivo: %3$s</string>
+    <string name="notice_room_third_party_revoked_invite_with_reason">%1$s ha revocato l\'invito a %2$s di unirsi alla stanza. Motivo: %3$s</string>
+    <string name="notice_room_third_party_registered_invite_with_reason">%1$s ha accettato l\'invito per %2$s. Motivo: %3$s</string>
+    <string name="notice_room_withdraw_with_reason">%1$s ha rifiutato l\'invito di %2$s. Motivo: %3$s</string>
+
+    <plurals name="notice_room_aliases_added">
+        <item quantity="one">%1$s ha aggiunto %2$s come indirizzo per questa stanza.</item>
+        <item quantity="other">%1$s ha aggiunto %2$s come indirizzi per questa stanza.</item>
+    </plurals>
+
+    <plurals name="notice_room_aliases_removed">
+        <item quantity="one">%1$s ha rimosso %2$s come indirizzo per questa stanza.</item>
+        <item quantity="other">%1$s ha rimosso %3$s come indirizzi per questa stanza.</item>
+    </plurals>
+
+    <string name="notice_room_aliases_added_and_removed">%1$s ha aggiunto %2$s e rimosso %3$s come indirizzi per questa stanza.</string>
+
+    <string name="notice_room_canonical_alias_set">%1$s ha impostato l\'indirizzo principale per questa stanza a %2$s.</string>
+    <string name="notice_room_canonical_alias_unset">%1$s ha rimosso l\'indirizzo principale per questa stanza.</string>
+
 </resources>

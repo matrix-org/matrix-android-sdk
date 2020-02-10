@@ -22,6 +22,7 @@ import android.util.Pair;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.ContentManager;
 import org.matrix.androidsdk.core.JsonUtils;
@@ -36,6 +37,7 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.Proxy;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -86,6 +88,9 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
      * Tells if the upload has been completed
      */
     private boolean mIsDone;
+
+    // the home server connection config
+    private HomeServerConnectionConfig mHsConfig;
 
     // upload const
     private static final int UPLOAD_BUFFER_READ_SIZE = 1024 * 32;
@@ -161,6 +166,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
     /**
      * Constructor
      *
+     * @param hsConfig       the home server connection config
      * @param contentManager the content manager
      * @param contentStream  the stream to upload
      * @param mimeType       the mime type
@@ -168,7 +174,8 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
      * @param filename       the dest filename
      * @param listener       the upload listener
      */
-    public MXMediaUploadWorkerTask(ContentManager contentManager,
+    public MXMediaUploadWorkerTask(HomeServerConnectionConfig hsConfig,
+                                   ContentManager contentManager,
                                    InputStream contentStream,
                                    String mimeType,
                                    String uploadId,
@@ -185,6 +192,7 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
         }
 
 
+        mHsConfig = hsConfig;
         mContentManager = contentManager;
         mContentStream = contentStream;
         mMimeType = mimeType;
@@ -296,7 +304,12 @@ public class MXMediaUploadWorkerTask extends AsyncTask<Void, Void, String> {
         try {
             URL url = new URL(urlString);
 
-            conn = (HttpURLConnection) url.openConnection();
+            Proxy proxyConfig = mHsConfig.getProxyConfig();
+            if (proxyConfig == null) {
+                proxyConfig = Proxy.NO_PROXY;
+            }
+
+            conn = (HttpURLConnection) url.openConnection(proxyConfig);
             if (RestClient.getUserAgent() != null) {
                 conn.setRequestProperty("User-Agent", RestClient.getUserAgent());
             }

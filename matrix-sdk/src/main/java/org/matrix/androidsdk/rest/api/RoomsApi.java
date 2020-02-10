@@ -36,7 +36,6 @@ import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.UserIdAndReason;
-import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
 import java.util.List;
@@ -72,10 +71,10 @@ public interface RoomsApi {
      *
      * @param txId    the transaction Id
      * @param roomId  the room id
-     * @param message the message
+     * @param content the message
      */
     @PUT("rooms/{roomId}/send/m.room.message/{txId}")
-    Call<CreatedEvent> sendMessage(@Path("txId") String txId, @Path("roomId") String roomId, @Body Message message);
+    Call<CreatedEvent> sendMessage(@Path("txId") String txId, @Path("roomId") String roomId, @Body JsonObject content);
 
     /**
      * Update the power levels

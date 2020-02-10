@@ -172,4 +172,33 @@
     <string name="clear_timeline_send_queue">Küldő sor ürítése</string>
 
     <string name="notice_room_third_party_revoked_invite">%1$s visszavonta a meghívót a belépéshez ebbe a szobába: %2$s</string>
+    <string name="notice_room_invite_no_invitee_with_reason">%1$s meghívója. Ok: %2$s</string>
+    <string name="notice_room_invite_with_reason">%1$s meghívta őt: %2$s. Ok: %3$s</string>
+    <string name="notice_room_invite_you_with_reason">%1$s meghívott. Ok: %2$s</string>
+    <string name="notice_room_join_with_reason">%1$s csatlakozott. Ok: %2$s</string>
+    <string name="notice_room_leave_with_reason">%1$s kilépett. Ok: %2$s</string>
+    <string name="notice_room_reject_with_reason">%1$s visszautasította a meghívót. Ok: %2$s</string>
+    <string name="notice_room_kick_with_reason">%1$s kirúgta őt: %2$s. Ok: %3$s</string>
+    <string name="notice_room_unban_with_reason">%1$s visszaengedte őt: %2$s. Ok: %3$s</string>
+    <string name="notice_room_ban_with_reason">%1$s kitiltotta őt: %2$s. Ok: %3$s</string>
+    <string name="notice_room_third_party_invite_with_reason">%1$s meghívót küldött neki: %2$s, hogy lépjen be a szobába. Ok: %3$s</string>
+    <string name="notice_room_third_party_revoked_invite_with_reason">%1$s visszavonta %2$s meghívóját a szobába való belépéshez. Ok: %3$s</string>
+    <string name="notice_room_third_party_registered_invite_with_reason">%1$s elfogadta a meghívót ide: %2$s. Ok: %3$s</string>
+    <string name="notice_room_withdraw_with_reason">%1$s visszavonta %2$s meghívóját. Ok: %3$s</string>
+
+    <plurals name="notice_room_aliases_added">
+        <item quantity="one">%1$s ezt a címet adta a szobához: %2$s.</item>
+        <item quantity="other">%1$s ezeket a címeket adta a szobához: %2$s.</item>
+    </plurals>
+
+    <plurals name="notice_room_aliases_removed">
+        <item quantity="one">%1$s ezt a címet törölte a szobából: %3$s.</item>
+        <item quantity="other">%1$s ezeket a címeket törölte a szobából: %3$s.</item>
+    </plurals>
+
+    <string name="notice_room_aliases_added_and_removed">%1$s a szobához adta ezeket:%2$s és törölte ezeket: %3$s.</string>
+
+    <string name="notice_room_canonical_alias_set">%1$s a szoba elsődleges címét erre állította be: %2$s.</string>
+    <string name="notice_room_canonical_alias_unset">%1$s eltávolította a szoba elsődleges címét.</string>
+
 </resources>
