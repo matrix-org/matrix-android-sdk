@@ -112,7 +112,7 @@
     <string name="verification_emoji_penguin">Pinguin</string>
     <string name="verification_emoji_turtle">Schildkröte</string>
     <string name="verification_emoji_fish">Fisch</string>
-    <string name="verification_emoji_octopus">Tintenfisch</string>
+    <string name="verification_emoji_octopus">Oktopus</string>
     <string name="verification_emoji_butterfly">Schmetterling</string>
     <string name="verification_emoji_flower">Blume</string>
     <string name="verification_emoji_tree">Baum</string>
@@ -133,7 +133,7 @@
     <string name="verification_emoji_hat">Hut</string>
     <string name="verification_emoji_glasses">Brille</string>
     <string name="verification_emoji_wrench">Schraubenschlüssel</string>
-    <string name="verification_emoji_santa">Nikolaus</string>
+    <string name="verification_emoji_santa">Weihnachtsmann</string>
     <string name="verification_emoji_thumbsup">Daumen hoch</string>
     <string name="verification_emoji_umbrella">Regenschirm</string>
     <string name="verification_emoji_hourglass">Sanduhr</string>
@@ -141,10 +141,10 @@
     <string name="verification_emoji_gift">Geschenk</string>
     <string name="verification_emoji_lightbulb">Glühbirne</string>
     <string name="verification_emoji_book">Buch</string>
-    <string name="verification_emoji_pencil">Stift</string>
+    <string name="verification_emoji_pencil">Bleistift</string>
     <string name="verification_emoji_paperclip">Büroklammer</string>
-    <string name="verification_emoji_scissors">Scheren</string>
-    <string name="verification_emoji_lock">sperren</string>
+    <string name="verification_emoji_scissors">Schere</string>
+    <string name="verification_emoji_lock">Schloss</string>
     <string name="verification_emoji_key">Schlüssel</string>
     <string name="verification_emoji_hammer">Hammer</string>
     <string name="verification_emoji_telephone">Telefon</string>
