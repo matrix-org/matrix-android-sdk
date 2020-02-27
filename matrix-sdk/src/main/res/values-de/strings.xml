@@ -190,4 +190,27 @@
     <string name="notice_room_third_party_registered_invite_with_reason">%1$s hat die Einladung für %2$s angenommen. Grund: %3$s</string>
     <string name="notice_room_withdraw_with_reason">%1$s hat Einladung für %2$s verworfen. Grund: %3$s</string>
 
+<plurals name="notice_room_aliases_added">
+	<item quantity="one">%1$s fügt %2$s als eine Adresse für diesen Raum hinzu.</item>
+	<item quantity="other">%1$s fügt %2$s als Adressen für diesen Raum hinzu.</item>
+</plurals>
+
+    <plurals name="notice_room_aliases_removed">
+	<item quantity="one">%1$s entfernt %2$s als eine Adresse für diesen Raum.</item>
+	<item quantity="other">%1$s entfernt %2$s als Adressen für diesen Raum.</item>
+</plurals>
+
+    <string name="notice_room_aliases_added_and_removed">%1$s fügt %2$s als Adresse für diesen Raum hinzu und entfernt %3$s.</string>
+
+    <string name="notice_room_canonical_alias_set">%1$s legt die Hauptadresse fest für diesen Raum als %2$s fest.</string>
+    <string name="notice_room_canonical_alias_unset">%1$s entfernt die Hauptadresse für diesen Raum.</string>
+
+    <string name="notice_room_guest_access_can_join">%1$s hat Gästen erlaubt den Raum zu betreten.</string>
+    <string name="notice_room_guest_access_forbidden">%1$s hat Gäste unterbunden den Raum zu betreten.</string>
+
+    <string name="notice_end_to_end_ok">%1$s aktivierte Ende-zu-Ende-Verschlüsselung.</string>
+    <string name="notice_end_to_end_unknown_algorithm">%1$s aktivierte Ende-zu-Ende-Verschlüsselung (unbekannter Algorithmus %2$s).</string>
+
+    <string name="key_verification_request_fallback_message">%s fordert zur Überprüfung Ihres Schlüssels auf, jedoch unterstützt Ihr Client nicht die Schlüsselüberprüfung im Chat. Sie müssen die herkömmliche Schlüsselüberprüfung verwenden, um die Schlüssel zu überprüfen.</string>
+
 </resources>
