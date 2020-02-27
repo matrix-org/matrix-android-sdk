@@ -41,7 +41,7 @@
     <string name="notice_room_topic_removed">%1$s hat das Raum-Thema entfernt</string>
     <string name="notice_profile_change_redacted">%1$s hat das Benutzerprofil aktualisiert %2$s</string>
     <string name="notice_room_third_party_invite">%1$s hat eine Einladung an %2$s gesendet</string>
-    <string name="notice_room_third_party_registered_invite">%1$s hat die Einladung für %2$s akzeptiert</string>
+    <string name="notice_room_third_party_registered_invite">%1$s hat die Einladung in %2$s akzeptiert</string>
 
     <string name="notice_crypto_unable_to_decrypt">** Nicht entschlüsselbar: %s **</string>
     <string name="notice_crypto_error_unkwown_inbound_session_id">Das absendende Gerät hat uns keine Schlüssel für diese Nachricht übermittelt.</string>
