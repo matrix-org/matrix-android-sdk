@@ -173,4 +173,6 @@
     <string name="notice_room_invite_with_reason">Uživatel %1$s pozval uživatele %2$s. Důvod: %3$s</string>
     <string name="notice_room_invite_you_with_reason">Uživatel %1$s váš pozval. Důvod: %2$s</string>
     <string name="notice_room_leave_with_reason">Uživatel %1$s odešel. Důvod: %2$s</string>
+    <string name="notice_event_redacted">Zpráva odstraněna</string>
+    <string name="notice_event_redacted_by">Zprávu odstranil/a %1$s</string>
     </resources>
