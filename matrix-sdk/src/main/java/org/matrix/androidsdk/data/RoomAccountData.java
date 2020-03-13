@@ -18,9 +18,12 @@
 
 package org.matrix.androidsdk.data;
 
+import com.google.gson.JsonObject;
+
 import androidx.annotation.Nullable;
 
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 
 import java.util.Map;
 import java.util.Set;
@@ -33,17 +36,27 @@ public class RoomAccountData implements java.io.Serializable {
     private static final long serialVersionUID = -8406116277864521120L;
 
     // The tags the user defined for this room.
-    // The key is the tag name. The value, the associated MXRoomTag object.
+    // The key is the tag name. The value, the associated RoomTag object.
     private Map<String, RoomTag> tags = null;
+
+    // Tell whether the user allows the URL preview in this room.
+    // By default we consider the user allows the URL preview.
+    private boolean isURLPreviewAllowedByUser = true;
 
     /**
      * Process an event that modifies room account data (like m.tag event).
      *
      * @param event an event
      */
-    public void handleTagEvent(Event event) {
+    public void handleEvent(Event event) {
         if (event.getType().equals(Event.EVENT_TYPE_TAGS)) {
             tags = RoomTag.roomTagsWithTagEvent(event);
+        } else if (event.getType().equals(Event.EVENT_TYPE_URL_PREVIEW)) {
+            final JsonObject jsonObject = event.getContentAsJsonObject();
+            if (jsonObject != null && jsonObject.has(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
+                final boolean disabled = jsonObject.get(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE).getAsBoolean();
+                isURLPreviewAllowedByUser = !disabled;
+            }
         }
     }
 
@@ -58,26 +71,51 @@ public class RoomAccountData implements java.io.Serializable {
         if ((null != tags) && tags.containsKey(key)) {
             return tags.get(key);
         }
-
         return null;
     }
 
     /**
-     * @return true if some tags are defined
+     * @return true if some tags have been defined for the room
      */
-    public boolean hasTags() {
+    public boolean hasRoomTags() {
         return (null != tags) && (tags.size() > 0);
     }
 
     /**
-     * @return the list of keys, or null if no tag
+     * @return the list of the keys used to defined the room tags, or null if there is no tag
      */
     @Nullable
-    public Set<String> getKeys() {
-        if (hasTags()) {
+    public Set<String> getRoomTagsKeys() {
+        if (hasRoomTags()) {
             return tags.keySet();
         } else {
             return null;
         }
+    }
+
+    /**
+     * Tells if the URL preview is allowed by the user in this room.
+     *
+     * @return true if allowed.
+     */
+    public boolean isURLPreviewAllowedByUser() {
+        return isURLPreviewAllowedByUser;
+    }
+
+    /**
+     * @deprecated use hasRoomTags() instead.
+     * @return true if some tags have been defined for the room
+     */
+    public boolean hasTags() {
+        return hasRoomTags();
+    }
+
+    /**
+     * @deprecated use getRoomTagsKeys() instead.
+     * @return the list of the keys used to defined the room tags, or null if there is no tag
+     */
+    @Nullable
+    public Set<String> getKeys() {
+        return getRoomTagsKeys();
     }
 }

@@ -82,7 +82,6 @@ import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.message.ThumbnailInfo;
 import org.matrix.androidsdk.rest.model.message.VideoInfo;
 import org.matrix.androidsdk.rest.model.message.VideoMessage;
-import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 import org.matrix.androidsdk.rest.model.sync.InvitedRoomSync;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 import org.matrix.androidsdk.rest.model.sync.RoomSync;
@@ -94,7 +93,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Class representing a room and the interactions we have with it.
@@ -1971,26 +1969,13 @@ public class Room implements CryptoRoom {
                         }
                     }
                 } else {
-                    mAccountData.handleTagEvent(accountDataEvent);
+                    mAccountData.handleEvent(accountDataEvent);
                     if (Event.EVENT_TYPE_TAGS.equals(accountDataEvent.getType())) {
                         if (summary != null) {
-                            summary.setRoomTags(mAccountData.getKeys());
+                            summary.setRoomTags(mAccountData.getRoomTagsKeys());
                             getStore().flushSummary(summary);
                         }
                         mDataHandler.onRoomTagEvent(getRoomId());
-                    } else if (Event.EVENT_TYPE_URL_PREVIEW.equals(accountDataEvent.getType())) {
-                        final JsonObject jsonObject = accountDataEvent.getContentAsJsonObject();
-                        if (jsonObject != null && jsonObject.has(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
-                            final boolean disabled = jsonObject.get(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE).getAsBoolean();
-                            Set<String> roomIdsWithoutURLPreview = mDataHandler.getStore().getRoomsWithoutURLPreviews();
-                            if (disabled) {
-                                roomIdsWithoutURLPreview.add(getRoomId());
-                            } else {
-                                roomIdsWithoutURLPreview.remove(getRoomId());
-                            }
-
-                            mDataHandler.getStore().setRoomsWithoutURLPreview(roomIdsWithoutURLPreview);
-                        }
                     }
                 }
             }
@@ -2073,7 +2058,7 @@ public class Room implements CryptoRoom {
      * @return @return true if allowed.
      */
     public boolean isURLPreviewAllowedByUser() {
-        return !getDataHandler().getStore().getRoomsWithoutURLPreviews().contains(getRoomId());
+        return mAccountData.isURLPreviewAllowedByUser();
     }
 
     /**

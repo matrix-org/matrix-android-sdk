@@ -1752,7 +1752,7 @@ public class MXSession implements CryptoSession {
         } else {
             final Collection<Room> rooms = mDataHandler.getStore().getRooms();
             for (Room room : rooms) {
-                if (!room.getAccountData().hasTags()) {
+                if (!room.getAccountData().hasRoomTags()) {
                     taggedRooms.add(room);
                 }
             }

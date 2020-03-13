@@ -5,13 +5,17 @@ Features:
  -
 
 Improvements:
- -
+ - Enhance the room account data API naming.
 
 Bugfix:
  -
 
 API Change:
- -
+ - RoomAccountdata.hasTags() has been deprecated. Use .hasRoomTags() instead.
+ - RoomAccountdata.getKeys() has been deprecated. Use .getRoomTagsKeys() instead.
+ - RoomAccountdata.handleTagEvent() has been removed. Use .handleEvent() instead.
+ - IMXStore.setRoomsWithoutURLPreview() has been removed.
+ - IMXStore.getRoomsWithoutURLPreviews() has been removed. Use RoomAccountdata.isURLPreviewAllowedByUser() instead.
 
 Translations:
  -

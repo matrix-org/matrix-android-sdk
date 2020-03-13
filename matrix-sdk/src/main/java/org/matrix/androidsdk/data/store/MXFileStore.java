@@ -2666,12 +2666,6 @@ public class MXFileStore extends MXMemoryStore {
     }
 
     @Override
-    public void setRoomsWithoutURLPreview(Set<String> roomIds) {
-        super.setRoomsWithoutURLPreview(roomIds);
-        mMetaDataHasChanged = true;
-    }
-
-    @Override
     public void setUserWidgets(Map<String, Object> contentDict) {
         super.setUserWidgets(contentDict);
         mMetaDataHasChanged = true;

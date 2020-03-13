@@ -610,13 +610,6 @@ public interface IMXStore extends CryptoStore {
     boolean isURLPreviewEnabled();
 
     /**
-     * Update the rooms list which don't have URL previews
-     *
-     * @param roomIds the room ids list
-     */
-    void setRoomsWithoutURLPreview(Set<String> roomIds);
-
-    /**
      * Set the user widgets
      */
     void setUserWidgets(Map<String, Object> contentDict);
@@ -625,11 +618,6 @@ public interface IMXStore extends CryptoStore {
      * Get the user widgets
      */
     Map<String, Object> getUserWidgets();
-
-    /**
-     * @return the room ids list which don't have URL preview enabled
-     */
-    Set<String> getRoomsWithoutURLPreviews();
 
     /**
      * Add a couple Json filter / filterId
