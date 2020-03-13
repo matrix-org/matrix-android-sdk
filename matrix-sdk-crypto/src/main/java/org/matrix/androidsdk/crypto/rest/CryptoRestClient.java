@@ -19,6 +19,8 @@ package org.matrix.androidsdk.crypto.rest;
 
 import android.text.TextUtils;
 
+import org.matrix.androidsdk.HomeServerConnectionConfig;
+import org.matrix.androidsdk.RestClient;
 import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.core.StringUtilsKt;
 import org.matrix.androidsdk.core.callback.ApiCallback;
@@ -38,18 +40,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import retrofit2.Converter;
 import retrofit2.Response;
 
-public class CryptoRestClient extends ParentRestClient<CryptoApi> {
+public class CryptoRestClient extends RestClient<CryptoApi> {
 
     private static final String LOG_TAG = CryptoRestClient.class.getSimpleName();
 
     /**
      * {@inheritDoc}
      */
-    public CryptoRestClient(String homeServerUrl, String accessToken, Converter.Factory converterFactory) {
-        super(homeServerUrl, accessToken, CryptoApi.class, ParentRestClient.URI_API_PREFIX_PATH_UNSTABLE, converterFactory);
+    public CryptoRestClient(HomeServerConnectionConfig homeServerConnectionConfig) {
+        super(homeServerConnectionConfig, CryptoApi.class, URI_API_PREFIX_PATH_UNSTABLE);
     }
 
     /**

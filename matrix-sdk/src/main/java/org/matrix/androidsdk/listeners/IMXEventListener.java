@@ -23,6 +23,7 @@ import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
+import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 
 import java.util.List;
 
@@ -265,7 +266,8 @@ public interface IMXEventListener {
 
     /**
      * Account data has been updated from the sync
+     * @param accountDataElement the account data element that has changed
      */
-    void onAccountDataUpdated();
+    void onAccountDataUpdated(AccountDataElement accountDataElement);
 }
 

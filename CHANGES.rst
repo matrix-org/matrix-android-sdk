@@ -1,15 +1,13 @@
-Changes to Matrix Android SDK in 0.9.24 (2019-XX-XX)
+Changes to Matrix Android SDK in 0.9.34 (2020-XX-XX)
 =======================================================
 
 Features:
  -
 
 Improvements:
- - RoomSummary: Add a listener to override the method used to handle the last message of the rooms.
+ -
 
 Bugfix:
- - Fix replies showing mxids instead of display names (vector-im/riot-android#2468)
- - Fix / SAS, don't error if we don't know about some keys (vector-im/riot-android#3184)
  - F-Droid: sync once before suspend the events stream when a minimum delay is defined between 2 sync requests.
 
 API Change:
@@ -19,15 +17,157 @@ Translations:
  -
 
 Others:
+ -
+
+Build:
+ -
+
+Test:
+ -
+
+Changes to Matrix Android SDK in 0.9.33 (2020-02-10)
+=======================================================
+
+Features:
+ - HTTP Proxy configuration using HomeServerConnectionConfig
+
+Bugfix:
+ - Fix bad constant values for homeserver CS api versions
+ - Ensure custom fields are sent for `m.room.message` Events (#515)
+ - Fix issue of blocked UI after a video call (#496, vector-im/riot-android#3311)
+
+Others:
+ - Cleanup in org.matrix.androisdk.call
+
+Changes to Matrix Android SDK in 0.9.32 (2019-11-25)
+=======================================================
+
+Bugfix:
+ - Fix / Integration Manager was not allowed by default
+
+
+Changes to Matrix Android SDK in 0.9.31 (2019-11-22)
+=======================================================
+
+Features:
+ - Integrations / Manage Widget Permissions in Account Data
+
+Improvements:
+ - Integration Manager preferences are now managed by SDK
+ - Integrations / Manage Jitsi Domain Permissions in Account Data
+
+Bugfix:
+ - Crash on Realm crypto DB (vector-im/riot-android#3373)
+ - Match identity server registration to the IS r0.3.0 spec (#3382)
+
+API Change:
+ - /account/3pid/add requires user interactive Auth
+
+
+Changes to Matrix Android SDK in 0.9.30 (2019-10-09)
+=======================================================
+
+Bugfix:
+ - App won't start with some custom HS config #499
+
+Translations:
+ - Updated translations
+
+
+Changes to Matrix Android SDK in 0.9.29 (2019-10-04)
+=======================================================
+
+Corrective release
+
+Bugfix:
+ - Fix / Keysbackup not working (failed to get version)
+
+Changes to Matrix Android SDK in 0.9.28 (2019-10-03)
+=======================================================
+
+Improvements:
+ - Display correctly the revoked third-party invites.
+ - Support optional default STUN server when no ICE provided by HS
+ - Use wellknown to discover the IS of a HS (vector-im/riot-android#3283)
+ - Make identity server configurable
+ - Privacy: MSC2290 (#3300)
+
+API Change:
+ - `MXSession.openIdToken()` callback has a more typed parameter
+ - DefaultRetrofit2CallbackWrapper has been removed because it does not manage MatrixError. Use RestAdapterCallback instead.
+ - IMXEventListener.onAccountDataUpdated() method now has a parameter: the account data which has been updated.
+ - Third party identifiers (mail, phone) related calls (add/bind) are now delegated to the IdentityServerManager instead of
+   directly from MyUser. Now use mxSession.getIdentityManager().xxx
+ - Room#invite now requires the session (to delegate to correct identity server)
+
+Translations:
+ - Emoji verification name discrepancy between riot-web and riotX (vector-im/riotX-android#355)
+
+Others:
+ - Remove ParentRestClient from crypto module and use a common parent Rest Client (dinsic-pim/tchap-android#539)
+ - MXSession: Add doesServerRequireIdentityServerParam() and doesServerAcceptIdentityAccessToken() methods.
+ - Remove the bind true flag from 3PID calls on registration (vector-im/riot-android#3252)
+
+Changes to Matrix Android SDK in 0.9.27 (2019-08-28)
+=======================================================
+
+/!\ Security:
+ - The homeserver access token was incorrectly included in requests sent to the Identity Server, a separate service.
+   The client should prompt the user to logout and login again to renew the token, unless the user is happy to trust the Identity Server provider with their access token (e.g. if the homeserver and identity server are operated by the same provider).
+
+Features:
+ - Allow Matrix SDK client to configure the filter used for pagination (vector-im/riot-android#3237)
+
+Improvements:
+ - Add a TermsManager (vector-im/riot-android#3225)
+
+Bugfix:
+ - Stop sending the access token of the homeserver to the identity server
+ - VoIP: Stop falling back to Google for STUN (vector-im/riot-android#3223).
+ - EventIDs: Add regex to match eventIDs for v4 and v5 rooms
+ - Failed to send a message in a new joined room (invited by email)
+
+Others:
+ - Remove useless log (vector-im/riot-android#3236)
+
+Build:
+ - Migrate to androidx (following https://developer.android.com/jetpack/androidx/migrate)
+ - WebRTC: upgrade webrtc library, using the one build along with Jitsi
+
+Changes to Matrix Android SDK in 0.9.26 (2019-07-24)
+=======================================================
+
+Build:
+ - Downgrade $okhttp_version in config file
+
+
+Changes to Matrix Android SDK in 0.9.25 (2019-07-24)
+=======================================================
+
+Build:
+ - Upgraded okhttp to 3.12.1 using global $okhttp_version settings
+
+Changes to Matrix Android SDK in 0.9.24 (2019-07-18)
+=======================================================
+
+Features:
+ - Add "server_name" parameter to the join room request (vector-im/riot-android#3204)
+
+Improvements:
+ - RoomSummary: Add a listener to override the method used to handle the last message of the rooms.
+ - RoomCreateContent: Add missing fields (room_version and m.federate)
+
+Bugfix:
+ - Fix replies showing mxids instead of display names (vector-im/riot-android#2468)
+ - Fix / SAS, don't error if we don't know about some keys (vector-im/riot-android#3184)
+
+Others:
  - SDK has been splitted into 3 modules, to help extracting the crypto part.
  - Rewrite react-native-webrtc dependency to remove the additional react-native dependency.
 
 Build:
  - Upgrade gradle version from 4.10.1 to 5.4.1
  - Ensure Olm library is downloaded from the jitpack repository
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.23 (2019-05-03)
 =======================================================
@@ -1529,7 +1669,7 @@ Features:
 =======================================================
 
 
-Changes to Matrix Android SDK in 0.9.X (2019-XX-XX)
+Changes to Matrix Android SDK in 0.9.X (2020-XX-XX)
 =======================================================
 
 Features:

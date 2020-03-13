@@ -17,18 +17,22 @@
  */
 package org.matrix.androidsdk;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
+
+import androidx.annotation.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
 
+import org.jetbrains.annotations.NotNull;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.core.BingRulesManager;
+import org.matrix.androidsdk.core.DataHandlerInterface;
 import org.matrix.androidsdk.core.FilterUtil;
 import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.Log;
@@ -60,7 +64,6 @@ import org.matrix.androidsdk.rest.client.EventsRestClient;
 import org.matrix.androidsdk.rest.client.PresenceRestClient;
 import org.matrix.androidsdk.rest.client.ProfileRestClient;
 import org.matrix.androidsdk.rest.client.RoomsRestClient;
-import org.matrix.androidsdk.rest.client.ThirdPidRestClient;
 import org.matrix.androidsdk.rest.model.ChunkEvents;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.ReceiptData;
@@ -96,7 +99,7 @@ import java.util.Set;
  * <li>Provides the means for an app to get callbacks for data changes</li>
  * </ul>
  */
-public class MXDataHandler implements CryptoDataHandler {
+public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
     private static final String LOG_TAG = MXDataHandler.class.getSimpleName();
 
     public interface RequestNetworkErrorListener {
@@ -129,7 +132,6 @@ public class MXDataHandler implements CryptoDataHandler {
 
     private ProfileRestClient mProfileRestClient;
     private PresenceRestClient mPresenceRestClient;
-    private ThirdPidRestClient mThirdPidRestClient;
     private RoomsRestClient mRoomsRestClient;
     private EventsRestClient mEventsRestClient;
     private AccountDataRestClient mAccountDataRestClient;
@@ -179,6 +181,10 @@ public class MXDataHandler implements CryptoDataHandler {
 
     // tell if the lazy loading is enabled
     private boolean mIsLazyLoadingEnabled;
+
+    // Filter for pagination
+    @Nullable
+    private RoomEventFilter mCustomPaginationFilter;
 
     /**
      * Default constructor.
@@ -261,22 +267,6 @@ public class MXDataHandler implements CryptoDataHandler {
      */
     public PresenceRestClient getPresenceRestClient() {
         return mPresenceRestClient;
-    }
-
-    /**
-     * Update the thirdPid Rest client.
-     *
-     * @param thirdPidRestClient the REST client
-     */
-    public void setThirdPidRestClient(ThirdPidRestClient thirdPidRestClient) {
-        mThirdPidRestClient = thirdPidRestClient;
-    }
-
-    /**
-     * @return the ThirdPid REST client
-     */
-    public ThirdPidRestClient getThirdPidRestClient() {
-        return mThirdPidRestClient;
     }
 
     /**
@@ -402,6 +392,7 @@ public class MXDataHandler implements CryptoDataHandler {
      *
      * @param matrixErrorCode the matrix error code.
      */
+    @Override
     public void onConfigurationError(String matrixErrorCode) {
         if (null != mRequestNetworkErrorListener) {
             mRequestNetworkErrorListener.onConfigurationError(matrixErrorCode);
@@ -413,6 +404,7 @@ public class MXDataHandler implements CryptoDataHandler {
      *
      * @param exception the SSL certificate exception
      */
+    @Override
     public void onSSLCertificateError(UnrecognizedCertificateException exception) {
         if (null != mRequestNetworkErrorListener) {
             mRequestNetworkErrorListener.onSSLCertificateError(exception);
@@ -689,6 +681,7 @@ public class MXDataHandler implements CryptoDataHandler {
      * @return the used store.
      */
     @Override
+    @Nullable
     public IMXStore getStore() {
         if (isAlive()) {
             return mStore;
@@ -1029,6 +1022,9 @@ public class MXDataHandler implements CryptoDataHandler {
                 } else if (AccountDataElement.ACCOUNT_DATA_TYPE_WIDGETS.equals(accountDataElement.type)) {
                     // User widgets
                     manageUserWidgets(accountDataElement);
+                } else if (AccountDataElement.ACCOUNT_DATA_TYPE_ACCEPTED_TERMS.equals(accountDataElement.type)) {
+                    // Accepted terms
+                    manageAcceptedTerms(accountDataElement);
                 }
             }
         } catch (Exception e) {
@@ -1051,6 +1047,10 @@ public class MXDataHandler implements CryptoDataHandler {
 
         // warn the client that the push rules have been updated
         onBingRulesUpdate();
+    }
+
+    private void manageAcceptedTerms(AccountDataElement accountDataElement) {
+        // Nothing to do
     }
 
     /**
@@ -1301,7 +1301,9 @@ public class MXDataHandler implements CryptoDataHandler {
                 // Global management, to be sure to handle any account data
                 getStore().storeAccountData(syncResponse.accountData);
 
-                mMxEventDispatcher.dispatchOnAccountDataUpdate();
+                for (AccountDataElement accountDataElement : syncResponse.accountData.accountDataElements) {
+                    mMxEventDispatcher.dispatchOnAccountDataUpdate(accountDataElement);
+                }
             }
 
             // sanity check
@@ -1755,6 +1757,26 @@ public class MXDataHandler implements CryptoDataHandler {
         return filterBody.toJSONString();
     }
 
+    /* package */
+    void setPaginationFilter(@Nullable RoomEventFilter paginationFilter) {
+        mCustomPaginationFilter = paginationFilter;
+    }
+
+    /**
+     * Get the pagination filter, which can be customized by the client. Lazy loading param is managed here.
+     *
+     * @return the RoomEventFilter to use for pagination
+     */
+    public RoomEventFilter getPaginationFilter() {
+        if (mCustomPaginationFilter != null) {
+            // Ensure lazy loading param is correct
+            FilterUtil.enableLazyLoading(mCustomPaginationFilter, isLazyLoadingEnabled());
+            return mCustomPaginationFilter;
+        } else {
+            return FilterUtil.createRoomEventFilter(isLazyLoadingEnabled());
+        }
+    }
+
     /*
      * Handle a 'toDevice' event
      * @param event the event
@@ -1890,7 +1912,13 @@ public class MXDataHandler implements CryptoDataHandler {
     public void updateEventState(Event event, Event.SentState newState) {
         if ((null != event) && (event.mSentState != newState)) {
             event.mSentState = newState;
-            getStore().flushRoomEvents(event.roomId);
+            //crash reported on app store
+            if (getStore() != null) {
+                getStore().flushRoomEvents(event.roomId);
+            } else {
+                Log.e(LOG_TAG, "#updateEventState Failed to access to store ");
+            }
+
             onEventSentStateUpdated(event);
         }
     }
@@ -2154,5 +2182,11 @@ public class MXDataHandler implements CryptoDataHandler {
         }
 
         return directChatRoomIdsList;
+    }
+
+    @NotNull
+    @Override
+    public Context getContext() {
+        return getStore().getContext();
     }
 }

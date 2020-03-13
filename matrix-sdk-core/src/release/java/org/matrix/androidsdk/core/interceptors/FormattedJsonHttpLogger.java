@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.core.interceptors;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import okhttp3.logging.HttpLoggingInterceptor;
 

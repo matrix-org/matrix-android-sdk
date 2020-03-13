@@ -26,14 +26,14 @@ import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.crypto.cryptostore.MXFileCryptoStore
 import org.matrix.androidsdk.crypto.cryptostore.db.model.*
 import org.matrix.androidsdk.crypto.cryptostore.db.query.getOrCreate
-import org.matrix.androidsdk.crypto.interfaces.CryptoCredentials
+import org.matrix.androidsdk.rest.model.login.Credentials
 
 /**
  * This class migrate the legacy FileCryptoStore to the Realm DB
  */
 internal class CryptoFileStoreImporter(private val enableFileEncryption: Boolean,
                                        private val context: Context,
-                                       private val credentials: CryptoCredentials) : Realm.Transaction {
+                                       private val credentials: Credentials) : Realm.Transaction {
 
     override fun execute(realm: Realm) {
         // Create a FileCryptoStore

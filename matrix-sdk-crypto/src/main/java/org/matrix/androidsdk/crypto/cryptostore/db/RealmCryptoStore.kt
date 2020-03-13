@@ -33,8 +33,8 @@ import org.matrix.androidsdk.crypto.cryptostore.db.query.getOrCreate
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXOlmInboundGroupSession2
 import org.matrix.androidsdk.crypto.data.MXOlmSession
-import org.matrix.androidsdk.crypto.interfaces.CryptoCredentials
 import org.matrix.androidsdk.crypto.model.crypto.RoomKeyRequestBody
+import org.matrix.androidsdk.rest.model.login.Credentials
 import org.matrix.olm.OlmAccount
 import org.matrix.olm.OlmException
 import java.io.File
@@ -60,17 +60,17 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
      * Other data
      * ========================================================================================== */
 
-    private lateinit var credentials: CryptoCredentials
+    private lateinit var credentials: Credentials
     private lateinit var realmConfiguration: RealmConfiguration
 
-    override fun initWithCredentials(context: Context, credentials: CryptoCredentials) {
+    override fun initWithCredentials(context: Context, credentials: Credentials) {
         this.credentials = credentials
 
         // Ensure realm is initialized
         Realm.init(context.applicationContext)
 
         realmConfiguration = RealmConfiguration.Builder()
-                .directory(File(context.filesDir, credentials.getUserId().hash()))
+                .directory(File(context.filesDir, (credentials.getUserId() ?: "defaultUserId").hash()))
                 .name("crypto_store.realm")
                 .modules(RealmCryptoStoreModule())
                 .schemaVersion(RealmCryptoStoreMigration.CRYPTO_STORE_SCHEMA_VERSION)
@@ -100,7 +100,7 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
 
     override fun open() {
         // Ensure CryptoMetadataEntity is inserted in DB
-        doWithRealm(realmConfiguration) { realm ->
+        doRealmTransaction(realmConfiguration) { realm ->
             var currentMetadata = realm.where<CryptoMetadataEntity>().findFirst()
 
             var deleteAll = false
@@ -118,15 +118,13 @@ class RealmCryptoStore(private val enableFileEncryption: Boolean = false) : IMXC
             }
 
             if (currentMetadata == null) {
-                realm.executeTransaction {
-                    if (deleteAll) {
-                        it.deleteAll()
-                    }
+                if (deleteAll) {
+                    realm.deleteAll()
+                }
 
-                    // Metadata not found, or database cleaned, create it
-                    it.createObject(CryptoMetadataEntity::class.java, credentials.getUserId()).apply {
-                        deviceId = credentials.getDeviceId()
-                    }
+                // Metadata not found, or database cleaned, create it
+                realm.createObject(CryptoMetadataEntity::class.java, credentials.getUserId()).apply {
+                    deviceId = credentials.getDeviceId()
                 }
             }
         }

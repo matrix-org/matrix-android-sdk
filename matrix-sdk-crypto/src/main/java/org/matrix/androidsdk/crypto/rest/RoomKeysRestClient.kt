@@ -16,18 +16,19 @@
 
 package org.matrix.androidsdk.crypto.rest
 
+import org.matrix.androidsdk.HomeServerConnectionConfig
+import org.matrix.androidsdk.RestClient
 import org.matrix.androidsdk.core.callback.ApiCallback
 import org.matrix.androidsdk.crypto.api.RoomKeysApi
 import org.matrix.androidsdk.crypto.model.keys.*
 import org.matrix.androidsdk.crypto.model.rest.keys.BackupKeysResult
 import org.matrix.androidsdk.crypto.model.rest.keys.UpdateKeysBackupVersionBody
-import retrofit2.Converter
 
 /**
  * Class used to make requests to the RoomKeys API.
  */
-class RoomKeysRestClient(homeServerUrl: String, accessToken: String, converterFactory: Converter.Factory) :
-        ParentRestClient<RoomKeysApi>(homeServerUrl, accessToken, RoomKeysApi::class.java, ParentRestClient.URI_API_PREFIX_PATH_R0, converterFactory) {
+class RoomKeysRestClient(homeServerConnectionConfig: HomeServerConnectionConfig) :
+        RestClient<RoomKeysApi>(homeServerConnectionConfig, RoomKeysApi::class.java, URI_API_PREFIX_PATH_R0) {
 
     /**
      * Get the key backup last version

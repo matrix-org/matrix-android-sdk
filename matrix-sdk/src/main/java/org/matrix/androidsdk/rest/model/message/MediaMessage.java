@@ -16,7 +16,7 @@
 package org.matrix.androidsdk.rest.model.message;
 
 import android.net.Uri;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;

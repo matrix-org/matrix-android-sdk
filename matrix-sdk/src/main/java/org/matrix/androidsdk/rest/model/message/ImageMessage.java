@@ -17,7 +17,7 @@
 package org.matrix.androidsdk.rest.model.message;
 
 import android.media.ExifInterface;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import org.matrix.androidsdk.crypto.MXEncryptedAttachments;
 import org.matrix.androidsdk.crypto.model.crypto.EncryptedFileInfo;

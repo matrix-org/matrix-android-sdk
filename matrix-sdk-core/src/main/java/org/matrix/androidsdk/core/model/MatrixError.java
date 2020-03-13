@@ -16,7 +16,7 @@
  */
 package org.matrix.androidsdk.core.model;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.gson.annotations.SerializedName;
@@ -54,6 +54,8 @@ public class MatrixError implements java.io.Serializable {
     public static final String M_CONSENT_NOT_GIVEN = "M_CONSENT_NOT_GIVEN";
     public static final String RESOURCE_LIMIT_EXCEEDED = "M_RESOURCE_LIMIT_EXCEEDED";
     public static final String WRONG_ROOM_KEYS_VERSION = "M_WRONG_ROOM_KEYS_VERSION";
+
+    public static final String TERMS_NOT_SIGNED = "M_TERMS_NOT_SIGNED";
 
     // The error codes related to the password policy
     public static final String PASSWORD_TOO_SHORT = "M_PASSWORD_TOO_SHORT";
@@ -123,6 +125,8 @@ public class MatrixError implements java.io.Serializable {
             localizedMessage = error;
         } else if (!TextUtils.isEmpty(errcode)) {
             localizedMessage = errcode;
+        } else if (!TextUtils.isEmpty(mErrorBodyAsString)) {
+            localizedMessage = mErrorBodyAsString;
         }
 
         return localizedMessage;

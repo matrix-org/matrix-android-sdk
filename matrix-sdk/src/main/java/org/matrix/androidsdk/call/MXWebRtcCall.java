@@ -20,11 +20,12 @@ package org.matrix.androidsdk.call;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.RelativeLayout;
+
+import androidx.core.content.ContextCompat;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -41,6 +42,8 @@ import org.webrtc.Camera2Enumerator;
 import org.webrtc.CameraEnumerator;
 import org.webrtc.CameraVideoCapturer;
 import org.webrtc.DataChannel;
+import org.webrtc.DefaultVideoDecoderFactory;
+import org.webrtc.DefaultVideoEncoderFactory;
 import org.webrtc.EglBase;
 import org.webrtc.IceCandidate;
 import org.webrtc.MediaConstraints;
@@ -50,10 +53,12 @@ import org.webrtc.PeerConnectionFactory;
 import org.webrtc.RtpReceiver;
 import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
+import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -74,10 +79,10 @@ public class MXWebRtcCall extends MXCall {
     private static final int CAMERA_TYPE_REAR = 2;
     private static final int CAMERA_TYPE_UNDEFINED = -1;
 
-    static private PeerConnectionFactory mPeerConnectionFactory = null;
-    static private String mFrontCameraName = null;
-    static private String mBackCameraName = null;
-    static private CameraVideoCapturer mCameraVideoCapturer = null;
+    private static PeerConnectionFactory mPeerConnectionFactory = null;
+    private static String mFrontCameraName = null;
+    private static String mBackCameraName = null;
+    private static CameraVideoCapturer mCameraVideoCapturer = null;
 
     private RelativeLayout mCallView = null;
 
@@ -205,7 +210,7 @@ public class MXWebRtcCall extends MXCall {
      * @param context    the context
      * @param turnServer the turn server
      */
-    public MXWebRtcCall(MXSession session, Context context, JsonElement turnServer) {
+    public MXWebRtcCall(MXSession session, Context context, JsonElement turnServer, String defaultIceServerUri) {
         if (!isSupported(context)) {
             throw new AssertionError("MXWebRtcCall : not supported with the current android version");
         }
@@ -224,6 +229,16 @@ public class MXWebRtcCall extends MXCall {
         mSession = session;
         mContext = context;
         mTurnServer = turnServer;
+        if (!TextUtils.isEmpty(defaultIceServerUri)) {
+            try {
+                if (!defaultIceServerUri.startsWith("stun:")) {
+                    defaultIceServerUri = "stun:" + defaultIceServerUri;
+                }
+                defaultIceServer = PeerConnection.IceServer.builder(defaultIceServerUri).createIceServer();
+            } catch (Throwable e) {
+                Log.e(LOG_TAG, "MXWebRtcCall constructor  invalid default stun" + defaultIceServerUri);
+            }
+        }
     }
 
     /**
@@ -243,9 +258,6 @@ public class MXWebRtcCall extends MXCall {
                 PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(context).createInitializationOptions());
 
                 mIsInitialized = true;
-
-                PeerConnectionFactory.initializeFieldTrials(null);
-
                 mIsSupported = true;
                 Log.d(LOG_TAG, "## initializeAndroidGlobals(): mIsInitialized=" + mIsInitialized);
             } catch (Throwable e) {
@@ -267,25 +279,19 @@ public class MXWebRtcCall extends MXCall {
             Log.d(LOG_TAG, "++ createCallView()");
 
             dispatchOnStateDidChange(CALL_STATE_CREATING_CALL_VIEW);
-            mUIThreadHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    mCallView = new RelativeLayout(mContext);
-                    mCallView.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,
-                            RelativeLayout.LayoutParams.MATCH_PARENT));
-                    mCallView.setBackgroundColor(ContextCompat.getColor(mContext, android.R.color.black));
-                    mCallView.setVisibility(View.GONE);
+            mUIThreadHandler.postDelayed(() -> {
+                mCallView = new RelativeLayout(mContext);
+                mCallView.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,
+                        RelativeLayout.LayoutParams.MATCH_PARENT));
+                mCallView.setBackgroundColor(ContextCompat.getColor(mContext, android.R.color.black));
+                mCallView.setVisibility(View.GONE);
 
-                    dispatchOnCallViewCreated(mCallView);
+                dispatchOnCallViewCreated(mCallView);
 
-                    mUIThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            dispatchOnStateDidChange(CALL_STATE_READY);
-                            dispatchOnReady();
-                        }
-                    });
-                }
+                mUIThreadHandler.post(() -> {
+                    dispatchOnStateDidChange(CALL_STATE_READY);
+                    dispatchOnReady();
+                });
             }, 10);
         }
     }
@@ -331,29 +337,20 @@ public class MXWebRtcCall extends MXCall {
         // mPeerConnectionFactory is static so it might be used by another call
         // so we test that the current has been created
         if (isPeerConnectionFactoryAllowed && (null != mPeerConnectionFactory)) {
-            mPeerConnectionFactory.dispose();
+            Log.w(LOG_TAG, "Call to mPeerConnectionFactory.dispose() has been removed");
+            // mPeerConnectionFactory.dispose();
             mPeerConnectionFactory = null;
         }
 
         if (null != mCallView) {
             final View fCallView = mCallView;
 
-            fCallView.post(new Runnable() {
-                @Override
-                public void run() {
-                    fCallView.setVisibility(View.GONE);
-                }
-            });
+            fCallView.post(() -> fCallView.setVisibility(View.GONE));
 
             mCallView = null;
         }
 
-        mUIThreadHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                dispatchOnCallEnd(endCallReasonId);
-            }
-        });
+        mUIThreadHandler.post(() -> dispatchOnCallEnd(endCallReasonId));
     }
 
     /**
@@ -562,54 +559,23 @@ public class MXWebRtcCall extends MXCall {
         }
 
         // build ICE servers list
-        List<PeerConnection.IceServer> iceServers = new ArrayList<>();
-
-        if (null != mTurnServer) {
-            try {
-                String username = null;
-                String password = null;
-                JsonObject object = mTurnServer.getAsJsonObject();
-
-                if (object.has("username")) {
-                    username = object.get("username").getAsString();
-                }
-
-                if (object.has("password")) {
-                    password = object.get("password").getAsString();
-                }
-
-                JsonArray uris = object.get("uris").getAsJsonArray();
-
-                for (int index = 0; index < uris.size(); index++) {
-                    String url = uris.get(index).getAsString();
-
-                    if ((null != username) && (null != password)) {
-                        iceServers.add(new PeerConnection.IceServer(url, username, password));
-                    } else {
-                        iceServers.add(new PeerConnection.IceServer(url));
-                    }
-                }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## createLocalStream(): Exception in ICE servers list Msg=" + e.getMessage(), e);
-            }
+        List<PeerConnection.IceServer> iceServers = getIceServers();
+        if (iceServers.isEmpty() && defaultIceServer != null) {
+            iceServers.add(defaultIceServer);
         }
-
-        Log.d(LOG_TAG, "## createLocalStream(): " + iceServers.size() + " known ice servers");
 
         // define at least on server
         if (iceServers.isEmpty()) {
-            Log.d(LOG_TAG, "## createLocalStream(): use the default google server");
-            iceServers.add(new PeerConnection.IceServer("stun:stun.l.google.com:19302"));
+            Log.d(LOG_TAG, "## createLocalStream(): No iceServers found ");
         }
 
         // define constraints
-        MediaConstraints pcConstraints = new MediaConstraints();
-        pcConstraints.optional.add(new MediaConstraints.KeyValuePair("RtpDataChannels", "true"));
+        PeerConnection.RTCConfiguration rtcConfig = new PeerConnection.RTCConfiguration(iceServers);
+        rtcConfig.enableRtpDataChannel = true;
 
         // start connecting to the other peer by creating the peer connection
         mPeerConnection = mPeerConnectionFactory.createPeerConnection(
-                iceServers,
-                pcConstraints,
+                rtcConfig,
                 new PeerConnection.Observer() {
                     @Override
                     public void onSignalingChange(PeerConnection.SignalingState signalingState) {
@@ -619,53 +585,47 @@ public class MXWebRtcCall extends MXCall {
                     @Override
                     public void onIceConnectionChange(final PeerConnection.IceConnectionState iceConnectionState) {
                         Log.d(LOG_TAG, "## mPeerConnection creation: onIceConnectionChange " + iceConnectionState);
-                        mUIThreadHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (iceConnectionState == PeerConnection.IceConnectionState.CONNECTED) {
-                                    if ((null != mLocalVideoTrack) && mUsingLargeLocalRenderer && isVideo()) {
-                                        mLocalVideoTrack.setEnabled(false);
+                        mUIThreadHandler.post(() -> {
+                            if (iceConnectionState == PeerConnection.IceConnectionState.CONNECTED) {
+                                if ((null != mLocalVideoTrack) && mUsingLargeLocalRenderer && isVideo()) {
+                                    mLocalVideoTrack.setEnabled(false);
 
-                                        // in conference call, there is no local preview,
-                                        // the local attendee video is sent by the server among the others conference attendees.
-                                        if (!isConference()) {
-                                            // add local preview, only for 1:1 call
-                                            //mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
-                                            mPipRTCView.setStream(mLocalMediaStream);
-                                            mPipRTCView.setVisibility(View.VISIBLE);
+                                    // in conference call, there is no local preview,
+                                    // the local attendee video is sent by the server among the others conference attendees.
+                                    if (!isConference()) {
+                                        // add local preview, only for 1:1 call
+                                        //mLocalVideoTrack.addRenderer(mSmallLocalRenderer);
+                                        mPipRTCView.setStream(mLocalMediaStream);
+                                        mPipRTCView.setVisibility(View.VISIBLE);
 
-                                            // to be able to display the avatar video above the large one
-                                            mPipRTCView.setZOrder(1);
-                                        }
-
-                                        mLocalVideoTrack.setEnabled(true);
-                                        mUsingLargeLocalRenderer = false;
-
-                                        mCallView.post(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                if (null != mCallView) {
-                                                    mCallView.invalidate();
-                                                }
-                                            }
-                                        });
+                                        // to be able to display the avatar video above the large one
+                                        mPipRTCView.setZOrder(1);
                                     }
 
-                                    dispatchOnStateDidChange(IMXCall.CALL_STATE_CONNECTED);
+                                    mLocalVideoTrack.setEnabled(true);
+                                    mUsingLargeLocalRenderer = false;
+
+                                    mCallView.post(() -> {
+                                        if (null != mCallView) {
+                                            mCallView.invalidate();
+                                        }
+                                    });
                                 }
-                                // theses states are ignored
-                                // only the matrix hangup event is managed
-                                /*else if (iceConnectionState == PeerConnection.IceConnectionState.DISCONNECTED) {
-                                    // TODO warn the user ?
-                                    hangup(null);
-                                } else if (iceConnectionState == PeerConnection.IceConnectionState.CLOSED) {
-                                    // TODO warn the user ?
-                                    terminate();
-                                }*/
-                                else if (iceConnectionState == PeerConnection.IceConnectionState.FAILED) {
-                                    dispatchOnCallError(CALL_ERROR_ICE_FAILED);
-                                    hangup("ice_failed");
-                                }
+
+                                dispatchOnStateDidChange(IMXCall.CALL_STATE_CONNECTED);
+                            }
+                            // theses states are ignored
+                            // only the matrix hangup event is managed
+                            /*else if (iceConnectionState == PeerConnection.IceConnectionState.DISCONNECTED) {
+                                // TODO warn the user ?
+                                hangup(null);
+                            } else if (iceConnectionState == PeerConnection.IceConnectionState.CLOSED) {
+                                // TODO warn the user ?
+                                terminate();
+                            }*/
+                            else if (iceConnectionState == PeerConnection.IceConnectionState.FAILED) {
+                                dispatchOnCallError(CALL_ERROR_ICE_FAILED);
+                                hangup("ice_failed");
                             }
                         });
                     }
@@ -677,7 +637,7 @@ public class MXWebRtcCall extends MXCall {
 
                     @Override
                     public void onIceCandidatesRemoved(IceCandidate[] var1) {
-                        Log.d(LOG_TAG, "## mPeerConnection creation: onIceCandidatesRemoved " + var1);
+                        Log.d(LOG_TAG, "## mPeerConnection creation: onIceCandidatesRemoved " + Arrays.toString(var1));
                     }
 
                     @Override
@@ -687,69 +647,66 @@ public class MXWebRtcCall extends MXCall {
 
                     @Override
                     public void onAddTrack(RtpReceiver var1, MediaStream[] var2) {
-                        Log.d(LOG_TAG, "## mPeerConnection creation: onAddTrack " + var1 + " -- " + var2);
+                        Log.d(LOG_TAG, "## mPeerConnection creation: onAddTrack " + var1 + " -- " + Arrays.toString(var2));
                     }
 
                     @Override
                     public void onIceCandidate(final IceCandidate iceCandidate) {
                         Log.d(LOG_TAG, "## mPeerConnection creation: onIceCandidate " + iceCandidate);
 
-                        mUIThreadHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (!isCallEnded()) {
-                                    JsonObject content = new JsonObject();
-                                    content.addProperty("version", 0);
-                                    content.addProperty("call_id", mCallId);
+                        mUIThreadHandler.post(() -> {
+                            if (!isCallEnded()) {
+                                JsonObject content = new JsonObject();
+                                content.addProperty("version", 0);
+                                content.addProperty("call_id", mCallId);
 
-                                    JsonArray candidates = new JsonArray();
-                                    JsonObject cand = new JsonObject();
-                                    cand.addProperty("sdpMLineIndex", iceCandidate.sdpMLineIndex);
-                                    cand.addProperty("sdpMid", iceCandidate.sdpMid);
-                                    cand.addProperty("candidate", iceCandidate.sdp);
-                                    candidates.add(cand);
-                                    content.add("candidates", candidates);
+                                JsonArray candidates = new JsonArray();
+                                JsonObject cand = new JsonObject();
+                                cand.addProperty("sdpMLineIndex", iceCandidate.sdpMLineIndex);
+                                cand.addProperty("sdpMid", iceCandidate.sdpMid);
+                                cand.addProperty("candidate", iceCandidate.sdp);
+                                candidates.add(cand);
+                                content.add("candidates", candidates);
 
-                                    boolean addIt = true;
+                                boolean addIt = true;
 
-                                    // merge candidates
-                                    if (mPendingEvents.size() > 0) {
-                                        try {
-                                            Event lastEvent = mPendingEvents.get(mPendingEvents.size() - 1);
+                                // merge candidates
+                                if (mPendingEvents.size() > 0) {
+                                    try {
+                                        Event lastEvent = mPendingEvents.get(mPendingEvents.size() - 1);
 
-                                            if (TextUtils.equals(lastEvent.getType(), Event.EVENT_TYPE_CALL_CANDIDATES)) {
-                                                // return the content cast as a JsonObject
-                                                // it is not a copy
-                                                JsonObject lastContent = lastEvent.getContentAsJsonObject();
+                                        if (TextUtils.equals(lastEvent.getType(), Event.EVENT_TYPE_CALL_CANDIDATES)) {
+                                            // return the content cast as a JsonObject
+                                            // it is not a copy
+                                            JsonObject lastContent = lastEvent.getContentAsJsonObject();
 
-                                                JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
-                                                JsonArray newContentCandidates = content.get("candidates").getAsJsonArray();
+                                            JsonArray lastContentCandidates = lastContent.get("candidates").getAsJsonArray();
+                                            JsonArray newContentCandidates = content.get("candidates").getAsJsonArray();
 
-                                                Log.d(LOG_TAG, "Merge candidates from " + lastContentCandidates.size()
-                                                        + " to " + (lastContentCandidates.size() + newContentCandidates.size() + " items."));
+                                            Log.d(LOG_TAG, "Merge candidates from " + lastContentCandidates.size()
+                                                    + " to " + (lastContentCandidates.size() + newContentCandidates.size() + " items."));
 
-                                                lastContentCandidates.addAll(newContentCandidates);
+                                            lastContentCandidates.addAll(newContentCandidates);
 
-                                                // replace the candidates list
-                                                lastContent.remove("candidates");
-                                                lastContent.add("candidates", lastContentCandidates);
+                                            // replace the candidates list
+                                            lastContent.remove("candidates");
+                                            lastContent.add("candidates", lastContentCandidates);
 
-                                                // don't need to save anything, lastContent is a reference not a copy
-                                                addIt = false;
-                                            }
-                                        } catch (Exception e) {
-                                            Log.e(LOG_TAG, "## createLocalStream(): createPeerConnection - onIceCandidate() Exception Msg="
-                                                    + e.getMessage(), e);
+                                            // don't need to save anything, lastContent is a reference not a copy
+                                            addIt = false;
                                         }
+                                    } catch (Exception e) {
+                                        Log.e(LOG_TAG, "## createLocalStream(): createPeerConnection - onIceCandidate() Exception Msg="
+                                                + e.getMessage(), e);
                                     }
+                                }
 
-                                    if (addIt) {
-                                        Event event = new Event(Event.EVENT_TYPE_CALL_CANDIDATES, content, mSession.getCredentials().userId,
-                                                mCallSignalingRoom.getRoomId());
+                                if (addIt) {
+                                    Event event = new Event(Event.EVENT_TYPE_CALL_CANDIDATES, content, mSession.getCredentials().userId,
+                                            mCallSignalingRoom.getRoomId());
 
-                                        mPendingEvents.add(event);
-                                        sendNextEvent();
-                                    }
+                                    mPendingEvents.add(event);
+                                    sendNextEvent();
                                 }
                             }
                         });
@@ -759,15 +716,12 @@ public class MXWebRtcCall extends MXCall {
                     public void onAddStream(final MediaStream mediaStream) {
                         Log.d(LOG_TAG, "## mPeerConnection creation: onAddStream " + mediaStream);
 
-                        mUIThreadHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                if ((mediaStream.videoTracks.size() == 1) && !isCallEnded()) {
-                                    mRemoteVideoTrack = mediaStream.videoTracks.get(0);
-                                    mRemoteVideoTrack.setEnabled(true);
-                                    mFullScreenRTCView.setStream(mediaStream);
-                                    mFullScreenRTCView.setVisibility(View.VISIBLE);
-                                }
+                        mUIThreadHandler.post(() -> {
+                            if ((mediaStream.videoTracks.size() == 1) && !isCallEnded()) {
+                                mRemoteVideoTrack = mediaStream.videoTracks.get(0);
+                                mRemoteVideoTrack.setEnabled(true);
+                                mFullScreenRTCView.setStream(mediaStream);
+                                mFullScreenRTCView.setVisibility(View.VISIBLE);
                             }
                         });
                     }
@@ -776,14 +730,11 @@ public class MXWebRtcCall extends MXCall {
                     public void onRemoveStream(final MediaStream mediaStream) {
                         Log.d(LOG_TAG, "## mPeerConnection creation: onRemoveStream " + mediaStream);
 
-                        mUIThreadHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (null != mRemoteVideoTrack) {
-                                    mRemoteVideoTrack.dispose();
-                                    mRemoteVideoTrack = null;
-                                    mediaStream.videoTracks.get(0).dispose();
-                                }
+                        mUIThreadHandler.post(() -> {
+                            if (null != mRemoteVideoTrack) {
+                                mRemoteVideoTrack.dispose();
+                                mRemoteVideoTrack = null;
+                                mediaStream.videoTracks.get(0).dispose();
                             }
                         });
 
@@ -824,39 +775,36 @@ public class MXWebRtcCall extends MXCall {
 
                     final SessionDescription sdp = new SessionDescription(sessionDescription.type, sessionDescription.description);
 
-                    mUIThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (mPeerConnection != null) {
-                                // must be done to before sending the invitation message
-                                mPeerConnection.setLocalDescription(new SdpObserver() {
-                                    @Override
-                                    public void onCreateSuccess(SessionDescription sessionDescription) {
-                                        Log.d(LOG_TAG, "setLocalDescription onCreateSuccess");
-                                    }
+                    mUIThreadHandler.post(() -> {
+                        if (mPeerConnection != null) {
+                            // must be done to before sending the invitation message
+                            mPeerConnection.setLocalDescription(new SdpObserver() {
+                                @Override
+                                public void onCreateSuccess(SessionDescription sessionDescription1) {
+                                    Log.d(LOG_TAG, "setLocalDescription onCreateSuccess");
+                                }
 
-                                    @Override
-                                    public void onSetSuccess() {
-                                        Log.d(LOG_TAG, "setLocalDescription onSetSuccess");
-                                        sendInvite(sdp);
-                                        dispatchOnStateDidChange(IMXCall.CALL_STATE_INVITE_SENT);
-                                    }
+                                @Override
+                                public void onSetSuccess() {
+                                    Log.d(LOG_TAG, "setLocalDescription onSetSuccess");
+                                    sendInvite(sdp);
+                                    dispatchOnStateDidChange(IMXCall.CALL_STATE_INVITE_SENT);
+                                }
 
-                                    @Override
-                                    public void onCreateFailure(String s) {
-                                        Log.e(LOG_TAG, "setLocalDescription onCreateFailure " + s);
-                                        dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
-                                        hangup(null);
-                                    }
+                                @Override
+                                public void onCreateFailure(String s) {
+                                    Log.e(LOG_TAG, "setLocalDescription onCreateFailure " + s);
+                                    dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
+                                    hangup(null);
+                                }
 
-                                    @Override
-                                    public void onSetFailure(String s) {
-                                        Log.e(LOG_TAG, "setLocalDescription onSetFailure " + s);
-                                        dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
-                                        hangup(null);
-                                    }
-                                }, sdp);
-                            }
+                                @Override
+                                public void onSetFailure(String s) {
+                                    Log.e(LOG_TAG, "setLocalDescription onSetFailure " + s);
+                                    dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
+                                    hangup(null);
+                                }
+                            }, sdp);
                         }
                     });
                 }
@@ -985,7 +933,12 @@ public class MXWebRtcCall extends MXCall {
                 Log.d(LOG_TAG, "createVideoTrack find a video capturer");
 
                 try {
-                    mVideoSource = mPeerConnectionFactory.createVideoSource(mCameraVideoCapturer);
+                    // Following instruction here: https://stackoverflow.com/questions/55085726/webrtc-create-peerconnectionfactory-object
+                    EglBase rootEglBase = EglUtils.getRootEglBase();
+                    SurfaceTextureHelper surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", rootEglBase.getEglBaseContext());
+                    mVideoSource = mPeerConnectionFactory.createVideoSource(mCameraVideoCapturer.isScreencast());
+                    mCameraVideoCapturer.initialize(surfaceTextureHelper, mContext, mVideoSource.getCapturerObserver());
+
                     mCameraVideoCapturer.startCapture(DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_FPS);
 
                     mLocalVideoTrack = mPeerConnectionFactory.createVideoTrack(VIDEO_TRACK_ID, mVideoSource);
@@ -1077,28 +1030,42 @@ public class MXWebRtcCall extends MXCall {
         if (isVideo()) {
             Log.d(LOG_TAG, "## initCallUI(): building UI video call");
             try {
-                mUIThreadHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (null == mPeerConnectionFactory) {
-                            Log.d(LOG_TAG, "## initCallUI(): video call and no mPeerConnectionFactory");
+                mUIThreadHandler.post(() -> {
+                    if (null == mPeerConnectionFactory) {
+                        Log.d(LOG_TAG, "## initCallUI(): video call and no mPeerConnectionFactory");
 
-                            mPeerConnectionFactory = PeerConnectionFactory.builder().createPeerConnectionFactory();
+                        // Inspired from https://vivekc.xyz/getting-started-with-webrtc-part-4-de72b58ab31e
+                        //Create a new PeerConnectionFactory instance - using Hardware encoder and decoder.
+                        PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
+                        DefaultVideoEncoderFactory defaultVideoEncoderFactory =
+                                new DefaultVideoEncoderFactory(
+                                        EglUtils.getRootEglBase().getEglBaseContext(),
+                                        /* enableIntelVp8Encoder */true,
+                                        /* enableH264HighProfile */true);
+                        DefaultVideoDecoderFactory defaultVideoDecoderFactory =
+                                new DefaultVideoDecoderFactory(EglUtils.getRootEglBase().getEglBaseContext());
 
-                            // Initialize EGL contexts required for HW acceleration.
-                            EglBase.Context eglContext = EglUtils.getRootEglBaseContext();
-                            if (eglContext != null) {
-                                mPeerConnectionFactory.setVideoHwAccelerationOptions(eglContext, eglContext);
-                            }
+                        mPeerConnectionFactory = PeerConnectionFactory.builder()
+                                .setOptions(options)
+                                .setVideoEncoderFactory(defaultVideoEncoderFactory)
+                                .setVideoDecoderFactory(defaultVideoDecoderFactory)
+                                .createPeerConnectionFactory();
 
-                            createVideoTrack();
-                            createAudioTrack();
-                            createLocalStream();
+                        // Initialize EGL contexts required for HW acceleration.
+                        /*
+                        EglBase.Context eglContext = EglUtils.getRootEglBaseContext();
+                        if (eglContext != null) {
+                            mPeerConnectionFactory.setVideoHwAccelerationOptions(eglContext, eglContext);
+                        }
+                        */
 
-                            if (null != callInviteParams) {
-                                dispatchOnStateDidChange(CALL_STATE_RINGING);
-                                setRemoteDescription(callInviteParams);
-                            }
+                        createVideoTrack();
+                        createAudioTrack();
+                        createLocalStream();
+
+                        if (null != callInviteParams) {
+                            dispatchOnStateDidChange(CALL_STATE_RINGING);
+                            setRemoteDescription(callInviteParams);
                         }
                     }
                 });
@@ -1144,18 +1111,15 @@ public class MXWebRtcCall extends MXCall {
             Log.d(LOG_TAG, "## initCallUI(): build audio call");
 
             // audio call
-            mUIThreadHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    if (null == mPeerConnectionFactory) {
-                        mPeerConnectionFactory = PeerConnectionFactory.builder().createPeerConnectionFactory();
-                        createAudioTrack();
-                        createLocalStream();
+            mUIThreadHandler.post(() -> {
+                if (null == mPeerConnectionFactory) {
+                    mPeerConnectionFactory = PeerConnectionFactory.builder().createPeerConnectionFactory();
+                    createAudioTrack();
+                    createLocalStream();
 
-                        if (null != callInviteParams) {
-                            dispatchOnStateDidChange(CALL_STATE_RINGING);
-                            setRemoteDescription(callInviteParams);
-                        }
+                    if (null != callInviteParams) {
+                        dispatchOnStateDidChange(CALL_STATE_RINGING);
+                        setRemoteDescription(callInviteParams);
                     }
                 }
             });
@@ -1256,12 +1220,7 @@ public class MXWebRtcCall extends MXCall {
             public void onSetSuccess() {
                 Log.d(LOG_TAG, "setRemoteDescription onSetSuccess");
                 mIsIncomingPrepared = true;
-                mUIThreadHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        checkPendingCandidates();
-                    }
-                });
+                mUIThreadHandler.post(() -> checkPendingCandidates());
             }
 
             @Override
@@ -1295,12 +1254,7 @@ public class MXWebRtcCall extends MXCall {
 
             dispatchOnStateDidChange(CALL_STATE_WAIT_LOCAL_MEDIA);
 
-            mUIThreadHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    initCallUI(aCallInviteParams, aLocalVideoPosition);
-                }
-            });
+            mUIThreadHandler.post(() -> initCallUI(aCallInviteParams, aLocalVideoPosition));
         } else if (CALL_STATE_CREATED.equals(getCallState())) {
             mCallInviteParams = aCallInviteParams;
 
@@ -1342,54 +1296,51 @@ public class MXWebRtcCall extends MXCall {
         Log.d(LOG_TAG, "onCallAnswer : call state " + getCallState());
 
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mPeerConnection)) {
-            mUIThreadHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    dispatchOnStateDidChange(IMXCall.CALL_STATE_CONNECTING);
-                    SessionDescription aDescription = null;
+            mUIThreadHandler.post(() -> {
+                dispatchOnStateDidChange(IMXCall.CALL_STATE_CONNECTING);
+                SessionDescription aDescription = null;
 
-                    // extract the description
-                    try {
-                        JsonObject eventContent = event.getContentAsJsonObject();
+                // extract the description
+                try {
+                    JsonObject eventContent = event.getContentAsJsonObject();
 
-                        if (eventContent.has("answer")) {
-                            JsonObject answer = eventContent.getAsJsonObject("answer");
-                            String type = answer.get("type").getAsString();
-                            String sdp = answer.get("sdp").getAsString();
+                    if (eventContent.has("answer")) {
+                        JsonObject answer = eventContent.getAsJsonObject("answer");
+                        String type = answer.get("type").getAsString();
+                        String sdp = answer.get("sdp").getAsString();
 
-                            if (!TextUtils.isEmpty(type) && !TextUtils.isEmpty(sdp) && type.equals("answer")) {
-                                aDescription = new SessionDescription(SessionDescription.Type.ANSWER, sdp);
-                            }
+                        if (!TextUtils.isEmpty(type) && !TextUtils.isEmpty(sdp) && type.equals("answer")) {
+                            aDescription = new SessionDescription(SessionDescription.Type.ANSWER, sdp);
                         }
-
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "onCallAnswer : " + e.getMessage(), e);
                     }
 
-                    mPeerConnection.setRemoteDescription(new SdpObserver() {
-                        @Override
-                        public void onCreateSuccess(SessionDescription sessionDescription) {
-                            Log.d(LOG_TAG, "setRemoteDescription onCreateSuccess");
-                        }
-
-                        @Override
-                        public void onSetSuccess() {
-                            Log.d(LOG_TAG, "setRemoteDescription onSetSuccess");
-                        }
-
-                        @Override
-                        public void onCreateFailure(String s) {
-                            Log.e(LOG_TAG, "setRemoteDescription onCreateFailure " + s);
-                            dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
-                        }
-
-                        @Override
-                        public void onSetFailure(String s) {
-                            Log.e(LOG_TAG, "setRemoteDescription onSetFailure " + s);
-                            dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
-                        }
-                    }, aDescription);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "onCallAnswer : " + e.getMessage(), e);
                 }
+
+                mPeerConnection.setRemoteDescription(new SdpObserver() {
+                    @Override
+                    public void onCreateSuccess(SessionDescription sessionDescription) {
+                        Log.d(LOG_TAG, "setRemoteDescription onCreateSuccess");
+                    }
+
+                    @Override
+                    public void onSetSuccess() {
+                        Log.d(LOG_TAG, "setRemoteDescription onSetSuccess");
+                    }
+
+                    @Override
+                    public void onCreateFailure(String s) {
+                        Log.e(LOG_TAG, "setRemoteDescription onCreateFailure " + s);
+                        dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
+                    }
+
+                    @Override
+                    public void onSetFailure(String s) {
+                        Log.e(LOG_TAG, "setRemoteDescription onSetFailure " + s);
+                        dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
+                    }
+                }, aDescription);
             });
         }
     }
@@ -1404,22 +1355,12 @@ public class MXWebRtcCall extends MXCall {
         String state = getCallState();
 
         if (!CALL_STATE_CREATED.equals(state) && (null != mPeerConnection)) {
-            mUIThreadHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    terminate(hangUpReasonId);
-                }
-            });
+            mUIThreadHandler.post(() -> terminate(hangUpReasonId));
         } else if (CALL_STATE_WAIT_LOCAL_MEDIA.equals(state) && isVideo()) {
             // specific case fixing: a video call hung up by the calling side
             // when the callee is still displaying the InComingCallActivity dialog.
             // If terminate() was not called, the dialog was never dismissed.
-            mUIThreadHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    terminate(hangUpReasonId);
-                }
-            });
+            mUIThreadHandler.post(() -> terminate(hangUpReasonId));
         }
     }
 
@@ -1518,22 +1459,12 @@ public class MXWebRtcCall extends MXCall {
                 switch (eventType) {
                     case Event.EVENT_TYPE_CALL_INVITE:
                         // warn in the UI thread
-                        mUIThreadHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                dispatchOnStateDidChange(CALL_STATE_RINGING);
-                            }
-                        });
+                        mUIThreadHandler.post(() -> dispatchOnStateDidChange(CALL_STATE_RINGING));
                         break;
 
                     case Event.EVENT_TYPE_CALL_ANSWER:
                         // call answered from another device
-                        mUIThreadHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                onAnsweredElsewhere();
-                            }
-                        });
+                        mUIThreadHandler.post(this::onAnsweredElsewhere);
                         break;
 
                     case Event.EVENT_TYPE_CALL_HANGUP:
@@ -1559,85 +1490,79 @@ public class MXWebRtcCall extends MXCall {
         Log.d(LOG_TAG, "answer " + getCallState());
 
         if (!CALL_STATE_CREATED.equals(getCallState()) && (null != mPeerConnection)) {
-            mUIThreadHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    if (null == mPeerConnection) {
-                        Log.d(LOG_TAG, "answer the connection has been closed");
-                        return;
+            mUIThreadHandler.post(() -> {
+                if (null == mPeerConnection) {
+                    Log.d(LOG_TAG, "answer the connection has been closed");
+                    return;
+                }
+
+                dispatchOnStateDidChange(CALL_STATE_CREATE_ANSWER);
+
+                MediaConstraints constraints = new MediaConstraints();
+                constraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
+                constraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", isVideo() ? "true" : "false"));
+
+                mPeerConnection.createAnswer(new SdpObserver() {
+                    @Override
+                    public void onCreateSuccess(SessionDescription sessionDescription) {
+                        Log.d(LOG_TAG, "createAnswer onCreateSuccess");
+
+                        final SessionDescription sdp = new SessionDescription(sessionDescription.type, sessionDescription.description);
+
+                        mUIThreadHandler.post(() -> {
+                            if (mPeerConnection != null) {
+                                // must be done to before sending the invitation message
+                                mPeerConnection.setLocalDescription(new SdpObserver() {
+                                    @Override
+                                    public void onCreateSuccess(SessionDescription sessionDescription1) {
+                                        Log.d(LOG_TAG, "setLocalDescription onCreateSuccess");
+                                    }
+
+                                    @Override
+                                    public void onSetSuccess() {
+                                        Log.d(LOG_TAG, "setLocalDescription onSetSuccess");
+                                        sendAnswer(sdp);
+                                        dispatchOnStateDidChange(IMXCall.CALL_STATE_CONNECTING);
+                                    }
+
+                                    @Override
+                                    public void onCreateFailure(String s) {
+                                        Log.e(LOG_TAG, "setLocalDescription onCreateFailure " + s);
+                                        dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
+                                        hangup(null);
+                                    }
+
+                                    @Override
+                                    public void onSetFailure(String s) {
+                                        Log.e(LOG_TAG, "setLocalDescription onSetFailure " + s);
+                                        dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
+                                        hangup(null);
+                                    }
+                                }, sdp);
+                            }
+                        });
                     }
 
-                    dispatchOnStateDidChange(CALL_STATE_CREATE_ANSWER);
+                    @Override
+                    public void onSetSuccess() {
+                        Log.d(LOG_TAG, "createAnswer onSetSuccess");
+                    }
 
-                    MediaConstraints constraints = new MediaConstraints();
-                    constraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
-                    constraints.mandatory.add(new MediaConstraints.KeyValuePair("OfferToReceiveVideo", isVideo() ? "true" : "false"));
+                    @Override
+                    public void onCreateFailure(String s) {
+                        Log.e(LOG_TAG, "createAnswer onCreateFailure " + s);
+                        dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
+                        hangup(null);
+                    }
 
-                    mPeerConnection.createAnswer(new SdpObserver() {
-                        @Override
-                        public void onCreateSuccess(SessionDescription sessionDescription) {
-                            Log.d(LOG_TAG, "createAnswer onCreateSuccess");
+                    @Override
+                    public void onSetFailure(String s) {
+                        Log.e(LOG_TAG, "createAnswer onSetFailure " + s);
+                        dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
+                        hangup(null);
+                    }
+                }, constraints);
 
-                            final SessionDescription sdp = new SessionDescription(sessionDescription.type, sessionDescription.description);
-
-                            mUIThreadHandler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    if (mPeerConnection != null) {
-                                        // must be done to before sending the invitation message
-                                        mPeerConnection.setLocalDescription(new SdpObserver() {
-                                            @Override
-                                            public void onCreateSuccess(SessionDescription sessionDescription) {
-                                                Log.d(LOG_TAG, "setLocalDescription onCreateSuccess");
-                                            }
-
-                                            @Override
-                                            public void onSetSuccess() {
-                                                Log.d(LOG_TAG, "setLocalDescription onSetSuccess");
-                                                sendAnswer(sdp);
-                                                dispatchOnStateDidChange(IMXCall.CALL_STATE_CONNECTING);
-                                            }
-
-                                            @Override
-                                            public void onCreateFailure(String s) {
-                                                Log.e(LOG_TAG, "setLocalDescription onCreateFailure " + s);
-                                                dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
-                                                hangup(null);
-                                            }
-
-                                            @Override
-                                            public void onSetFailure(String s) {
-                                                Log.e(LOG_TAG, "setLocalDescription onSetFailure " + s);
-                                                dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
-                                                hangup(null);
-                                            }
-                                        }, sdp);
-                                    }
-                                }
-                            });
-                        }
-
-                        @Override
-                        public void onSetSuccess() {
-                            Log.d(LOG_TAG, "createAnswer onSetSuccess");
-                        }
-
-                        @Override
-                        public void onCreateFailure(String s) {
-                            Log.e(LOG_TAG, "createAnswer onCreateFailure " + s);
-                            dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
-                            hangup(null);
-                        }
-
-                        @Override
-                        public void onSetFailure(String s) {
-                            Log.e(LOG_TAG, "createAnswer onSetFailure " + s);
-                            dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
-                            hangup(null);
-                        }
-                    }, constraints);
-
-                }
             });
         }
 

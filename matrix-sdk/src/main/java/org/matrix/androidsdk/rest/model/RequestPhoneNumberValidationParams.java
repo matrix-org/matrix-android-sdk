@@ -35,4 +35,9 @@ public class RequestPhoneNumberValidationParams {
 
     // the server id
     public String id_server;
+
+    // the submit url
+    public String submit_url;
+
+
 }

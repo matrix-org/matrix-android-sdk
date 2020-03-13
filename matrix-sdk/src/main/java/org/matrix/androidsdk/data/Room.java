@@ -28,10 +28,11 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Pair;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -39,6 +40,7 @@ import com.google.gson.reflect.TypeToken;
 
 import org.jetbrains.annotations.NotNull;
 import org.matrix.androidsdk.MXDataHandler;
+import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.R;
 import org.matrix.androidsdk.call.MXCallsManager;
 import org.matrix.androidsdk.core.ImageUtils;
@@ -90,7 +92,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -407,7 +408,7 @@ public class Room implements CryptoRoom {
                                          final int paginationCount,
                                          final ApiCallback<TokensChunkEvents> callback) {
         mDataHandler.getDataRetriever()
-                .requestServerRoomHistory(getRoomId(), token, paginationCount, mDataHandler.isLazyLoadingEnabled(),
+                .requestServerRoomHistory(getRoomId(), token, paginationCount, mDataHandler.getPaginationFilter(),
                         new SimpleApiCallback<TokensChunkEvents>(callback) {
                             @Override
                             public void onSuccess(TokensChunkEvents info) {
@@ -676,12 +677,12 @@ public class Room implements CryptoRoom {
      * @param thirdPartySignedUrl the thirdPartySigned url
      * @param callback            the callback
      */
-    public void joinWithThirdPartySigned(final String alias, final String thirdPartySignedUrl, final ApiCallback<Void> callback) {
+    public void joinWithThirdPartySigned(final MXSession session, final String alias, final String thirdPartySignedUrl, final ApiCallback<Void> callback) {
         if (null == thirdPartySignedUrl) {
             join(alias, callback);
         } else {
             String url = thirdPartySignedUrl + "&mxid=" + mMyUserId;
-            UrlPostTask task = new UrlPostTask();
+            UrlPostTask task = new UrlPostTask(session.getHomeServerConfig().getProxyConfig());
 
             task.setListener(new UrlPostTask.IPostTaskListener() {
                 @Override
@@ -698,7 +699,7 @@ public class Room implements CryptoRoom {
                     if (null != map) {
                         Map<String, Object> joinMap = new HashMap<>();
                         joinMap.put("third_party_signed", map);
-                        join(alias, joinMap, callback);
+                        join(alias, null, joinMap, callback);
                     } else {
                         join(callback);
                     }
@@ -739,7 +740,7 @@ public class Room implements CryptoRoom {
      * @param callback the callback for when done
      */
     public void join(final ApiCallback<Void> callback) {
-        join(null, null, callback);
+        join(null, null, null, callback);
     }
 
     /**
@@ -749,76 +750,83 @@ public class Room implements CryptoRoom {
      * @param callback  the callback for when done
      */
     private void join(String roomAlias, ApiCallback<Void> callback) {
-        join(roomAlias, null, callback);
+        join(roomAlias, null, null, callback);
     }
 
     /**
      * Join the room. If successful, the room's current state will be loaded before calling back onComplete.
      *
      * @param roomAlias   the room alias
+     * @param viaServers  The servers to attempt to join the room through. One of the servers must be participating in the room.
      * @param extraParams the join extra params
      * @param callback    the callback for when done
      */
-    private void join(final String roomAlias, final Map<String, Object> extraParams, final ApiCallback<Void> callback) {
+    public void join(final String roomAlias,
+                     final List<String> viaServers,
+                     final Map<String, Object> extraParams,
+                     final ApiCallback<Void> callback) {
         Log.d(LOG_TAG, "Join the room " + getRoomId() + " with alias " + roomAlias);
 
         mDataHandler.getDataRetriever().getRoomsRestClient()
-                .joinRoom((null != roomAlias) ? roomAlias : getRoomId(), extraParams, new SimpleApiCallback<RoomResponse>(callback) {
-                    @Override
-                    public void onSuccess(final RoomResponse aResponse) {
-                        try {
-                            // the join request did not get the room initial history
-                            if (!isJoined()) {
-                                Log.d(LOG_TAG, "the room " + getRoomId() + " is joined but wait after initial sync");
+                .joinRoom((null != roomAlias) ? roomAlias : getRoomId(),
+                        viaServers,
+                        extraParams,
+                        new SimpleApiCallback<RoomResponse>(callback) {
+                            @Override
+                            public void onSuccess(final RoomResponse aResponse) {
+                                try {
+                                    // the join request did not get the room initial history
+                                    if (!isJoined()) {
+                                        Log.d(LOG_TAG, "the room " + getRoomId() + " is joined but wait after initial sync");
 
-                                // wait the server sends the events chunk before calling the callback
-                                setOnInitialSyncCallback(callback);
-                            } else {
-                                Log.d(LOG_TAG, "the room " + getRoomId() + " is joined : the initial sync has been done");
-                                // to initialise the notification counters
-                                markAllAsRead(null);
-                                // already got the initial sync
-                                callback.onSuccess(null);
+                                        // wait the server sends the events chunk before calling the callback
+                                        setOnInitialSyncCallback(callback);
+                                    } else {
+                                        Log.d(LOG_TAG, "the room " + getRoomId() + " is joined : the initial sync has been done");
+                                        // to initialise the notification counters
+                                        markAllAsRead(null);
+                                        // already got the initial sync
+                                        callback.onSuccess(null);
+                                    }
+                                } catch (Exception e) {
+                                    Log.e(LOG_TAG, "join exception " + e.getMessage(), e);
+                                }
                             }
-                        } catch (Exception e) {
-                            Log.e(LOG_TAG, "join exception " + e.getMessage(), e);
-                        }
-                    }
 
-                    @Override
-                    public void onNetworkError(Exception e) {
-                        Log.e(LOG_TAG, "join onNetworkError " + e.getMessage(), e);
-                        callback.onNetworkError(e);
-                    }
+                            @Override
+                            public void onNetworkError(Exception e) {
+                                Log.e(LOG_TAG, "join onNetworkError " + e.getMessage(), e);
+                                callback.onNetworkError(e);
+                            }
 
-                    @Override
-                    public void onMatrixError(MatrixError e) {
-                        Log.e(LOG_TAG, "join onMatrixError " + e.getMessage());
+                            @Override
+                            public void onMatrixError(MatrixError e) {
+                                Log.e(LOG_TAG, "join onMatrixError " + e.getMessage());
 
-                        if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
-                            // It can happen when user wants to join a room he was invited to, but the inviter has left
-                            // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
-                            // 'Error when trying to join an empty room should be more explicit
-                            e.error = getStore().getContext().getString(R.string.room_error_join_failed_empty_room);
-                        }
+                                if (MatrixError.UNKNOWN.equals(e.errcode) && TextUtils.equals("No known servers", e.error)) {
+                                    // It can happen when user wants to join a room he was invited to, but the inviter has left
+                                    // minging kludge until https://matrix.org/jira/browse/SYN-678 is fixed
+                                    // 'Error when trying to join an empty room should be more explicit
+                                    e.error = getStore().getContext().getString(R.string.room_error_join_failed_empty_room);
+                                }
 
-                        // if the alias is not found
-                        // try with the room id
-                        if ((e.mStatus == 404) && !TextUtils.isEmpty(roomAlias)) {
-                            Log.e(LOG_TAG, "Retry without the room alias");
-                            join(null, extraParams, callback);
-                            return;
-                        }
+                                // if the alias is not found
+                                // try with the room id
+                                if ((e.mStatus == 404) && !TextUtils.isEmpty(roomAlias)) {
+                                    Log.e(LOG_TAG, "Retry without the room alias");
+                                    join(null, viaServers, extraParams, callback);
+                                    return;
+                                }
 
-                        callback.onMatrixError(e);
-                    }
+                                callback.onMatrixError(e);
+                            }
 
-                    @Override
-                    public void onUnexpectedError(Exception e) {
-                        Log.e(LOG_TAG, "join onUnexpectedError " + e.getMessage(), e);
-                        callback.onUnexpectedError(e);
-                    }
-                });
+                            @Override
+                            public void onUnexpectedError(Exception e) {
+                                Log.e(LOG_TAG, "join onUnexpectedError " + e.getMessage(), e);
+                                callback.onUnexpectedError(e);
+                            }
+                        });
     }
 
     //================================================================================
@@ -2004,7 +2012,7 @@ public class Room implements CryptoRoom {
     private void addTag(String tag, Double order, final ApiCallback<Void> callback) {
         // sanity check
         if ((null != tag) && (null != order)) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().addTag(getRoomId(), tag, order, callback);
+            mDataHandler.getDataRetriever().getRoomsRestClient().addTag(mMyUserId, getRoomId(), tag, order, callback);
         } else {
             if (null != callback) {
                 callback.onSuccess(null);
@@ -2021,7 +2029,7 @@ public class Room implements CryptoRoom {
     private void removeTag(String tag, final ApiCallback<Void> callback) {
         // sanity check
         if (null != tag) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().removeTag(getRoomId(), tag, callback);
+            mDataHandler.getDataRetriever().getRoomsRestClient().removeTag(mMyUserId, getRoomId(), tag, callback);
         } else {
             if (null != callback) {
                 callback.onSuccess(null);
@@ -2075,7 +2083,7 @@ public class Room implements CryptoRoom {
      * @param callback the asynchronous callback
      */
     public void setIsURLPreviewAllowedByUser(boolean status, ApiCallback<Void> callback) {
-        mDataHandler.getDataRetriever().getRoomsRestClient().updateURLPreviewStatus(getRoomId(), status, callback);
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateURLPreviewStatus(mMyUserId, getRoomId(), status, callback);
     }
 
     //==============================================================================================================
@@ -2307,7 +2315,7 @@ public class Room implements CryptoRoom {
 
             if (Event.EVENT_TYPE_MESSAGE.equals(event.getType())) {
                 mDataHandler.getDataRetriever().getRoomsRestClient()
-                        .sendMessage(event.eventId, getRoomId(), JsonUtils.toMessage(event.getContent()), localCB);
+                        .sendMessage(event.eventId, getRoomId(), event.getContentAsJsonObject(), localCB);
             } else {
                 mDataHandler.getDataRetriever().getRoomsRestClient()
                         .sendEventToRoom(event.eventId, getRoomId(), event.getType(), event.getContentAsJsonObject(), localCB);
@@ -2393,9 +2401,9 @@ public class Room implements CryptoRoom {
      * @param userId   the user id
      * @param callback the callback for when done
      */
-    public void invite(String userId, ApiCallback<Void> callback) {
+    public void invite(MXSession session, String userId, ApiCallback<Void> callback) {
         if (null != userId) {
-            invite(Collections.singletonList(userId), callback);
+            invite(session, Collections.singletonList(userId), callback);
         }
     }
 
@@ -2405,9 +2413,9 @@ public class Room implements CryptoRoom {
      * @param email    the email address
      * @param callback the callback for when done
      */
-    public void inviteByEmail(String email, ApiCallback<Void> callback) {
+    public void inviteByEmail(final MXSession session, String email, ApiCallback<Void> callback) {
         if (null != email) {
-            invite(Collections.singletonList(email), callback);
+            invite(session, Collections.singletonList(email), callback);
         }
     }
 
@@ -2416,41 +2424,49 @@ public class Room implements CryptoRoom {
      * The identifiers are either ini Id or email address.
      *
      * @param identifiers the identifiers list
+     * @param session     is needed for email invites
      * @param callback    the callback for when done
      */
-    public void invite(List<String> identifiers, ApiCallback<Void> callback) {
+    public void invite(final MXSession session, List<String> identifiers, ApiCallback<Void> callback) {
         if (null != identifiers) {
-            invite(identifiers.iterator(), callback);
+            session.getIdentityServerManager().inviteInRoom(this, identifiers.iterator(), callback);
         }
     }
 
-    /**
-     * Invite some users to this room.
-     *
-     * @param identifiers the identifiers iterator
-     * @param callback    the callback for when done
-     */
-    private void invite(final Iterator<String> identifiers, final ApiCallback<Void> callback) {
-        if (!identifiers.hasNext()) {
-            callback.onSuccess(null);
-            return;
-        }
-
-        final ApiCallback<Void> localCallback = new SimpleApiCallback<Void>(callback) {
-            @Override
-            public void onSuccess(Void info) {
-                invite(identifiers, callback);
-            }
-        };
-
-        String identifier = identifiers.next();
-
-        if (android.util.Patterns.EMAIL_ADDRESS.matcher(identifier).matches()) {
-            mDataHandler.getDataRetriever().getRoomsRestClient().inviteByEmailToRoom(getRoomId(), identifier, localCallback);
-        } else {
-            mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), identifier, localCallback);
-        }
-    }
+//    /**
+//     * Invite some users to this room.
+//     *
+//     * @param identifiers the identifiers iterator
+//     * @param callback    the callback for when done
+//     */
+//    private void invite(final IdentityServerManager identityServerManager, final Iterator<String> identifiers, final ApiCallback<Void> callback) {
+//        if (!identifiers.hasNext()) {
+//            callback.onSuccess(null);
+//            return;
+//        }
+//
+//        final ApiCallback<Void> localCallback = new SimpleApiCallback<Void>(callback) {
+//            @Override
+//            public void onSuccess(Void info) {
+//                invite(identityServerManager, identifiers, callback);
+//            }
+//        };
+//
+//        String identifier = identifiers.next();
+//
+//        if (android.util.Patterns.EMAIL_ADDRESS.matcher(identifier).matches()) {
+//            Uri identityServerUri = identityServerManager != null ? identityServerManager.getIdentityServerUri() : null;
+//            if (identityServerUri != null) {
+//                identityServerManager.to
+//            }
+//            mDataHandler.getDataRetriever().getRoomsRestClient().inviteByEmailToRoom(
+//                    identityServerUri,
+//                    requiresIdServer,
+//                    getRoomId(), identifier, localCallback);
+//        } else {
+//            mDataHandler.getDataRetriever().getRoomsRestClient().inviteUserToRoom(getRoomId(), identifier, localCallback);
+//        }
+//    }
 
     /**
      * Leave the room.

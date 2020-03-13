@@ -18,9 +18,9 @@
 
 package org.matrix.androidsdk.data;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
@@ -32,6 +32,7 @@ import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.core.Log;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
+import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.crypto.interfaces.CryptoRoomMember;
 import org.matrix.androidsdk.crypto.interfaces.CryptoRoomState;
 import org.matrix.androidsdk.data.store.IMXStore;
@@ -295,10 +296,10 @@ public class RoomState implements Externalizable, CryptoRoomState {
 
             if (doTheRequest) {
                 // Load members from server
-                getDataHandler().getMembersAsync(roomId, new SimpleApiCallback<List<RoomMember>>(callback) {
+                getDataHandler().getMembersAsync(roomId, new ApiCallback<List<RoomMember>>() {
                     @Override
                     public void onSuccess(List<RoomMember> info) {
-                        Log.d(LOG_TAG, "getMembers has returned " + info.size() + " users.");
+                        Log.d(LOG_TAG, "getMembersAsync has returned " + info.size() + " users.");
 
                         IMXStore store = ((MXDataHandler) mDataHandler).getStore();
                         List<RoomMember> res;
@@ -327,6 +328,39 @@ public class RoomState implements Externalizable, CryptoRoomState {
                         }
 
                         mAllMembersAreLoaded = true;
+                    }
+
+                    @Override
+                    public void onNetworkError(Exception e) {
+                        Log.e(LOG_TAG, "getMembersAsync onNetworkError " + e.getLocalizedMessage());
+                        synchronized (mGetAllMembersCallbacks) {
+                            for (ApiCallback<List<RoomMember>> apiCallback : mGetAllMembersCallbacks) {
+                                apiCallback.onNetworkError(e);
+                            }
+                            mGetAllMembersCallbacks.clear();
+                        }
+                    }
+
+                    @Override
+                    public void onMatrixError(MatrixError e) {
+                        Log.e(LOG_TAG, "getMembersAsync onMatrixError " + e.getLocalizedMessage());
+                        synchronized (mGetAllMembersCallbacks) {
+                            for (ApiCallback<List<RoomMember>> apiCallback : mGetAllMembersCallbacks) {
+                                apiCallback.onMatrixError(e);
+                            }
+                            mGetAllMembersCallbacks.clear();
+                        }
+                    }
+
+                    @Override
+                    public void onUnexpectedError(Exception e) {
+                        Log.e(LOG_TAG, "getMembersAsync onUnexpectedError " + e.getLocalizedMessage());
+                        synchronized (mGetAllMembersCallbacks) {
+                            for (ApiCallback<List<RoomMember>> apiCallback : mGetAllMembersCallbacks) {
+                                apiCallback.onUnexpectedError(e);
+                            }
+                            mGetAllMembersCallbacks.clear();
+                        }
                     }
                 });
             }
@@ -531,8 +565,6 @@ public class RoomState implements Externalizable, CryptoRoomState {
         }
 
         if (member == null) {
-            Log.w(LOG_TAG, "## Null member '" + userId);
-
             if (TextUtils.equals(getDataHandler().getUserId(), userId)) {
                 // This should never happen
                 Log.e(LOG_TAG, "## Null current user '" + userId);

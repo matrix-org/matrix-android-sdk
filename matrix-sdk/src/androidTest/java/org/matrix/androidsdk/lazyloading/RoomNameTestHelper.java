@@ -108,7 +108,7 @@ public class RoomNameTestHelper {
 
         //invite dave
         latch = new CountDownLatch(1);
-        room.invite("@dave:localhost:8480", new TestApiCallback<Void>(latch));
+        room.invite(firstSession, "@dave:localhost:8480", new TestApiCallback<Void>(latch));
         mTestHelper.await(latch);
 
         final SessionTestParams logSessionParams = new SessionTestParams(true, false, withLazyLoading);

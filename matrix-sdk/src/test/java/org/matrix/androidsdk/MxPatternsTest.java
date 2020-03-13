@@ -49,7 +49,8 @@ public class MxPatternsTest {
     private static final List<String> validEventIds = Arrays.asList(
             "$1536732077213115wbNdt:matrix.org",
             "$1536732077213115wbNdt:matrix.org:1234",
-            "$pmOSN/DognfuSfhdW/qivXT19lfCWpdSfaPFKDBTJUk+"
+            "$pmOSN/DognfuSfhdW/qivXT19lfCWpdSfaPFKDBTJUk+",
+            "$Rqnc-F-dvnEYJTyHq_iKxU2bZ1CI92-kuZq3a5lr5Zg"
     );
 
     private static final List<String> validGroupIds = Arrays.asList(
@@ -227,6 +228,13 @@ public class MxPatternsTest {
 
             Assert.assertTrue(MXPatterns.isGroupId(value));
         }
+    }
+
+    @Test
+    public void MxPatterns_extractServer() {
+        Assert.assertNull(MXPatterns.extractServerNameFromId(null));
+        Assert.assertNull(MXPatterns.extractServerNameFromId("!GptcCLkPQiNdyDSgbJ"));
+        Assert.assertEquals("vector.modular.im", MXPatterns.extractServerNameFromId("!GptcCLkPQiNdyDSgbJ:vector.modular.im"));
     }
 
     /* ==========================================================================================

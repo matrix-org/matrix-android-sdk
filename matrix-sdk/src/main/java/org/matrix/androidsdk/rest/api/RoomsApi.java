@@ -17,7 +17,7 @@
  */
 package org.matrix.androidsdk.rest.api;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -36,9 +36,9 @@ import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.UserIdAndReason;
-import org.matrix.androidsdk.rest.model.message.Message;
 import org.matrix.androidsdk.rest.model.sync.RoomResponse;
 
+import java.util.List;
 import java.util.Map;
 
 import retrofit2.Call;
@@ -71,10 +71,10 @@ public interface RoomsApi {
      *
      * @param txId    the transaction Id
      * @param roomId  the room id
-     * @param message the message
+     * @param content the message
      */
     @PUT("rooms/{roomId}/send/m.room.message/{txId}")
-    Call<CreatedEvent> sendMessage(@Path("txId") String txId, @Path("roomId") String roomId, @Body Message message);
+    Call<CreatedEvent> sendMessage(@Path("txId") String txId, @Path("roomId") String roomId, @Body JsonObject content);
 
     /**
      * Update the power levels
@@ -147,22 +147,16 @@ public interface RoomsApi {
     Call<Void> invite(@Path("roomId") String roomId, @Body Map<String, String> params);
 
     /**
-     * Join the given room.
-     *
-     * @param roomId  the room id
-     * @param content the request body
-     */
-    @POST("rooms/{roomId}/join")
-    Call<Void> join(@Path("roomId") String roomId, @Body JsonObject content);
-
-    /**
      * Join the room with a room id or an alias.
      *
      * @param roomAliasOrId a room alias (or room id)
+     * @param viaServers    The servers to attempt to join the room through. One of the servers must be participating in the room.
      * @param params        the extra join param
      */
     @POST("join/{roomAliasOrId}")
-    Call<RoomResponse> joinRoomByAliasOrId(@Path("roomAliasOrId") String roomAliasOrId, @Body Map<String, Object> params);
+    Call<RoomResponse> joinRoomByAliasOrId(@Path("roomAliasOrId") String roomAliasOrId,
+                                           @Query("server_name") List<String> viaServers,
+                                           @Body Map<String, Object> params);
 
     /**
      * Leave the given room.

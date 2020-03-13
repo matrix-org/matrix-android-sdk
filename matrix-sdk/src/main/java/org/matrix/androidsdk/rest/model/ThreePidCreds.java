@@ -28,4 +28,6 @@ public class ThreePidCreds {
 
     // a secret key
     public String client_secret;
+
+    public String id_access_token;
 }

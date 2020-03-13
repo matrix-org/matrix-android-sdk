@@ -16,7 +16,7 @@
 
 package org.matrix.androidsdk.common
 
-import android.support.annotation.CallSuper
+import androidx.annotation.CallSuper
 import org.junit.Assert.fail
 import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.callback.ApiCallback

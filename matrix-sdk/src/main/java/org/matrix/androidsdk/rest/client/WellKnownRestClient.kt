@@ -19,16 +19,16 @@ import android.net.Uri
 import org.matrix.androidsdk.HomeServerConnectionConfig
 import org.matrix.androidsdk.RestClient
 import org.matrix.androidsdk.core.callback.ApiCallback
-import org.matrix.androidsdk.core.rest.DefaultRetrofit2CallbackWrapper
 import org.matrix.androidsdk.rest.api.WellKnownAPI
+import org.matrix.androidsdk.rest.callback.RestAdapterCallback
 import org.matrix.androidsdk.rest.model.WellKnown
 
-class WellKnownRestClient() :
+class WellKnownRestClient :
         RestClient<WellKnownAPI>(HomeServerConnectionConfig.Builder().withHomeServerUri(Uri.parse("https://foo.bar")).build(),
                 WellKnownAPI::class.java, "") {
 
     fun getWellKnown(domain: String, callback: ApiCallback<WellKnown>) {
-        mApi.getWellKnown(domain).enqueue(DefaultRetrofit2CallbackWrapper(callback))
+        mApi.getWellKnown(domain).enqueue(RestAdapterCallback("getWellKnown", null, callback, null))
     }
 
 }

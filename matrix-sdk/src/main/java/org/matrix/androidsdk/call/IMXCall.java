@@ -23,12 +23,15 @@ import com.google.gson.JsonObject;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.data.Room;
 import org.matrix.androidsdk.rest.model.Event;
+import org.webrtc.PeerConnection;
+
+import java.util.List;
 
 import javax.annotation.Nullable;
 
 /**
  * Audio/video call interface.
- * See {@link MXWebRtcCall} and {@link MXChromeCall}.
+ * See {@link MXWebRtcCall}.
  */
 public interface IMXCall {
 
@@ -336,4 +339,6 @@ public interface IMXCall {
      * @return true if video recording is muted, false otherwise
      */
     boolean isVideoRecordingMuted();
+
+    List<PeerConnection.IceServer> getIceServers();
 }
