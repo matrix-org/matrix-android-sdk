@@ -25,6 +25,7 @@ import androidx.annotation.Nullable;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,11 +38,14 @@ public class RoomAccountData implements java.io.Serializable {
 
     // The tags the user defined for this room.
     // The key is the tag name. The value, the associated RoomTag object.
-    private Map<String, RoomTag> tags = null;
+    private Map<String, RoomTag> roomTags = null;
 
     // Tell whether the user allows the URL preview in this room.
     // By default we consider the user allows the URL preview.
     private boolean isURLPreviewAllowedByUser = true;
+
+    // Store the content of all the provided events by using their event type.
+    private Map<String, JsonObject> eventContentsMap = new HashMap<>();
 
     /**
      * Process an event that modifies room account data (like m.tag event).
@@ -49,15 +53,20 @@ public class RoomAccountData implements java.io.Serializable {
      * @param event an event
      */
     public void handleEvent(Event event) {
-        if (event.getType().equals(Event.EVENT_TYPE_TAGS)) {
-            tags = RoomTag.roomTagsWithTagEvent(event);
-        } else if (event.getType().equals(Event.EVENT_TYPE_URL_PREVIEW)) {
-            final JsonObject jsonObject = event.getContentAsJsonObject();
+        final String eventType = event.getType();
+        final JsonObject jsonObject = event.getContentAsJsonObject();
+
+        if (eventType.equals(Event.EVENT_TYPE_TAGS)) {
+            roomTags = RoomTag.roomTagsWithTagEvent(event);
+        } else if (eventType.equals(Event.EVENT_TYPE_URL_PREVIEW)) {
             if (jsonObject != null && jsonObject.has(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
                 final boolean disabled = jsonObject.get(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE).getAsBoolean();
                 isURLPreviewAllowedByUser = !disabled;
             }
         }
+
+        // Store by default the content of all the provided events.
+        eventContentsMap.put(eventType, jsonObject);
     }
 
     /**
@@ -68,8 +77,8 @@ public class RoomAccountData implements java.io.Serializable {
      */
     @Nullable
     public RoomTag roomTag(String key) {
-        if ((null != tags) && tags.containsKey(key)) {
-            return tags.get(key);
+        if ((null != roomTags) && roomTags.containsKey(key)) {
+            return roomTags.get(key);
         }
         return null;
     }
@@ -78,7 +87,7 @@ public class RoomAccountData implements java.io.Serializable {
      * @return true if some tags have been defined for the room
      */
     public boolean hasRoomTags() {
-        return (null != tags) && (tags.size() > 0);
+        return (null != roomTags) && (roomTags.size() > 0);
     }
 
     /**
@@ -87,7 +96,7 @@ public class RoomAccountData implements java.io.Serializable {
     @Nullable
     public Set<String> getRoomTagsKeys() {
         if (hasRoomTags()) {
-            return tags.keySet();
+            return roomTags.keySet();
         } else {
             return null;
         }
@@ -100,6 +109,18 @@ public class RoomAccountData implements java.io.Serializable {
      */
     public boolean isURLPreviewAllowedByUser() {
         return isURLPreviewAllowedByUser;
+    }
+
+    /**
+     * Provide the content of an handled event according to its type.
+     * @apiNote Use this method only when no dedicated method exists for the requested event type.
+     *
+     * @param eventType the type of the requested event.
+     * @return the event content casted as JsonObject (null if no event has been handled with this type).
+     */
+    @Nullable
+    public JsonObject eventContent(String eventType) {
+        return eventContentsMap.get(eventType);
     }
 
     /**
