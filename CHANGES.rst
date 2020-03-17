@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - MXSession: Do not refresh TURN servers when VoIP is not supported
 
 Bugfix:
  -
