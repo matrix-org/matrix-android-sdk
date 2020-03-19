@@ -2,7 +2,7 @@ Changes to Matrix Android SDK in 0.9.34 (2020-XX-XX)
 =======================================================
 
 Features:
- -
+ - MSC2437: Store tagged events in Room Account Data
 
 Improvements:
  - Enhance the room account data API naming.

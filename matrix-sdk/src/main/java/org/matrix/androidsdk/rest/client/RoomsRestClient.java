@@ -45,6 +45,7 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReportContentParams;
 import org.matrix.androidsdk.rest.model.RoomAliasDescription;
 import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
+import org.matrix.androidsdk.rest.model.TaggedEventsContent;
 import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.Typing;
 import org.matrix.androidsdk.rest.model.User;
@@ -912,6 +913,29 @@ public class RoomsRestClient extends RestClient<RoomsApi> {
                     @Override
                     public void onRetry() {
                         updateURLPreviewStatus(userId, roomId, status, callback);
+                    }
+                }));
+    }
+
+    /**
+     * Update the tagged events
+     *
+     * @param userId   the userId
+     * @param roomId   the roomId
+     * @param content  the new tagged events content
+     * @param callback the operation callback
+     */
+    public void updateTaggedEvents(final String userId, final String roomId, final TaggedEventsContent content, final ApiCallback<Void> callback) {
+        final String description = "updateTaggedEvents : roomId " + roomId;
+
+        Map<String, Object> params = new HashMap();
+        params.put(TaggedEventsContent.TAGS_KEY, content.tags);
+
+        mApi.updateAccountData(userId, roomId, Event.EVENT_TYPE_TAGGED_EVENTS, params)
+                .enqueue(new RestAdapterCallback<Void>(description, mUnsentEventsManager, callback, new RestAdapterCallback.RequestRetryCallBack() {
+                    @Override
+                    public void onRetry() {
+                        updateTaggedEvents(userId, roomId, content, callback);
                     }
                 }));
     }

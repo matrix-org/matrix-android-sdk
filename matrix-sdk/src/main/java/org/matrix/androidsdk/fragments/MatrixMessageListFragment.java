@@ -297,6 +297,16 @@ public abstract class MatrixMessageListFragment<MessagesAdapter extends Abstract
             });
         }
 
+        @Override
+        public void onTaggedEventsEvent(String roomId) {
+            getUiHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.notifyDataSetChanged();
+                }
+            });
+        }
+
         private boolean mRefreshAfterEventsDecryption;
 
         @Override

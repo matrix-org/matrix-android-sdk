@@ -22,10 +22,14 @@ import com.google.gson.JsonObject;
 
 import androidx.annotation.Nullable;
 
+import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.rest.model.TaggedEventInfo;
+import org.matrix.androidsdk.rest.model.TaggedEventsContent;
 import org.matrix.androidsdk.rest.model.sync.AccountDataElement;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,6 +47,12 @@ public class RoomAccountData implements java.io.Serializable {
     // Tell whether the user allows the URL preview in this room.
     // By default we consider the user allows the URL preview.
     private boolean isURLPreviewAllowedByUser = true;
+
+    // The events the user has marked as a favourite in this room.
+    private Map<String, TaggedEventInfo> favouriteEvents = null;
+
+    // The events the user wants to hide in this room.
+    private Map<String, TaggedEventInfo> hiddenEvents = null;
 
     // Store the content of all the provided events by using their event type.
     private Map<String, JsonObject> eventContentsMap = new HashMap<>();
@@ -63,6 +73,10 @@ public class RoomAccountData implements java.io.Serializable {
                 final boolean disabled = jsonObject.get(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE).getAsBoolean();
                 isURLPreviewAllowedByUser = !disabled;
             }
+        } else if (eventType.equals(Event.EVENT_TYPE_TAGGED_EVENTS)) {
+            final TaggedEventsContent taggedEventContent = JsonUtils.toTaggedEventsContent(jsonObject);
+            favouriteEvents = taggedEventContent.getFavouriteEvents();
+            hiddenEvents = taggedEventContent.getHiddenEvents();
         }
 
         // Store by default the content of all the provided events.
@@ -112,6 +126,56 @@ public class RoomAccountData implements java.io.Serializable {
     }
 
     /**
+     * @return the list of the identifiers of the events marked as a favourite in this room.
+     */
+    public Set<String> getFavouriteEventIds() {
+        if (null != favouriteEvents) {
+            return favouriteEvents.keySet();
+        } else {
+            return new HashSet<>();
+        }
+    }
+
+    /**
+     * Provide the information on a favourite event.
+     *
+     * @param eventId the event identifier.
+     * @return a TaggedEventInfo instance if the event is marked as a favourite, else null.
+     */
+    @Nullable
+    public TaggedEventInfo favouriteEventInfo(String eventId) {
+        if (null != favouriteEvents) {
+            return favouriteEvents.get(eventId);
+        }
+        return null;
+    }
+
+    /**
+     * @return the list of the identifiers of the hidden events in this room.
+     */
+    public Set<String> getHiddenEventIds() {
+        if (null != hiddenEvents) {
+            return hiddenEvents.keySet();
+        } else {
+            return new HashSet<>();
+        }
+    }
+
+    /**
+     * Provide the information on a hidden event.
+     *
+     * @param eventId the event identifier.
+     * @return a TaggedEventInfo instance if the event has been hidden by the user, else null.
+     */
+    @Nullable
+    public TaggedEventInfo hiddenEventInfo(String eventId) {
+        if (null != hiddenEvents) {
+            return hiddenEvents.get(eventId);
+        }
+        return null;
+    }
+
+    /**
      * Provide the content of an handled event according to its type.
      * @apiNote Use this method only when no dedicated method exists for the requested event type.
      *
@@ -122,6 +186,7 @@ public class RoomAccountData implements java.io.Serializable {
     public JsonObject eventContent(String eventType) {
         return eventContentsMap.get(eventType);
     }
+
 
     /**
      * @deprecated use hasRoomTags() instead.
