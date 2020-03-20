@@ -149,4 +149,6 @@
     <string name="verification_emoji_folder">Mappa</string>
     <string name="verification_emoji_pin">Nål</string>
 
-</resources>
+<string name="notice_room_update">%s oppgraderte rommet.</string>
+
+    </resources>
