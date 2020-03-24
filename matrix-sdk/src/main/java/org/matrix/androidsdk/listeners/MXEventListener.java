@@ -118,6 +118,10 @@ public class MXEventListener implements IMXEventListener {
     }
 
     @Override
+    public void onTaggedEventsEvent(String roomId) {
+    }
+
+    @Override
     public void onReadMarkerEvent(String roomId) {
     }
 

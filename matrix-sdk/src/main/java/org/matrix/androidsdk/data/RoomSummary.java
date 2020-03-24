@@ -70,7 +70,8 @@ public class RoomSummary implements java.io.Serializable {
             Event.EVENT_TYPE_URL_PREVIEW,
             Event.EVENT_TYPE_STATE_RELATED_GROUPS,
             Event.EVENT_TYPE_STATE_ROOM_GUEST_ACCESS,
-            Event.EVENT_TYPE_REDACTION);
+            Event.EVENT_TYPE_REDACTION,
+            Event.EVENT_TYPE_TAGGED_EVENTS);
 
     private String mRoomId = null;
     private String mTopic = null;
