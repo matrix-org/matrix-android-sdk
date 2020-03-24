@@ -6,6 +6,7 @@ Features:
 
 Improvements:
  - Enhance the room account data API naming.
+ - MXSession: Do not refresh TURN servers when VoIP is not supported
 
 Bugfix:
  -
