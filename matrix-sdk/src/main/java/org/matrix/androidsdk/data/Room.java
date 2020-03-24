@@ -71,6 +71,8 @@ import org.matrix.androidsdk.rest.model.PowerLevels;
 import org.matrix.androidsdk.rest.model.ReceiptData;
 import org.matrix.androidsdk.rest.model.RoomDirectoryVisibility;
 import org.matrix.androidsdk.rest.model.RoomMember;
+import org.matrix.androidsdk.rest.model.TaggedEventInfo;
+import org.matrix.androidsdk.rest.model.TaggedEventsContent;
 import org.matrix.androidsdk.rest.model.TokensChunkEvents;
 import org.matrix.androidsdk.rest.model.UserIdAndReason;
 import org.matrix.androidsdk.rest.model.message.FileInfo;
@@ -1951,11 +1953,19 @@ public class Room implements CryptoRoom {
     private void handleRoomAccountDataEvents(List<Event> accountDataEvents) {
         if ((null != accountDataEvents) && (accountDataEvents.size() > 0)) {
             // manage the account events
-            for (Event accountDataEvent : accountDataEvents) {
-                String eventType = accountDataEvent.getType();
+            final RoomSummary summary = (null != getStore()) ? getStore().getSummary(getRoomId()) : null;
 
-                final RoomSummary summary = (null != getStore()) ? getStore().getSummary(getRoomId()) : null;
-                if (eventType.equals(Event.EVENT_TYPE_READ_MARKER)) {
+            for (Event accountDataEvent : accountDataEvents) {
+                mAccountData.handleEvent(accountDataEvent);
+
+                String eventType = accountDataEvent.getType();
+                if (eventType.equals(Event.EVENT_TYPE_TAGS)) {
+                    if (summary != null) {
+                        summary.setRoomTags(mAccountData.getRoomTagsKeys());
+                        getStore().flushSummary(summary);
+                    }
+                    mDataHandler.onRoomTagEvent(getRoomId());
+                } else if (eventType.equals(Event.EVENT_TYPE_READ_MARKER)) {
                     if (summary != null) {
                         final Event event = JsonUtils.toEvent(accountDataEvent.getContent());
                         if (null != event && !TextUtils.equals(event.eventId, summary.getReadMarkerEventId())) {
@@ -1968,15 +1978,8 @@ public class Room implements CryptoRoom {
                             mDataHandler.onReadMarkerEvent(getRoomId());
                         }
                     }
-                } else {
-                    mAccountData.handleEvent(accountDataEvent);
-                    if (Event.EVENT_TYPE_TAGS.equals(accountDataEvent.getType())) {
-                        if (summary != null) {
-                            summary.setRoomTags(mAccountData.getRoomTagsKeys());
-                            getStore().flushSummary(summary);
-                        }
-                        mDataHandler.onRoomTagEvent(getRoomId());
-                    }
+                } else if (eventType.equals(Event.EVENT_TYPE_TAGGED_EVENTS)) {
+                    mDataHandler.onTaggedEventsEvent(getRoomId());
                 }
             }
 
@@ -2069,6 +2072,44 @@ public class Room implements CryptoRoom {
      */
     public void setIsURLPreviewAllowedByUser(boolean status, ApiCallback<Void> callback) {
         mDataHandler.getDataRetriever().getRoomsRestClient().updateURLPreviewStatus(mMyUserId, getRoomId(), status, callback);
+    }
+
+    //==============================================================================================================
+    // Tagged events
+    //==============================================================================================================
+
+    /**
+     * Tag an event of the room
+     *
+     * @param event    the event to tag
+     * @param tag      the wanted tag
+     * @param keywords the potential keywords
+     * @param callback the asynchronous callback
+     */
+    public void tagEvent(final Event event, String tag, @Nullable List<String> keywords, ApiCallback<Void> callback) {
+        final JsonObject eventContent = getAccountData().eventContent(Event.EVENT_TYPE_TAGGED_EVENTS);
+        final TaggedEventsContent taggedEventContent = JsonUtils.toTaggedEventsContent(eventContent);
+
+        TaggedEventInfo info = TaggedEventInfo.Companion.with(keywords, event.originServerTs, System.currentTimeMillis());
+        taggedEventContent.tagEvent(event.eventId, info, tag);
+
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateTaggedEvents(mMyUserId, getRoomId(), taggedEventContent, callback);
+    }
+
+    /**
+     * Remove a tag applied on an event of the room
+     *
+     * @param event    the event to untag
+     * @param tag      the wanted tag
+     * @param callback the asynchronous callback
+     */
+    public void untagEvent(final Event event, String tag, ApiCallback<Void> callback) {
+        final JsonObject eventContent = getAccountData().eventContent(Event.EVENT_TYPE_TAGGED_EVENTS);
+        final TaggedEventsContent taggedEventContent = JsonUtils.toTaggedEventsContent(eventContent);
+
+        taggedEventContent.untagEvent(event.eventId, tag);
+
+        mDataHandler.getDataRetriever().getRoomsRestClient().updateTaggedEvents(mMyUserId, getRoomId(), taggedEventContent, callback);
     }
 
     //==============================================================================================================

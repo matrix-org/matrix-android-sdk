@@ -45,6 +45,7 @@ import org.matrix.androidsdk.rest.model.RoomPinnedEventsContent;
 import org.matrix.androidsdk.rest.model.RoomTags;
 import org.matrix.androidsdk.rest.model.RoomTombstoneContent;
 import org.matrix.androidsdk.rest.model.StateEvent;
+import org.matrix.androidsdk.rest.model.TaggedEventsContent;
 import org.matrix.androidsdk.rest.model.User;
 import org.matrix.androidsdk.rest.model.bingrules.Condition;
 import org.matrix.androidsdk.rest.model.login.RegistrationFlowResponse;
@@ -455,6 +456,17 @@ public class JsonUtils {
      */
     public static RoomPinnedEventsContent toRoomPinnedEventsContent(final JsonElement jsonElement) {
         return toClass(jsonElement, RoomPinnedEventsContent.class);
+    }
+
+    /**
+     * Convert a JSON object to a TaggedEventsContent.
+     * The result is never null.
+     *
+     * @param jsonObject the json to convert
+     * @return a TaggedEventsContent
+     */
+    public static TaggedEventsContent toTaggedEventsContent(JsonElement jsonObject) {
+        return toClass(jsonObject, TaggedEventsContent.class);
     }
 
     /**

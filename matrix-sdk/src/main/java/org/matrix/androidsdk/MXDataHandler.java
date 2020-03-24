@@ -2027,6 +2027,10 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
         mMxEventDispatcher.dispatchOnRoomTagEvent(roomId, ignoreEvent(roomId));
     }
 
+    public void onTaggedEventsEvent(final String roomId) {
+        mMxEventDispatcher.dispatchOnTaggedEventsEvent(roomId, ignoreEvent(roomId));
+    }
+
     public void onReadMarkerEvent(final String roomId) {
         mMxEventDispatcher.dispatchOnReadMarkerEvent(roomId, ignoreEvent(roomId));
     }

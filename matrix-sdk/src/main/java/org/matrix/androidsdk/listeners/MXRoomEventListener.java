@@ -188,6 +188,18 @@ public class MXRoomEventListener extends MXEventListener {
     }
 
     @Override
+    public void onTaggedEventsEvent(String roomId) {
+        // Filter out events for other rooms
+        if (TextUtils.equals(mRoomId, roomId)) {
+            try {
+                mEventListener.onTaggedEventsEvent(roomId);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "onTaggedEventsEvent exception " + e.getMessage(), e);
+            }
+        }
+    }
+
+    @Override
     public void onReadMarkerEvent(String roomId) {
         // Filter out events for other rooms
         if (TextUtils.equals(mRoomId, roomId)) {
