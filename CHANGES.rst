@@ -25,7 +25,7 @@ Others:
  -
 
 Build:
- -
+ - Upgrade gradle version from 5.4.1 to 5.6.4
 
 Test:
  -
