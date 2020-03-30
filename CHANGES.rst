@@ -26,6 +26,7 @@ Others:
 
 Build:
  - Upgrade gradle version from 5.4.1 to 5.6.4
+ - Upgrade realm version from 5.12.0 to 5.13.1
 
 Test:
  -
