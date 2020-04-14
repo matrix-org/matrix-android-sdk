@@ -210,8 +210,6 @@
         <item quantity="other">%1$s ha quitado %2$s como alias de esta habitación.</item>
     </plurals>
 
-    <string name="notice_room_aliases_added_and_removed">Se añadieron %1$s y se quitaron %3$s como alias de esta habitación.</string>
-
     <string name="notice_room_canonical_alias_set">%1$s ha establecido la dirección principal de esta sala a %2$s.</string>
     <string name="notice_room_guest_access_can_join">%1$s ha permitido que los invitados se unan a la sala.</string>
     <string name="notice_room_guest_access_forbidden">%1$s ha impedido que los invitados se unan a la sala.</string>
