@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<resources><string name="summary_message">%1$s: %2$s</string>
+<resources>
+    <string name="summary_message">%1$s: %2$s</string>
     <string name="summary_user_sent_image">%1$s تصویری فرستاد.</string>
     <string name="summary_user_sent_sticker">%1$s برچسبی فرستاد.</string>
 
@@ -77,9 +78,9 @@
     <string name="room_displayname_two_members">%1$s و %2$s</string>
 
     <plurals name="room_displayname_three_and_more_members">
-	<item quantity="one">%1$s و ۱ نفر دیگر</item>
-	<item quantity="other">%1$s و %2$d نفر دیگر</item>
-</plurals>
+        <item quantity="one">%1$s و ۱ نفر دیگر</item>
+        <item quantity="other">%1$s و %2$d نفر دیگر</item>
+    </plurals>
 
     <string name="room_displayname_empty_room">اتاق خالی</string>
 
@@ -184,14 +185,14 @@
     <string name="notice_room_withdraw_with_reason">%1$s دعوت %2$s را نپذیرفت. دلیل: %3$s</string>
 
     <plurals name="notice_room_aliases_added">
-	<item quantity="one">%1$s، %2$s را به عنوان نشانی‌ای برای این اتاق افزود.</item>
-	<item quantity="other">%1$s، %2$s را به عنوان نشانی‌هایی برای این اتاق افزود.</item>
-</plurals>
+        <item quantity="one">%1$s، %2$s را به عنوان نشانی‌ای برای این اتاق افزود.</item>
+        <item quantity="other">%1$s، %2$s را به عنوان نشانی‌هایی برای این اتاق افزود.</item>
+    </plurals>
 
     <plurals name="notice_room_aliases_removed">
-	<item quantity="one">%1$s، %2$s را به عنوان نشانی‌ای برای این اتاق برداشت.</item>
-	<item quantity="other">%1$s، %3$s را به عنوان نشانی‌هایی برای این اتاق برداشت.</item>
-</plurals>
+        <item quantity="one">%1$s، %2$s را به عنوان نشانی‌ای برای این اتاق برداشت.</item>
+        <item quantity="other">%1$s، %3$s را به عنوان نشانی‌هایی برای این اتاق برداشت.</item>
+    </plurals>
 
     <string name="notice_room_aliases_added_and_removed">%1$s برای نشانی این اتاق، %2$s را افزود و %3$s را برداشت.</string>
 

@@ -202,7 +202,7 @@
     <string name="notice_room_canonical_alias_set">%1$s a défini %2$s comme adresse principale pour ce salon.</string>
     <string name="notice_room_canonical_alias_unset">%1$s a supprimé l’adresse principale de ce salon.</string>
 
-<string name="notice_room_guest_access_can_join">%1$s a autorisé les visiteurs à rejoindre le salon.</string>
+    <string name="notice_room_guest_access_can_join">%1$s a autorisé les visiteurs à rejoindre le salon.</string>
     <string name="notice_room_guest_access_forbidden">%1$s a empêché les visiteurs de rejoindre le salon.</string>
 
     <string name="notice_end_to_end_ok">%1$s a activé le chiffrement de bout en bout.</string>

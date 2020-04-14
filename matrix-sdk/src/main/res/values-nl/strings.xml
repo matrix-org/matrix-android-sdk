@@ -182,7 +182,7 @@
     <string name="clear_timeline_send_queue">Uitgaande wachtrij legen</string>
 
     <string name="notice_room_third_party_revoked_invite">%1$s heeft de uitnodiging voor %2$s om het gesprek toe te treden ingetrokken</string>
-<string name="notice_room_invite_no_invitee_with_reason">Uitnodiging van %1$s. Reden: %2$s</string>
+    <string name="notice_room_invite_no_invitee_with_reason">Uitnodiging van %1$s. Reden: %2$s</string>
     <string name="notice_room_invite_with_reason">%1$s heeft %2$s uitgenodigd. Reden: %3$s</string>
     <string name="notice_room_invite_you_with_reason">%1$s heeft u uitgenodigd. Reden: %2$s</string>
     <string name="notice_room_join_with_reason">%1$s neemt nu deel. Reden: %2$s</string>
@@ -197,14 +197,14 @@
     <string name="notice_room_withdraw_with_reason">%1$s heeft de uitnodiging van %2$s ingetrokken. Reden: %3$s</string>
 
     <plurals name="notice_room_aliases_added">
-	<item quantity="one">%1$s heeft %2$s als gespreksadres toegevoegd.</item>
-	<item quantity="other">%1$s heeft %2$s als gespreksadressen toegevoegd.</item>
-</plurals>
+        <item quantity="one">%1$s heeft %2$s als gespreksadres toegevoegd.</item>
+        <item quantity="other">%1$s heeft %2$s als gespreksadressen toegevoegd.</item>
+    </plurals>
 
     <plurals name="notice_room_aliases_removed">
-	<item quantity="one">%1$s heeft %2$s als gespreksadres verwijderd.</item>
-	<item quantity="other">%1$s heeft %3$s als gespreksadressen verwijderd.</item>
-</plurals>
+        <item quantity="one">%1$s heeft %2$s als gespreksadres verwijderd.</item>
+        <item quantity="other">%1$s heeft %3$s als gespreksadressen verwijderd.</item>
+    </plurals>
 
     <string name="notice_room_aliases_added_and_removed">%1$s heeft %2$s als gespreksadres toegevoegd en %3$s verwijderd.</string>
 

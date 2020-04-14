@@ -178,7 +178,7 @@
     <string name="notice_room_third_party_registered_invite_with_reason">%1$s ha aceptado la invitación para %2$s. Razón: %3$s</string>
     <string name="notice_room_canonical_alias_unset">%1$s ha eliminado la dirección principal para esta sala.</string>
 
-<string name="notice_room_update">%s ha actualizado la sala.</string>
+    <string name="notice_room_update">%s ha actualizado la sala.</string>
 
     <string name="verification_emoji_globe">Globo Terráqueo</string>
     <string name="verification_emoji_smiley">Cara sonriente</string>
@@ -201,14 +201,14 @@
     <string name="notice_room_withdraw_with_reason">%1$s ha retirado la invitación de %2$s. Razón: %3$s</string>
 
     <plurals name="notice_room_aliases_added">
-	<item quantity="one">%1$s ha añadido %2$s como alias de esta sala.</item>
-	<item quantity="other">%1$s ha añadido %2$s como alias de esta sala.</item>
-</plurals>
+        <item quantity="one">%1$s ha añadido %2$s como alias de esta sala.</item>
+        <item quantity="other">%1$s ha añadido %2$s como alias de esta sala.</item>
+    </plurals>
 
     <plurals name="notice_room_aliases_removed">
-	<item quantity="one">%1$s ha quitado %2$s como alias de esta habitación.</item>
-	<item quantity="other">%1$s ha quitado %2$s como alias de esta habitación.</item>
-</plurals>
+        <item quantity="one">%1$s ha quitado %2$s como alias de esta habitación.</item>
+        <item quantity="other">%1$s ha quitado %2$s como alias de esta habitación.</item>
+    </plurals>
 
     <string name="notice_room_aliases_added_and_removed">Se añadieron %1$s y se quitaron %3$s como alias de esta habitación.</string>
 

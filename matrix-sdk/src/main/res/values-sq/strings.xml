@@ -198,7 +198,7 @@
     <string name="notice_room_canonical_alias_set">%1$s caktoi %2$s si adresë kryesore për këtë dhomë.</string>
     <string name="notice_room_canonical_alias_unset">%1$s hoqi adresën kryesore për këtë dhomë.</string>
 
-<string name="notice_room_guest_access_can_join">%1$s ka lejuar vizitorë të marrin pjesë në dhomë.</string>
+    <string name="notice_room_guest_access_can_join">%1$s ka lejuar vizitorë të marrin pjesë në dhomë.</string>
     <string name="notice_room_guest_access_forbidden">%1$s ka penguar vizitorë të marrin pjesë në dhomë.</string>
 
     <string name="notice_end_to_end_ok">%1$s aktivizoi fshehtëzim skaj-më-skaj.</string>

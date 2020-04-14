@@ -198,7 +198,7 @@
     <string name="notice_room_canonical_alias_set">%1$s 為此聊天室設定了 %2$s 為主地址。</string>
     <string name="notice_room_canonical_alias_unset">%1$s 為此聊天室移除了主要地址。</string>
 
-<string name="notice_room_guest_access_can_join">%1$s 已允許訪客加入聊天室。</string>
+    <string name="notice_room_guest_access_can_join">%1$s 已允許訪客加入聊天室。</string>
     <string name="notice_room_guest_access_forbidden">%1$s 已禁止訪客加入聊天室。</string>
 
     <string name="notice_end_to_end_ok">%1$s 已開啟端到端加密。</string>

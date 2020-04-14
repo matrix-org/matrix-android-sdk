@@ -188,15 +188,15 @@
     <string name="notice_room_third_party_registered_invite_with_reason">%1$s hyväksyi kutsun liityäkseen huoneeseen %2$s. Syy: %3$s</string>
     <string name="notice_room_withdraw_with_reason">%1$s veti takaisin käyttäjän %2$s kutsun. Syy: %3$s</string>
 
-<plurals name="notice_room_aliases_added">
-	<item quantity="one">%1$s lisäsi tälle huoneelle osoitteen %2$s.</item>
-	<item quantity="other">%1$s lisäsi tälle huoneelle osoitteet %2$s.</item>
-</plurals>
+    <plurals name="notice_room_aliases_added">
+        <item quantity="one">%1$s lisäsi tälle huoneelle osoitteen %2$s.</item>
+        <item quantity="other">%1$s lisäsi tälle huoneelle osoitteet %2$s.</item>
+    </plurals>
 
     <plurals name="notice_room_aliases_removed">
-	<item quantity="one">%1$s poisti tältä huoneelta osoitteen %2$s.</item>
-	<item quantity="other">%1$s poisti tältä huoneelta osoitteet %3$s.</item>
-</plurals>
+        <item quantity="one">%1$s poisti tältä huoneelta osoitteen %2$s.</item>
+        <item quantity="other">%1$s poisti tältä huoneelta osoitteet %3$s.</item>
+    </plurals>
 
     <string name="notice_room_aliases_added_and_removed">%1$s lisäsi tälle huoneelle osoitteen %2$s ja poisti osoitteen %3$s.</string>
 
@@ -206,4 +206,4 @@
     <string name="notice_room_guest_access_can_join">%1$s salli vieraiden liittyä huoneeseen.</string>
     <string name="notice_room_guest_access_forbidden">%1$s esti vieraita liittymästä huoneeseen.</string>
 
-    </resources>
+</resources>

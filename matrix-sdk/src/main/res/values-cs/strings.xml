@@ -74,10 +74,10 @@
     <string name="room_displayname_two_members">%1$s a %2$s</string>
 
     <plurals name="room_displayname_three_and_more_members">
-	<item quantity="one">%1$s a jeden další</item>
-	<item quantity="few">%1$s a %2$d další</item>
-	<item quantity="other">%1$s a %2$d dalších</item>
-</plurals>
+        <item quantity="one">%1$s a jeden další</item>
+        <item quantity="few">%1$s a %2$d další</item>
+        <item quantity="other">%1$s a %2$d dalších</item>
+    </plurals>
 
     <string name="room_displayname_empty_room">Prázdná místnost</string>
 
@@ -163,7 +163,7 @@
 \nImport dat účtu</string>
 
     <string name="event_status_sending_message">Odesílání zprávy…</string>
-<string name="verification_emoji_wrench">Maticový klíč</string>
+    <string name="verification_emoji_wrench">Maticový klíč</string>
     <string name="verification_emoji_pin">Připínáček</string>
 
     <string name="initial_sync_start_importing_account_invited_rooms">Úvodní synchronizace:
@@ -175,4 +175,4 @@
     <string name="notice_room_leave_with_reason">Uživatel %1$s odešel. Důvod: %2$s</string>
     <string name="notice_event_redacted">Zpráva odstraněna</string>
     <string name="notice_event_redacted_by">Zprávu odstranil/a %1$s</string>
-    </resources>
+</resources>
