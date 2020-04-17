@@ -22,7 +22,7 @@ Translations:
  -
 
 Others:
- -
+ - Provided support for implementation of reading "im.vector.riot.jitsi" from /.well-known/matrix/client
 
 Build:
  -
