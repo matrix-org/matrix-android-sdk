@@ -84,7 +84,7 @@ class WellKnown {
         }
         return managers
     }
-	
+
     @JvmField
     @SerializedName("im.vector.riot.jitsi")
     var jitsiServer: WellKnownBaseConfig? = null
