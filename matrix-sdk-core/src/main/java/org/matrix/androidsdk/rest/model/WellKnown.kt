@@ -87,5 +87,5 @@ class WellKnown {
 
     @JvmField
     @SerializedName("im.vector.riot.jitsi")
-    var jitsiServer: WellKnownBaseConfig? = null
+    var jitsiServer: WellKnownPreferredConfig? = null
 }
