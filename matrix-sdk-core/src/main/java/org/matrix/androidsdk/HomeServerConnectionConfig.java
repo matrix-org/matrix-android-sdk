@@ -45,6 +45,9 @@ public class HomeServerConnectionConfig {
 
     // the home server URI
     private Uri mHomeServerUri;
+    // the jitsi server URI. Can be null
+    @Nullable
+    private Uri mJitsiServerUri;
     // the identity server URI. Can be null
     @Nullable
     private Uri mIdentityServerUri;
@@ -91,6 +94,13 @@ public class HomeServerConnectionConfig {
      */
     public Uri getHomeserverUri() {
         return mHomeServerUri;
+    }
+
+    /**
+     * @return the jitsi server uri
+     */
+    public Uri getJitsiServerUri() {
+        return mJitsiServerUri;
     }
 
     /**
@@ -163,6 +173,20 @@ public class HomeServerConnectionConfig {
                     mIdentityServerUri = Uri.parse(identityServerUrl);
                 }
             }
+
+            if (credentials.wellKnown.jitsiServer != null) {
+                String jitsiServerUrl = credentials.wellKnown.jitsiServer.preferredDomain;
+
+                if (!TextUtils.isEmpty(jitsiServerUrl)) {
+                    // add trailing "/"
+                    if (!jitsiServerUrl.endsWith("/")) {
+                        jitsiServerUrl =jitsiServerUrl + "/";
+                    }
+
+                    Log.d("setCredentials", "Overriding jitsi server url to " + jitsiServerUrl);
+                    mJitsiServerUri = Uri.parse(jitsiServerUrl);
+                }
+            }
         }
     }
 
@@ -223,6 +247,7 @@ public class HomeServerConnectionConfig {
     public String toString() {
         return "HomeserverConnectionConfig{" +
                 "mHomeServerUri=" + mHomeServerUri +
+                ", mJitsiServerUri=" + mJitsiServerUri +
                 ", mIdentityServerUri=" + mIdentityServerUri +
                 ", mAntiVirusServerUri=" + mAntiVirusServerUri +
                 ", mAllowedFingerprints size=" + mAllowedFingerprints.size() +
@@ -246,6 +271,10 @@ public class HomeServerConnectionConfig {
         JSONObject json = new JSONObject();
 
         json.put("home_server_url", mHomeServerUri.toString());
+        Uri jitsiServerUri = getJitsiServerUri();
+        if (jitsiServerUri != null) {
+            json.put("jitsi_server_url", jitsiServerUri.toString());
+        }
         Uri identityServerUri = getIdentityServerUri();
         if (identityServerUri != null) {
             json.put("identity_server_url", identityServerUri.toString());
@@ -316,6 +345,7 @@ public class HomeServerConnectionConfig {
 
         Builder builder = new Builder()
                 .withHomeServerUri(Uri.parse(jsonObject.getString("home_server_url")))
+                .withJitsiServerUri(jsonObject.has("jitsi_server_url") ? Uri.parse(jsonObject.getString("jitsi_server_url")) : null)
                 .withIdentityServerUri(jsonObject.has("identity_server_url") ? Uri.parse(jsonObject.getString("identity_server_url")) : null)
                 .withCredentials(creds)
                 .withPin(jsonObject.optBoolean("pin", false));
@@ -408,6 +438,37 @@ public class HomeServerConnectionConfig {
                 }
             } else {
                 mHomeServerConnectionConfig.mHomeServerUri = homeServerUri;
+            }
+
+            return this;
+        }
+
+        /**
+         * @param jitsiServerUri The URI to use to manage identity. Can be null
+         * @return this builder
+         */
+        public Builder withJitsiServerUri(@Nullable final Uri jitsiServerUri) {
+            if (jitsiServerUri != null
+                    && !jitsiServerUri.toString().isEmpty()
+                    && !"http".equals(jitsiServerUri.getScheme())
+                    && !"https".equals(jitsiServerUri.getScheme())) {
+                throw new RuntimeException("Invalid jitsi server URI: " + jitsiServerUri);
+            }
+
+            // add trailing /
+            if ((null != jitsiServerUri) && !jitsiServerUri.toString().endsWith("/")) {
+                try {
+                    String url = jitsiServerUri.toString();
+                    mHomeServerConnectionConfig.mJitsiServerUri = Uri.parse(url + "/");
+                } catch (Exception e) {
+                    throw new RuntimeException("Invalid jitsi server URI: " + jitsiServerUri);
+                }
+            } else {
+                if (jitsiServerUri != null && jitsiServerUri.toString().isEmpty()) {
+                    mHomeServerConnectionConfig.mJitsiServerUri = null;
+                } else {
+                    mHomeServerConnectionConfig.mJitsiServerUri = jitsiServerUri;
+                }
             }
 
             return this;
