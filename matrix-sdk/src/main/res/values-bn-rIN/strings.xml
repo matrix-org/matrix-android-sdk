@@ -172,4 +172,15 @@
     <string name="event_status_sending_message">বার্তা প্রেরণ করা হচ্ছে …</string>
     <string name="clear_timeline_send_queue">প্রেরণ সারি পরিষ্কার করুন</string>
 
-</resources>
+<string name="notice_room_invite_no_invitee_with_reason">%1$s এর আমন্ত্রণ। কারণ: %2$s</string>
+    <string name="notice_room_invite_with_reason">%1$s %2$s কে আমন্ত্রণ করা করেছে। কারণ: %3$s</string>
+    <string name="notice_room_invite_you_with_reason">%1$s আপনা কে আমন্ত্রণ জানিয়েছেন। কারণ: %2$s</string>
+    <string name="notice_room_join_with_reason">%1$s যোগ দিয়েছেন। কারণ: %2$s</string>
+    <string name="notice_room_leave_with_reason">%1$s ছেড়ে দিয়েছেন। কারণ: %2$s</string>
+    <string name="notice_room_reject_with_reason">%1$s আমন্ত্রণ প্রত্যাখ্যান করেছে। কারণ: %2$s</string>
+    <string name="notice_room_kick_with_reason">%1$s %2$s কে কিক করেছে। কারণ: %3$s</string>
+    <string name="notice_room_unban_with_reason">%1$s %2$s কে নিষিদ্ধ তালিকা থেকে সরিয়ে দিয়েছে। কারণ: %3$s</string>
+    <string name="notice_room_ban_with_reason">%1$s %2$s কে নিষিদ্ধ করেছে। কারণ: %3$s</string>
+    <string name="notice_room_third_party_invite_with_reason">%1$s %2$s কে রুম এ যোগ দেওয়ার জন্য আমন্ত্রণ জানিয়েছে। কারণ: %3$s</string>
+    <string name="notice_room_third_party_revoked_invite_with_reason">%1$s %2$s এর কক্ষে যোগদানের আমন্ত্রণ বাতিল করে দিয়েছে। কারণ: %3$s</string>
+    </resources>
