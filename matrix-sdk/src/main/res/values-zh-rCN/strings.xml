@@ -170,7 +170,7 @@
     <string name="notice_room_third_party_revoked_invite">%1$s 撤回了对 %2$s 邀请</string>
     <string name="verification_emoji_pin">置顶</string>
 
-<string name="notice_room_invite_no_invitee_with_reason">%1$s 的邀请。理由：%2$s</string>
+    <string name="notice_room_invite_no_invitee_with_reason">%1$s 的邀请。理由：%2$s</string>
     <string name="notice_room_invite_with_reason">%1$s 邀请了 %2$s。理由：%3$s</string>
     <string name="notice_room_invite_you_with_reason">%1$s 邀请了您。理由：%2$s</string>
     <string name="notice_room_join_with_reason">%1$s 已加入。理由：%2$s</string>
@@ -185,12 +185,12 @@
     <string name="notice_room_withdraw_with_reason">%1$s 撤回了对 %2$s 的邀请。理由：%3$s</string>
 
     <plurals name="notice_room_aliases_added">
-	<item quantity="other">%1$s 新增了 %2$s 为此聊天室的地址。</item>
-</plurals>
+        <item quantity="other">%1$s 新增了 %2$s 为此聊天室的地址。</item>
+    </plurals>
 
     <plurals name="notice_room_aliases_removed">
-	<item quantity="other">%1$s 移除了此聊天室的 %3$s 地址。</item>
-</plurals>
+        <item quantity="other">%1$s 移除了此聊天室的 %3$s 地址。</item>
+    </plurals>
 
     <string name="notice_room_aliases_added_and_removed">%1$s 为此聊天室新增 %2$s 并移除 %3$s 地址。</string>
 
