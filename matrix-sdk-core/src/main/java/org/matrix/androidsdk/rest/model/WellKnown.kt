@@ -38,6 +38,9 @@ import com.google.gson.annotations.SerializedName
  *              }
  *          ]
  *    }
+ *     "im.vector.riot.jitsi": {
+ *         "preferredDomain": "https://jitsi.riot.im/"
+ *     }
  * }
  * </pre>
  */
@@ -81,4 +84,8 @@ class WellKnown {
         }
         return managers
     }
+
+    @JvmField
+    @SerializedName("im.vector.riot.jitsi")
+    var jitsiServer: WellKnownPreferredConfig? = null
 }
