@@ -9,7 +9,7 @@ Improvements:
  - MXSession: Do not refresh TURN servers when VoIP is not supported
 
 Bugfix:
- -
+ - Fix issue with identity server (missing access token) (vector-im/riot-android#3404)
 
 API Change:
  - RoomAccountdata.hasTags() has been deprecated. Use .hasRoomTags() instead.

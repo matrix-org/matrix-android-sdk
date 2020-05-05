@@ -30,5 +30,6 @@ data class IdentityServerRegisterResponse(
         val token: String? = null
 ) {
     // XXX: The spec is `token`, but we used `access_token` for a Sydent release.
-    val identityServerAccessToken = token ?: accessToken
+    val identityServerAccessToken: String?
+        get() = token ?: accessToken
 }
