@@ -151,7 +151,4 @@
 
     <string name="notice_room_update">%s oppgraderte rommet.</string>
 
-    <string name="clear_timeline_send_queue">Nullstill sendingskø</string>
-
-    <string name="notice_room_leave_with_reason">%1$s forlot rommet. Grunn: %2$s</string>
 </resources>
