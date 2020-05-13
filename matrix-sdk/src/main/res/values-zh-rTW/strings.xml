@@ -148,54 +148,8 @@
     <string name="verification_emoji_folder">資料夾</string>
     <string name="verification_emoji_pin">別針</string>
 
-    <string name="initial_sync_start_importing_account">初始化同步：
-\n正在匯入帳號……</string>
-    <string name="initial_sync_start_importing_account_crypto">初始化同步：
-\n正在匯入 crypto</string>
-    <string name="initial_sync_start_importing_account_rooms">初始化同步：
-\n正在匯入聊天室</string>
-    <string name="initial_sync_start_importing_account_joined_rooms">初始化同步：
-\n正在匯入已加入的聊天室</string>
-    <string name="initial_sync_start_importing_account_invited_rooms">初始化同步：
-\n正在匯入已邀請的聊天室</string>
-    <string name="initial_sync_start_importing_account_left_rooms">初始化同步：
-\n正在匯入已離開的聊天室</string>
-    <string name="initial_sync_start_importing_account_groups">初始化同步：
-\n正在匯入社群</string>
-    <string name="initial_sync_start_importing_account_data">初始化同步：
-\n正在匯入帳號資料</string>
-
     <string name="notice_room_update">%s 已升級此聊天室。</string>
 
-    <string name="event_status_sending_message">正在傳送訊息……</string>
-    <string name="clear_timeline_send_queue">清除傳送佇列</string>
-
     <string name="notice_room_third_party_revoked_invite">%1$s 撤銷了 %2$s 加入聊天室的邀請</string>
-    <string name="notice_room_invite_no_invitee_with_reason">%1$s 的邀請。理由：%2$s</string>
-    <string name="notice_room_invite_with_reason">%1$s 邀請了 %2$s。理由：%3$s</string>
-    <string name="notice_room_invite_you_with_reason">%1$s 邀請了您。理由：%2$s</string>
-    <string name="notice_room_join_with_reason">%1$s 已加入。理由：%2$s</string>
-    <string name="notice_room_leave_with_reason">%1$s 已離開。理由：%2$s</string>
-    <string name="notice_room_reject_with_reason">%1$s 已回絕邀請。理由：%2$s</string>
-    <string name="notice_room_kick_with_reason">%1$s 踢走了 %2$s。理由：%3$s</string>
-    <string name="notice_room_unban_with_reason">%1$s 取消封鎖了 %2$s。理由：%3$s</string>
-    <string name="notice_room_ban_with_reason">%1$s 封鎖了 %2$s。理由：%3$s</string>
-    <string name="notice_room_third_party_invite_with_reason">%1$s 已傳送邀請給 %2$s 來加入聊天室。理由：%3$s</string>
-    <string name="notice_room_third_party_revoked_invite_with_reason">%1$s 撤銷了 %2$s 加入聊天室的邀請。理由：%3$s</string>
-    <string name="notice_room_third_party_registered_invite_with_reason">%1$s 接受 %2$s 的邀請。理由：%3$s</string>
-    <string name="notice_room_withdraw_with_reason">%1$s 撤回了對 %2$s 的邀請。理由：%3$s</string>
-
-    <plurals name="notice_room_aliases_added">
-        <item quantity="other">%1$s 新增了 %2$s 為此聊天室的地址。</item>
-    </plurals>
-
-    <plurals name="notice_room_aliases_removed">
-        <item quantity="other">%1$s 移除了此聊天室的 %3$s 地址。</item>
-    </plurals>
-
-    <string name="notice_room_aliases_added_and_removed">%1$s 為此聊天室新增 %2$s 並移除 %3$s 地址。</string>
-
-    <string name="notice_room_canonical_alias_set">%1$s 為此聊天室設定了 %2$s 為主地址。</string>
-    <string name="notice_room_canonical_alias_unset">%1$s 為此聊天室移除了主要地址。</string>
 
 </resources>

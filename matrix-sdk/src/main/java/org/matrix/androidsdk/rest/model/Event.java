@@ -110,6 +110,7 @@ public class Event implements Externalizable, CryptoEvent {
     public static final String EVENT_TYPE_TAGS = "m.tag";
     public static final String EVENT_TYPE_READ_MARKER = "m.fully_read";
     public static final String EVENT_TYPE_URL_PREVIEW = "org.matrix.room.preview_urls";
+    public static final String EVENT_TYPE_TAGGED_EVENTS = "m.tagged_events";
 
     // State events
     public static final String EVENT_TYPE_STATE_ROOM_NAME = "m.room.name";

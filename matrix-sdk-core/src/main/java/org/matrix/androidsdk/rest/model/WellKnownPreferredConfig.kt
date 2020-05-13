@@ -13,23 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.matrix.androidsdk.rest.model.identityserver
+package org.matrix.androidsdk.rest.model
 
 import com.google.gson.annotations.SerializedName
 
-data class IdentityServerRegisterResponse(
+/**
+ * https://matrix.org/docs/spec/client_server/r0.4.0.html#server-discovery
+ * <pre>
+ * {
+ *     "preferredDomain": "https://jitsi.riot.im/"
+ * }
+ * </pre>
+ */
+class WellKnownPreferredConfig {
 
-        @JvmField
-        @SerializedName("access_token")
-        @Deprecated("The spec is `token`, but we used `access_token` for a Sydent release")
-        val accessToken: String? = null,
-
-        @JvmField
-        @SerializedName("token")
-        val token: String? = null
-) {
-    // XXX: The spec is `token`, but we used `access_token` for a Sydent release.
-    val identityServerAccessToken: String?
-        get() = token ?: accessToken
+    @JvmField
+    @SerializedName("preferredDomain")
+    var preferredDomain: String? = null
 }
+

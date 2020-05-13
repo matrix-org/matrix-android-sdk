@@ -159,27 +159,8 @@
     <string name="verification_emoji_folder">Map</string>
     <string name="verification_emoji_pin">Speld</string>
 
-    <string name="initial_sync_start_importing_account">Initiële synchronisatie:
-\nAccount wordt geïmporteerd…</string>
-    <string name="initial_sync_start_importing_account_crypto">Initiële synchronisatie:
-\nCrypto wordt geïmporteerd</string>
-    <string name="initial_sync_start_importing_account_rooms">Initiële synchronisatie:
-\nGesprekken worden geïmporteerd</string>
-    <string name="initial_sync_start_importing_account_joined_rooms">Initiële synchronisatie:
-\nDeelgenomen gesprekken worden geïmporteerd</string>
-    <string name="initial_sync_start_importing_account_invited_rooms">Initiële synchronisatie:
-\nUitgenodigde gesprekken worden geïmporteerd</string>
-    <string name="initial_sync_start_importing_account_left_rooms">Initiële synchronisatie:
-\nVerlaten gesprekken worden geïmporteerd</string>
-    <string name="initial_sync_start_importing_account_groups">Initiële synchronisatie:
-\nGemeenschappen worden geïmporteerd</string>
-    <string name="initial_sync_start_importing_account_data">Initiële synchronisatie:
-\nAccountgegevens worden geïmporteerd</string>
-
     <string name="notice_room_update">%s heeft dit gesprek opgewaardeerd.</string>
 
-    <string name="event_status_sending_message">Bericht wordt verstuurd…</string>
-    <string name="clear_timeline_send_queue">Uitgaande wachtrij legen</string>
-
     <string name="notice_room_third_party_revoked_invite">%1$s heeft de uitnodiging voor %2$s om het gesprek toe te treden ingetrokken</string>
+
 </resources>

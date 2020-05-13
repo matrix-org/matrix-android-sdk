@@ -464,6 +464,27 @@ import java.util.Set;
         });
     }
 
+    public void dispatchOnTaggedEventsEvent(final String roomId, boolean ignoreEvent) {
+        if (ignoreEvent) {
+            return;
+        }
+
+        final List<IMXEventListener> eventListeners = getListenersSnapshot();
+
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                for (IMXEventListener listener : eventListeners) {
+                    try {
+                        listener.onTaggedEventsEvent(roomId);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "onTaggedEventsEvent " + e.getMessage(), e);
+                    }
+                }
+            }
+        });
+    }
+
     public void dispatchOnReadMarkerEvent(final String roomId, boolean ignoreEvent) {
         if (ignoreEvent) {
             return;

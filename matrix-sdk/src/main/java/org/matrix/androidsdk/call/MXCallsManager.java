@@ -146,7 +146,9 @@ public class MXCallsManager {
             }
         });
 
-        refreshTurnServer();
+        if (isSupported()) {
+            refreshTurnServer();
+        }
     }
 
     /**

@@ -1178,7 +1178,7 @@ public class MXSession implements CryptoSession {
      * Gracefully stop the event stream.
      */
     public void stopEventStream() {
-        if (null != mCallsManager) {
+        if (isVoipCallSupported()) {
             mCallsManager.stopTurnServerRefresh();
         }
 
@@ -1198,7 +1198,7 @@ public class MXSession implements CryptoSession {
     public void pauseEventStream() {
         checkIfAlive();
 
-        if (null != mCallsManager) {
+        if (isVoipCallSupported()) {
             mCallsManager.pauseTurnServerRefresh();
         }
 
@@ -1237,7 +1237,7 @@ public class MXSession implements CryptoSession {
             mNetworkConnectivityReceiver.checkNetworkConnection(mContext);
         }
 
-        if (null != mCallsManager) {
+        if (isVoipCallSupported()) {
             mCallsManager.unpauseTurnServerRefresh();
         }
 
@@ -1752,7 +1752,7 @@ public class MXSession implements CryptoSession {
         } else {
             final Collection<Room> rooms = mDataHandler.getStore().getRooms();
             for (Room room : rooms) {
-                if (!room.getAccountData().hasTags()) {
+                if (!room.getAccountData().hasRoomTags()) {
                     taggedRooms.add(room);
                 }
             }

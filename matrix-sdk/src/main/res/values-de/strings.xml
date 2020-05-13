@@ -11,7 +11,7 @@
     <string name="notice_room_leave">%1$s hat den Raum verlassen</string>
     <string name="notice_room_reject">%1$s hat die Einladung abgelehnt</string>
     <string name="notice_room_kick">%1$s hat %2$s gekickt</string>
-    <string name="notice_room_unban">%1$s hat die Verbannung von %2$s aufgehoben</string>
+    <string name="notice_room_unban">%1$s hat die Sperre von %2$s aufgehoben</string>
     <string name="notice_room_ban">%1$s hat %2$s verbannt</string>
     <string name="notice_room_withdraw">%1$s hat die Einladung für %2$s zurückgezogen</string>
     <string name="notice_avatar_url_changed">%1$s hat das Profilbild geändert</string>
@@ -41,7 +41,7 @@
     <string name="notice_room_topic_removed">%1$s hat das Raum-Thema entfernt</string>
     <string name="notice_profile_change_redacted">%1$s hat das Benutzerprofil aktualisiert %2$s</string>
     <string name="notice_room_third_party_invite">%1$s hat eine Einladung an %2$s gesendet</string>
-    <string name="notice_room_third_party_registered_invite">%1$s hat die Einladung für %2$s akzeptiert</string>
+    <string name="notice_room_third_party_registered_invite">%1$s hat die Einladung in %2$s akzeptiert</string>
 
     <string name="notice_crypto_unable_to_decrypt">** Nicht entschlüsselbar: %s **</string>
     <string name="notice_crypto_error_unkwown_inbound_session_id">Das absendende Gerät hat uns keine Schlüssel für diese Nachricht übermittelt.</string>
@@ -76,7 +76,7 @@
     <string name="message_reply_to_prefix">Als Antwort auf</string>
 
     <string name="reply_to_an_image">hat ein Bild gesendet.</string>
-    <string name="reply_to_a_video">sandte ein Video.</string>
+    <string name="reply_to_a_video">hat ein Video gesendet.</string>
     <string name="reply_to_an_audio_file">hat eine Audio-Datei gesendet.</string>
     <string name="reply_to_a_file">sandte eine Datei.</string>
 
@@ -112,7 +112,7 @@
     <string name="verification_emoji_penguin">Pinguin</string>
     <string name="verification_emoji_turtle">Schildkröte</string>
     <string name="verification_emoji_fish">Fisch</string>
-    <string name="verification_emoji_octopus">Tintenfisch</string>
+    <string name="verification_emoji_octopus">Oktopus</string>
     <string name="verification_emoji_butterfly">Schmetterling</string>
     <string name="verification_emoji_flower">Blume</string>
     <string name="verification_emoji_tree">Baum</string>
@@ -128,12 +128,12 @@
     <string name="verification_emoji_corn">Mais</string>
     <string name="verification_emoji_cake">Kuchen</string>
     <string name="verification_emoji_heart">Herz</string>
-    <string name="verification_emoji_smiley">Lächeln</string>
+    <string name="verification_emoji_smiley">Smiley</string>
     <string name="verification_emoji_robot">Roboter</string>
     <string name="verification_emoji_hat">Hut</string>
     <string name="verification_emoji_glasses">Brille</string>
     <string name="verification_emoji_wrench">Schraubenschlüssel</string>
-    <string name="verification_emoji_santa">Nikolaus</string>
+    <string name="verification_emoji_santa">Weihnachtsmann</string>
     <string name="verification_emoji_thumbsup">Daumen hoch</string>
     <string name="verification_emoji_umbrella">Regenschirm</string>
     <string name="verification_emoji_hourglass">Sanduhr</string>
@@ -141,10 +141,10 @@
     <string name="verification_emoji_gift">Geschenk</string>
     <string name="verification_emoji_lightbulb">Glühbirne</string>
     <string name="verification_emoji_book">Buch</string>
-    <string name="verification_emoji_pencil">Stift</string>
+    <string name="verification_emoji_pencil">Bleistift</string>
     <string name="verification_emoji_paperclip">Büroklammer</string>
-    <string name="verification_emoji_scissors">Scheren</string>
-    <string name="verification_emoji_lock">sperren</string>
+    <string name="verification_emoji_scissors">Schere</string>
+    <string name="verification_emoji_lock">Schloss</string>
     <string name="verification_emoji_key">Schlüssel</string>
     <string name="verification_emoji_hammer">Hammer</string>
     <string name="verification_emoji_telephone">Telefon</string>
@@ -163,31 +163,6 @@
     <string name="verification_emoji_folder">Ordner</string>
     <string name="verification_emoji_pin">Stecknadel</string>
 
-    <string name="event_status_sending_message">Sende eine Nachricht…</string>
-    <string name="clear_timeline_send_queue">Sendewarteschlange leeren</string>
-
-    <string name="initial_sync_start_importing_account">Erste Synchronisation: Importiere Benutzerkonto…</string>
-    <string name="initial_sync_start_importing_account_crypto">Erste Synchronisation: Importiere Cryptoschlüssel</string>
-    <string name="initial_sync_start_importing_account_rooms">Erste Synchronisation: Importiere Räume</string>
-    <string name="initial_sync_start_importing_account_joined_rooms">Erste Synchronisation: Importiere betretene Räume</string>
-    <string name="initial_sync_start_importing_account_invited_rooms">Erste Synchronisation: Importiere eingeladene Räume</string>
-    <string name="initial_sync_start_importing_account_left_rooms">Erste Synchronisation: Importiere verlassene Räume</string>
-    <string name="initial_sync_start_importing_account_groups">Erste Synchronisation: Importiere Gemeinschaften</string>
-    <string name="initial_sync_start_importing_account_data">Erste Synchronisation: Importiere Benutzerdaten</string>
-
     <string name="notice_room_third_party_revoked_invite">%1$s hat die Einladung an %2$s, den Raum zu betreten, zurückgezogen</string>
-    <string name="notice_room_invite_no_invitee_with_reason">%1$s\'s Einladung. Grund: %2$s</string>
-    <string name="notice_room_invite_with_reason">%1$s hat %2$s eingeladen. Grund: %3$s</string>
-    <string name="notice_room_invite_you_with_reason">%1$s hat dich eingeladen. Grund: %2$s</string>
-    <string name="notice_room_join_with_reason">%1$s beigetreten. Grund: %2$s</string>
-    <string name="notice_room_leave_with_reason">%1$s ging. Grund: %2$s</string>
-    <string name="notice_room_reject_with_reason">%1$s hat die Einladung abgelehnt. Grund: %2$s</string>
-    <string name="notice_room_kick_with_reason">%1$s hat %2$s gekickt. Grund: %3$s</string>
-    <string name="notice_room_unban_with_reason">%1$s hat Verbannung für %2$s aufgehoben. Grund: %3$s</string>
-    <string name="notice_room_ban_with_reason">%1$s hat %2$s verbannt. Grund: %3$s</string>
-    <string name="notice_room_third_party_invite_with_reason">%1$s hat eine Einladung an %2$s gesandt um diesem Raum beizutreten. Grund: %3$s</string>
-    <string name="notice_room_third_party_revoked_invite_with_reason">%1$s hat Einladung an %2$s zu Betreten dieses Raumes zurückgezogen. Grund: %3$s</string>
-    <string name="notice_room_third_party_registered_invite_with_reason">%1$s hat die Einladung für %2$s angenommen. Grund: %3$s</string>
-    <string name="notice_room_withdraw_with_reason">%1$s hat Einladung für %2$s verworfen. Grund: %3$s</string>
 
 </resources>

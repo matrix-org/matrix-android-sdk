@@ -153,25 +153,5 @@
     <string name="verification_emoji_folder">Fascikel</string>
     <string name="verification_emoji_pin">Špendlík</string>
 
-    <string name="initial_sync_start_importing_account">Úvodná synchronizácia:
-\nPrebieha import účtu…</string>
-    <string name="initial_sync_start_importing_account_crypto">Úvodná synchronizácia:
-\nPrebieha import šifrovacích kľúčov</string>
-    <string name="initial_sync_start_importing_account_rooms">Úvodná synchronizácia:
-\nPrebieha import miestností</string>
-    <string name="initial_sync_start_importing_account_joined_rooms">Úvodná synchronizácia:
-\nPrebieha import miestností, do ktorých ste vstúpili</string>
-    <string name="initial_sync_start_importing_account_invited_rooms">Úvodná synchronizácia:
-\nPrebieha import pozvánok</string>
-    <string name="initial_sync_start_importing_account_left_rooms">Úvodná synchronizácia:
-\nPrebieha import opustených miestností</string>
-    <string name="initial_sync_start_importing_account_groups">Úvodná synchronizácia:
-\nPrebieha import komunít</string>
-    <string name="initial_sync_start_importing_account_data">Úvodná synchronizácia:
-\nPrebieha import údajov účtu</string>
-
-    <string name="event_status_sending_message">Odosielanie správy…</string>
-    <string name="clear_timeline_send_queue">Vymazať správy na odoslanie</string>
-
     <string name="notice_room_third_party_revoked_invite">%1$s zamietol pozvanie používateľa %2$s vstúpiť do miestnosti</string>
 </resources>

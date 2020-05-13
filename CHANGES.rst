@@ -1,3 +1,27 @@
+Changes to Matrix Android SDK in 0.9.34 (2020-05-13)
+=======================================================
+
+Features:
+ - MSC2437: Store tagged events in Room Account Data
+
+Improvements:
+ - Enhance the room account data API naming.
+ - MXSession: Do not refresh TURN servers when VoIP is not supported
+
+Bugfix:
+ - Fix issue with identity server (missing access token) (vector-im/riot-android#3404)
+ - Fix crash in MXCryptoImpl (vector-im/riot-android#3396)
+
+API Change:
+ - RoomAccountdata.hasTags() has been deprecated. Use .hasRoomTags() instead.
+ - RoomAccountdata.getKeys() has been deprecated. Use .getRoomTagsKeys() instead.
+ - RoomAccountdata.handleTagEvent() has been removed. Use .handleEvent() instead.
+ - IMXStore.setRoomsWithoutURLPreview() has been removed.
+ - IMXStore.getRoomsWithoutURLPreviews() has been removed. Use RoomAccountdata.isURLPreviewAllowedByUser() instead.
+
+Others:
+ - Provided support for implementation of reading "im.vector.riot.jitsi" from /.well-known/matrix/client
+
 Changes to Matrix Android SDK in 0.9.33 (2020-02-10)
 =======================================================
 

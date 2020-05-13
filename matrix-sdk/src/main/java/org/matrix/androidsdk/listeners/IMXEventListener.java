@@ -202,6 +202,13 @@ public interface IMXEventListener {
     void onRoomTagEvent(String roomId);
 
     /**
+     * A tagged events event has been received.
+     *
+     * @param roomId the roomID
+     */
+    void onTaggedEventsEvent(String roomId);
+
+    /**
      * A read marker has been updated
      *
      * @param roomId thr room id.

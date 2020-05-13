@@ -148,54 +148,6 @@
     <string name="verification_emoji_folder">Dosje</string>
     <string name="notice_room_update">%s e përmirësoi këtë dhomë.</string>
 
-    <string name="initial_sync_start_importing_account">Njëkohësimi Fillestar:
-\nPo importohet llogaria…</string>
-    <string name="initial_sync_start_importing_account_crypto">Njëkohësimi Fillestar:
-\nPo importohet kriptografi</string>
-    <string name="initial_sync_start_importing_account_rooms">Njëkohësimi Fillestar:
-\nPo importohen Dhoma</string>
-    <string name="initial_sync_start_importing_account_joined_rooms">Njëkohësimi Fillestar:
-\nPo importohen Dhoma Ku Është Bërë Hyrje</string>
-    <string name="initial_sync_start_importing_account_invited_rooms">Njëkohësimi Fillestar:
-\nPo importohen Dhoma Me Ftesë</string>
-    <string name="initial_sync_start_importing_account_left_rooms">Njëkohësimi Fillestar:
-\nPo importohen Dhoma të Braktisura</string>
-    <string name="initial_sync_start_importing_account_groups">Njëkohësimi Fillestar:
-\nPo importohen Bashkësi</string>
-    <string name="initial_sync_start_importing_account_data">Njëkohësimi Fillestar:
-\nPo importohet të Dhëna Llogarie</string>
-
-    <string name="event_status_sending_message">Po dërgohet mesazh…</string>
-    <string name="clear_timeline_send_queue">Spastro radhë pritjeje</string>
-
     <string name="notice_room_third_party_revoked_invite">%1$s shfuqizoi ftesën për %2$s për pjesëmarrje te dhoma</string>
-    <string name="notice_room_invite_no_invitee_with_reason">Ftesë e %1$s. Arsye: %2$s</string>
-    <string name="notice_room_invite_with_reason">%1$s ftoi %2$s. Arsye: %3$s</string>
-    <string name="notice_room_invite_you_with_reason">%1$s ju ftoi. Arsye: %2$s</string>
-    <string name="notice_room_join_with_reason">%1$s erdhi. Arsye: %2$s</string>
-    <string name="notice_room_leave_with_reason">%1$s iku. Arsye: %2$s</string>
-    <string name="notice_room_reject_with_reason">%1$s hodhi poshtë ftesën. Arsye: %2$s</string>
-    <string name="notice_room_kick_with_reason">%1$s përzuri %2$s. Arsye: %3$s</string>
-    <string name="notice_room_unban_with_reason">%1$s hoqi dëbimin për %2$s. Arsye: %3$s</string>
-    <string name="notice_room_ban_with_reason">%1$s dëboi %2$s. Arsye: %3$s</string>
-    <string name="notice_room_third_party_invite_with_reason">%1$s dërgoi një ftesë për %2$s për të ardhur në dhomë. Arsye: %3$s</string>
-    <string name="notice_room_third_party_revoked_invite_with_reason">%1$s shfuqizoi ftesën për %2$s për të ardhur në dhomë. Arsye: %3$s</string>
-    <string name="notice_room_third_party_registered_invite_with_reason">%1$s pranoi ftesën për %2$s. Arsye: %3$s</string>
-    <string name="notice_room_withdraw_with_reason">%1$s tërhoqi mbrapsht ftesën për %2$s. Arsye: %3$s</string>
-
-    <plurals name="notice_room_aliases_added">
-        <item quantity="one">%1$s shtoi %2$s si një adresë për këtë dhomë.</item>
-        <item quantity="other">%1$s shtoi %2$s si adresa për këtë dhomë.</item>
-    </plurals>
-
-    <plurals name="notice_room_aliases_removed">
-        <item quantity="one">%1$s hoqi %2$s si adresë për këtë dhomë.</item>
-        <item quantity="other">%1$s hoqi %3$s si adresa për këtë dhomë.</item>
-    </plurals>
-
-    <string name="notice_room_aliases_added_and_removed">%1$s shtoi %2$s dhe hoqi %3$s si adresa për këtë dhomë.</string>
-
-    <string name="notice_room_canonical_alias_set">%1$s caktoi %2$s si adresë kryesore për këtë dhomë.</string>
-    <string name="notice_room_canonical_alias_unset">%1$s hoqi adresën kryesore për këtë dhomë.</string>
 
 </resources>

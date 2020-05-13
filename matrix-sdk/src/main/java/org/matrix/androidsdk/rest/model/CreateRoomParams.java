@@ -18,17 +18,14 @@
 package org.matrix.androidsdk.rest.model;
 
 import androidx.annotation.Nullable;
-import android.net.Uri;
+
 import android.text.TextUtils;
 
 import com.google.gson.annotations.SerializedName;
 
-import org.matrix.androidsdk.HomeServerConnectionConfig;
 import org.matrix.androidsdk.core.JsonUtils;
-import org.matrix.androidsdk.core.MXPatterns;
 import org.matrix.androidsdk.data.RoomState;
 import org.matrix.androidsdk.rest.model.pid.Invite3Pid;
-import org.matrix.androidsdk.rest.model.pid.ThreePid;
 
 import java.util.ArrayList;
 import java.util.Arrays;

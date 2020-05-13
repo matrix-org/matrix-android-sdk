@@ -6,8 +6,8 @@
 
     <string name="notice_room_invite_no_invitee">la invitación de %s</string>
     <string name="notice_room_invite">%1$s invitó a %2$s</string>
-    <string name="notice_room_invite_you">%1$s te invitó</string>
-    <string name="notice_room_join">%1$s se unió</string>
+    <string name="notice_room_invite_you">%1$s te ha invitado</string>
+    <string name="notice_room_join">%1$s se ha unido</string>
     <string name="notice_room_leave">%1$s salió</string>
     <string name="notice_room_reject">%1$s rechazó la invitación</string>
     <string name="notice_room_kick">%1$s expulsó a %2$s</string>
@@ -156,26 +156,13 @@
     <string name="verification_emoji_anchor">Ancla</string>
     <string name="verification_emoji_headphone">Auriculares</string>
     <string name="verification_emoji_folder">Carpeta</string>
-    <string name="initial_sync_start_importing_account">Sincronización Inicial
-\nImportando cuenta…</string>
-    <string name="initial_sync_start_importing_account_rooms">Sincronización Inicial:
-\nImportando Salas</string>
-    <string name="initial_sync_start_importing_account_groups">Sincronización Inicial:
-\nImportando Comunidades</string>
-    <string name="initial_sync_start_importing_account_data">Sincronización Inicial:
-\nImportando Datos de la Cuenta</string>
 
-    <string name="event_status_sending_message">Enviando mensaje…</string>
-    <string name="clear_timeline_send_queue">Borrar cola de envío</string>
+    <string name="notice_room_update">%s ha actualizado la sala.</string>
 
-    <string name="notice_room_invite_with_reason">%1$s ha invitado a %2$s. Razón: %3$s</string>
-    <string name="notice_room_invite_you_with_reason">%1$s te ha invitado. Razón: %2$s</string>
-    <string name="notice_room_join_with_reason">%1$s se ha unido. Razón: %2$s</string>
-    <string name="notice_room_leave_with_reason">%1$s se ha ido. Razón: %2$s</string>
-    <string name="notice_room_reject_with_reason">%1$s ha rechadazo la invitación. Razón: %2$s</string>
-    <string name="notice_room_kick_with_reason">%1$s expulsó a %2$s. Razón: %3$s</string>
-    <string name="notice_room_ban_with_reason">%1$s ha baneado a %2$s. Razón: %3$s</string>
-    <string name="notice_room_third_party_registered_invite_with_reason">%1$s ha aceptado la invitación para %2$s. Razón: %3$s</string>
-    <string name="notice_room_canonical_alias_unset">%1$s ha eliminado la dirección principal para esta sala.</string>
+    <string name="verification_emoji_globe">Globo Terráqueo</string>
+    <string name="verification_emoji_smiley">Cara sonriente</string>
+    <string name="verification_emoji_robot">Robot</string>
+    <string name="verification_emoji_santa">Papá Noel</string>
+    <string name="verification_emoji_pin">Pin</string>
 
 </resources>

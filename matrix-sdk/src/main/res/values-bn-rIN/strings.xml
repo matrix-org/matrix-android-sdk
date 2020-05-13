@@ -152,24 +152,5 @@
     <string name="notice_room_update">%s এই ঘরটিকে আপগ্রেড করেছে।</string>
 
     <string name="notice_room_third_party_revoked_invite">%1$s %2$s এর কক্ষে যোগদানের আমন্ত্রণ বাতিল করে দিয়েছিল</string>
-    <string name="initial_sync_start_importing_account">প্রাথমিক সিঙ্ক:
-\nঅ্যাকাউন্ট আমদানি করা হচ্ছে …</string>
-    <string name="initial_sync_start_importing_account_crypto">প্রাথমিক সিঙ্ক:
-\nক্রিপ্টো আমদানি হচ্ছে</string>
-    <string name="initial_sync_start_importing_account_rooms">প্রাথমিক সিঙ্ক:
-\nরুমগুলি আমদানি হচ্ছে</string>
-    <string name="initial_sync_start_importing_account_joined_rooms">প্রাথমিক সিঙ্ক:
-\nযোগকরা কক্ষগুলি আমদানি হচ্ছে</string>
-    <string name="initial_sync_start_importing_account_invited_rooms">প্রাথমিক সিঙ্ক:
-\nআমন্ত্রিত কক্ষগুলি আমদানি হচ্ছে</string>
-    <string name="initial_sync_start_importing_account_left_rooms">প্রাথমিক সিঙ্ক:
-\nছেড়ে দেওয়া কক্ষগুলি আমদানি করা হচ্ছে</string>
-    <string name="initial_sync_start_importing_account_groups">প্রাথমিক সিঙ্ক:
-\nসম্প্রদায়গুলি আমদানি করা হচ্ছে</string>
-    <string name="initial_sync_start_importing_account_data">প্রাথমিক সিঙ্ক:
-\nঅ্যাকাউন্ট ডেটা আমদানি করা হচ্ছে</string>
-
-    <string name="event_status_sending_message">বার্তা প্রেরণ করা হচ্ছে …</string>
-    <string name="clear_timeline_send_queue">প্রেরণ সারি পরিষ্কার করুন</string>
 
 </resources>

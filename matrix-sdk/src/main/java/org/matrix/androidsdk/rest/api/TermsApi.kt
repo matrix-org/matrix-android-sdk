@@ -33,7 +33,7 @@ interface TermsApi {
     fun getTerms(@Url url: String): Call<TermsResponse>
 
     /**
-     * This request requires authentication¬
+     * This request requires authentication
      */
     @POST
     fun agreeToTerms(@Url url: String, @Body params: AcceptTermsBody): Call<Unit>
