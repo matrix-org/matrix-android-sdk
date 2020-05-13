@@ -152,24 +152,5 @@
     <string name="verification_emoji_thumbsup">Kciuk w górę</string>
     <string name="verification_emoji_lock">Zamek</string>
     <string name="verification_emoji_ball">Piłka</string>
-    <string name="initial_sync_start_importing_account">Synchronizacja początkowa:
-\nImportowanie konta…</string>
-    <string name="initial_sync_start_importing_account_crypto">Synchronizacja początkowa:
-\nImportowanie kryptografii</string>
-    <string name="initial_sync_start_importing_account_rooms">Synchronizacja początkowa:
-\nImportowanie Pokoi</string>
-    <string name="initial_sync_start_importing_account_joined_rooms">Synchronizacja początkowa:
-\nImportowanie dołączonych Pokoi</string>
-    <string name="initial_sync_start_importing_account_invited_rooms">Synchronizacja początkowa:
-\nImportowanie zaproszonych Pokoi</string>
-    <string name="initial_sync_start_importing_account_left_rooms">Synchronizacja początkowa:
-\nImportowanie opuszczonych Pokoi</string>
-    <string name="initial_sync_start_importing_account_groups">Synchronizacja początkowa:
-\nImportowanie Społeczności</string>
-    <string name="initial_sync_start_importing_account_data">Synchronizacja początkowa:
-\nImportowanie danych Konta</string>
-
-    <string name="event_status_sending_message">Wysyłanie wiadomości…</string>
-    <string name="clear_timeline_send_queue">Wyczyść kolejkę wysyłania</string>
 
 </resources>

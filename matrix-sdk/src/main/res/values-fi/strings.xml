@@ -151,59 +151,8 @@
     <string name="verification_emoji_folder">Kansio</string>
     <string name="verification_emoji_pin">Nuppineula</string>
 
-    <string name="initial_sync_start_importing_account">Alkusynkronointi:
-\nTuodaan tiliä…</string>
-    <string name="initial_sync_start_importing_account_crypto">Alkusynkronointi:
-\nTuodaan kryptoa</string>
-    <string name="initial_sync_start_importing_account_rooms">Alkusynkronointi:
-\nTuodaan huoneita</string>
-    <string name="initial_sync_start_importing_account_joined_rooms">Alkusynkronointi:
-\nTuodaan liityttyjä huoneita</string>
-    <string name="initial_sync_start_importing_account_invited_rooms">Alkusynkronointi:
-\nTuodaan kutsuttuja huoneita</string>
-    <string name="initial_sync_start_importing_account_left_rooms">Alkusynkronointi:
-\nTuodaan poistuttuja huoneita</string>
-    <string name="initial_sync_start_importing_account_groups">Alkusynkronointi:
-\nTuodaan yhteisöjä</string>
-    <string name="initial_sync_start_importing_account_data">Alkusynkronointi:
-\nTuodaan tilin tietoja</string>
-
     <string name="notice_room_update">%s päivitti tämän huoneen.</string>
 
-    <string name="event_status_sending_message">Lähetetään viestiä…</string>
-    <string name="clear_timeline_send_queue">Tyhjennä lähetysjono</string>
-
     <string name="notice_room_third_party_revoked_invite">%1$s veti takaisin käyttäjän %2$s liittymiskutsun huoneeseen</string>
-    <string name="notice_room_invite_no_invitee_with_reason">Henkilön %1$s kutsu. Syy: %2$s</string>
-    <string name="notice_room_invite_with_reason">%1$s kutsui henkilön %2$s. Syy: %3$s</string>
-    <string name="notice_room_invite_you_with_reason">%1$s kutsui sinut. Syy: %2$s</string>
-    <string name="notice_room_join_with_reason">%1$s liittyi. Syy: %2$s</string>
-    <string name="notice_room_leave_with_reason">%1$s poistui. Syy: %2$s</string>
-    <string name="notice_room_reject_with_reason">%1$s hylkäsi kutsun. Syy: %2$s</string>
-    <string name="notice_room_kick_with_reason">%1$s poisti käyttäjän %2$s huoneesta. Syy: %3$s</string>
-    <string name="notice_room_unban_with_reason">%1$s poisti porttikiellon käyttäjältä %2$s. Syy: %3$s</string>
-    <string name="notice_room_ban_with_reason">%1$s antoi porttikiellon käyttäjälle %2$s. Syy: %3$s</string>
-    <string name="notice_room_third_party_invite_with_reason">%1$s lähetti kutsun liittyä huoneeseen käyttäjälle %2$s. Syy: %3$s</string>
-    <string name="notice_room_third_party_revoked_invite_with_reason">%1$s kumosi kutsun liittyä huoneeseen käyttäjälle %2$s. Syy: %3$s</string>
-    <string name="notice_room_third_party_registered_invite_with_reason">%1$s hyväksyi kutsun liityäkseen huoneeseen %2$s. Syy: %3$s</string>
-    <string name="notice_room_withdraw_with_reason">%1$s veti takaisin käyttäjän %2$s kutsun. Syy: %3$s</string>
-
-    <plurals name="notice_room_aliases_added">
-        <item quantity="one">%1$s lisäsi tälle huoneelle osoitteen %2$s.</item>
-        <item quantity="other">%1$s lisäsi tälle huoneelle osoitteet %2$s.</item>
-    </plurals>
-
-    <plurals name="notice_room_aliases_removed">
-        <item quantity="one">%1$s poisti tältä huoneelta osoitteen %2$s.</item>
-        <item quantity="other">%1$s poisti tältä huoneelta osoitteet %3$s.</item>
-    </plurals>
-
-    <string name="notice_room_aliases_added_and_removed">%1$s lisäsi tälle huoneelle osoitteen %2$s ja poisti osoitteen %3$s.</string>
-
-    <string name="notice_room_canonical_alias_set">%1$s asetti tämän huoneen pääosoitteeksi %2$s.</string>
-    <string name="notice_room_canonical_alias_unset">%1$s poisti tämän huoneen pääosoitteen.</string>
-
-    <string name="notice_room_guest_access_can_join">%1$s salli vieraiden liittyä huoneeseen.</string>
-    <string name="notice_room_guest_access_forbidden">%1$s esti vieraita liittymästä huoneeseen.</string>
 
 </resources>

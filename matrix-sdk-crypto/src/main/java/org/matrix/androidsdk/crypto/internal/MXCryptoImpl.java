@@ -21,9 +21,10 @@ package org.matrix.androidsdk.crypto.internal;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.text.TextUtils;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import android.text.TextUtils;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -297,6 +298,10 @@ public class MXCryptoImpl implements MXCrypto {
         myDevices.put(mMyDevice.deviceId, mMyDevice);
 
         mCryptoStore.storeUserDevices(mSession.getMyUserId(), myDevices);
+
+        // Create the VerificationManager before setting the CryptoEventsListener, to avoid crash (vector-im/riot-android#3396)
+        mShortCodeVerificationManager = new VerificationManager(mSession);
+
         mSession.getDataHandler().setCryptoEventsListener(mEventListener);
 
         mEncryptingHandlerThread = new HandlerThread("MXCrypto_encrypting_" + mSession.getMyUserId(), Thread.MIN_PRIORITY);
@@ -318,7 +323,6 @@ public class MXCryptoImpl implements MXCrypto {
         mReceivedRoomKeyRequests.addAll(mCryptoStore.getPendingIncomingRoomKeyRequests());
 
         mKeysBackup = new KeysBackup(this, homeServerConnectionConfig);
-        mShortCodeVerificationManager = new VerificationManager(mSession);
     }
 
     /**
@@ -1610,7 +1614,10 @@ public class MXCryptoImpl implements MXCrypto {
      * @param event the event
      */
     private void onToDeviceEvent(final CryptoEvent event) {
-        mShortCodeVerificationManager.onToDeviceEvent(event);
+        // It should not happen anymore
+        if (mShortCodeVerificationManager != null) {
+            mShortCodeVerificationManager.onToDeviceEvent(event);
+        }
 
         if (TextUtils.equals(event.getType(), CryptoEvent.EVENT_TYPE_ROOM_KEY)
                 || TextUtils.equals(event.getType(), CryptoEvent.EVENT_TYPE_FORWARDED_ROOM_KEY)) {

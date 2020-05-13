@@ -150,25 +150,5 @@
     <string name="verification_emoji_folder">폴더</string>
     <string name="verification_emoji_pin">핀</string>
 
-    <string name="initial_sync_start_importing_account">초기 동기화:
-\n계정 가져오는 중…</string>
-    <string name="initial_sync_start_importing_account_crypto">초기 동기화:
-\n암호 가져오는 중</string>
-    <string name="initial_sync_start_importing_account_rooms">초기 동기화:
-\n방 가져오는 중</string>
-    <string name="initial_sync_start_importing_account_joined_rooms">초기 동기화:
-\n들어간 방 가져오는 중</string>
-    <string name="initial_sync_start_importing_account_invited_rooms">초기 동기화:
-\n초대받은 방 가져오는 중</string>
-    <string name="initial_sync_start_importing_account_left_rooms">초기 동기화:
-\n떠난 방 가져오는 중</string>
-    <string name="initial_sync_start_importing_account_groups">초기 동기화:
-\n커뮤니티 가져오는 중</string>
-    <string name="initial_sync_start_importing_account_data">초기 동기화:
-\n계정 데이터 가져오는 중</string>
-
-    <string name="event_status_sending_message">메시지 보내는 중…</string>
-    <string name="clear_timeline_send_queue">전송 대기 열 지우기</string>
-
     <string name="notice_room_third_party_revoked_invite">%1$s님이 %2$s님에게 방에 참가하라고 보낸 초대를 취소했습니다</string>
 </resources>

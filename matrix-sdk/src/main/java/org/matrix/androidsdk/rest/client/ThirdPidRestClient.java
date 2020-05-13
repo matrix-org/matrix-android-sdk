@@ -17,8 +17,6 @@
  */
 package org.matrix.androidsdk.rest.client;
 
-import android.net.Uri;
-
 import androidx.annotation.Nullable;
 
 import org.matrix.androidsdk.HomeServerConnectionConfig;

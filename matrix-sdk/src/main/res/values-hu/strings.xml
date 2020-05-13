@@ -149,64 +149,8 @@
     <string name="verification_emoji_folder">Mappa</string>
     <string name="verification_emoji_pin">Tű</string>
 
-    <string name="initial_sync_start_importing_account">Induló szinkronizáció:
-\nFiók betöltése…</string>
-    <string name="initial_sync_start_importing_account_crypto">Induló szinkronizáció:
-\nTitkosítás betöltése</string>
-    <string name="initial_sync_start_importing_account_rooms">Induló szinkronizáció:
-\nSzobák betöltése</string>
-    <string name="initial_sync_start_importing_account_joined_rooms">Induló szinkronizáció:
-\nCsatlakozott szobák betöltése</string>
-    <string name="initial_sync_start_importing_account_invited_rooms">Induló szinkronizáció:
-\nMeghívott szobák betöltése</string>
-    <string name="initial_sync_start_importing_account_left_rooms">Induló szinkronizáció:
-\nElhagyott szobák betöltése</string>
-    <string name="initial_sync_start_importing_account_groups">Induló szinkronizáció:
-\nKözösségek betöltése</string>
-    <string name="initial_sync_start_importing_account_data">Induló szinkronizáció:
-\nFiók adatok betöltése</string>
-
     <string name="notice_room_update">%s frissítette ezt a szobát.</string>
 
-    <string name="event_status_sending_message">Üzenet küldése…</string>
-    <string name="clear_timeline_send_queue">Küldő sor ürítése</string>
-
     <string name="notice_room_third_party_revoked_invite">%1$s visszavonta %2$s meghívását, hogy csatlakozzon a szobához</string>
-    <string name="notice_room_invite_no_invitee_with_reason">%1$s meghívója. Ok: %2$s</string>
-    <string name="notice_room_invite_with_reason">%1$s meghívta őt: %2$s. Ok: %3$s</string>
-    <string name="notice_room_invite_you_with_reason">%1$s meghívott. Ok: %2$s</string>
-    <string name="notice_room_join_with_reason">%1$s csatlakozott. Ok: %2$s</string>
-    <string name="notice_room_leave_with_reason">%1$s kilépett. Ok: %2$s</string>
-    <string name="notice_room_reject_with_reason">%1$s visszautasította a meghívót. Ok: %2$s</string>
-    <string name="notice_room_kick_with_reason">%1$s kirúgta őt: %2$s. Ok: %3$s</string>
-    <string name="notice_room_unban_with_reason">%1$s visszaengedte őt: %2$s. Ok: %3$s</string>
-    <string name="notice_room_ban_with_reason">%1$s kitiltotta őt: %2$s. Ok: %3$s</string>
-    <string name="notice_room_third_party_invite_with_reason">%1$s meghívót küldött neki: %2$s, hogy lépjen be a szobába. Ok: %3$s</string>
-    <string name="notice_room_third_party_revoked_invite_with_reason">%1$s visszavonta %2$s meghívóját a szobába való belépéshez. Ok: %3$s</string>
-    <string name="notice_room_third_party_registered_invite_with_reason">%1$s elfogadta a meghívót ide: %2$s. Ok: %3$s</string>
-    <string name="notice_room_withdraw_with_reason">%1$s visszavonta %2$s meghívóját. Ok: %3$s</string>
-
-    <plurals name="notice_room_aliases_added">
-        <item quantity="one">%1$s ezt a címet adta a szobához: %2$s.</item>
-        <item quantity="other">%1$s ezeket a címeket adta a szobához: %2$s.</item>
-    </plurals>
-
-    <plurals name="notice_room_aliases_removed">
-        <item quantity="one">%1$s ezt a címet törölte a szobából: %3$s.</item>
-        <item quantity="other">%1$s ezeket a címeket törölte a szobából: %3$s.</item>
-    </plurals>
-
-    <string name="notice_room_aliases_added_and_removed">%1$s a szobához adta ezeket:%2$s és törölte ezeket: %3$s.</string>
-
-    <string name="notice_room_canonical_alias_set">%1$s a szoba elsődleges címét erre állította be: %2$s.</string>
-    <string name="notice_room_canonical_alias_unset">%1$s eltávolította a szoba elsődleges címét.</string>
-
-    <string name="notice_room_guest_access_can_join">%1$s megengedte a vendégeknek, hogy belépjenek ebbe a szobába.</string>
-    <string name="notice_room_guest_access_forbidden">%1$s megtiltotta a vendégeknek, hogy belépjenek ebbe a szobába.</string>
-
-    <string name="notice_end_to_end_ok">%1$s bekapcsolta a végpontok közötti titkosítást.</string>
-    <string name="notice_end_to_end_unknown_algorithm">%1$s bekapcsolta a végpontok közötti titkosítást (ismeretlen algoritmus %2$s).</string>
-
-    <string name="key_verification_request_fallback_message">%s kéri a kulcsok ellenőrzését de a kliens nem támogatja a szobán belüli kulcs ellenőrzést. A hagyományos módon kell ellenőrizned a kulcsokat.</string>
 
 </resources>
