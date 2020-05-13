@@ -1,4 +1,4 @@
-Changes to Matrix Android SDK in 0.9.34 (2020-XX-XX)
+Changes to Matrix Android SDK in 0.9.34 (2020-05-13)
 =======================================================
 
 Features:
@@ -19,17 +19,8 @@ API Change:
  - IMXStore.setRoomsWithoutURLPreview() has been removed.
  - IMXStore.getRoomsWithoutURLPreviews() has been removed. Use RoomAccountdata.isURLPreviewAllowedByUser() instead.
 
-Translations:
- -
-
 Others:
  - Provided support for implementation of reading "im.vector.riot.jitsi" from /.well-known/matrix/client
-
-Build:
- -
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.33 (2020-02-10)
 =======================================================
