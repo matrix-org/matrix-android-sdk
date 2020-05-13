@@ -10,6 +10,7 @@ Improvements:
 
 Bugfix:
  - Fix issue with identity server (missing access token) (vector-im/riot-android#3404)
+ - Fix crash in MXCryptoImpl (vector-im/riot-android#3396)
 
 API Change:
  - RoomAccountdata.hasTags() has been deprecated. Use .hasRoomTags() instead.
