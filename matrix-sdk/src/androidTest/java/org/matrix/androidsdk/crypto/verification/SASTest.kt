@@ -194,6 +194,63 @@ class SASTest {
     }
 
     @Test
+    fun test_key_agreement_protocols_v1() {
+        val context = InstrumentationRegistry.getContext()
+
+        val cryptoTestData = mCryptoTestHelper.doE2ETestWithAliceAndBobInARoom()
+
+        val bobSession = cryptoTestData.secondSession
+
+        val protocols = listOf(SASVerificationTransaction.KEY_AGREEMENT_V1)
+        val tid = "00000000"
+
+        //Bob should receive a cancel
+        var acceptToDeviceEvent: Event? = null
+        val cancelLatch = CountDownLatch(1)
+        bobSession!!.dataHandler.addListener(object : MXEventListener() {
+            override fun onToDeviceEvent(event: Event?) {
+                if (event!!.getType() == CryptoEvent.EVENT_TYPE_KEY_VERIFICATION_ACCEPT) {
+                    if (event.contentAsJsonObject?.get("transaction_id")?.asString == tid) {
+                        acceptToDeviceEvent = event
+                        cancelLatch.countDown()
+                    }
+                }
+            }
+        })
+
+        val aliceSession = cryptoTestData.firstSession
+        val aliceUserID = aliceSession.myUserId
+        val aliceDevice = aliceSession.crypto!!.myDevice.deviceId
+
+        val aliceListener = object : VerificationManager.VerificationManagerListener {
+            override fun transactionCreated(tx: VerificationTransaction) {}
+
+            override fun transactionUpdated(tx: VerificationTransaction) {
+                if ((tx as IncomingSASVerificationTransaction).uxState === IncomingSASVerificationTransaction.State.SHOW_ACCEPT) {
+                    (tx as IncomingSASVerificationTransaction).performAccept(bobSession)
+                }
+            }
+
+            override fun markedAsManuallyVerified(userId: String, deviceId: String) {}
+        }
+        aliceSession.crypto?.shortCodeVerificationManager?.addListener(aliceListener)
+
+
+        fakeBobStart(bobSession, aliceUserID, aliceDevice, tid, protocols = protocols)
+
+        mTestHelper.await(cancelLatch)
+
+
+        val acceptReq = JsonUtils.getBasicGson()
+                .fromJson(acceptToDeviceEvent!!.content, KeyVerificationAccept::class.java)
+        assertEquals("Request should be accepted with v1 protocol", SASVerificationTransaction.KEY_AGREEMENT_V1, acceptReq.keyAgreementProtocol)
+
+        cryptoTestData.clear(context)
+
+    }
+
+
+    @Test
     fun test_key_agreement_macs_Must_include_hmac_sha256() {
         val context = InstrumentationRegistry.getContext()
 
@@ -415,6 +472,7 @@ class SASTest {
         //check that agreement is valid
         assertTrue("Agreed Protocol should be Valid", accepted!!.isValid())
         assertTrue("Agreed Protocol should be known by alice", startReq!!.keyAgreementProtocols!!.contains(accepted!!.keyAgreementProtocol))
+        assertEquals("Agreed Protocol should be V2", "curve25519-hkdf-sha256", accepted!!.keyAgreementProtocol)
         assertTrue("Hash should be known by alice", startReq!!.hashes!!.contains(accepted!!.hash))
         assertTrue("Hash should be known by alice", startReq!!.messageAuthenticationCodes!!.contains(accepted!!.messageAuthenticationCode))
 

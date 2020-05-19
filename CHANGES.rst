@@ -17,7 +17,7 @@ Translations:
  -
 
 Others:
- -
+ - support new key agreement method for SAS (riotX/#1374)
 
 Build:
  -
