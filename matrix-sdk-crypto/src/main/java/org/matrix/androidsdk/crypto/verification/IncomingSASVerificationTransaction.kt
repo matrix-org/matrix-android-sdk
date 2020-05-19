@@ -212,7 +212,10 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
             }
             KEY_AGREEMENT_V2 -> {
                 // Adds the SAS public key, and separate by |
-                val sasInfo = "MATRIX_KEY_VERIFICATION_SAS|$otherUserId|$otherDeviceId|$otherKey|${session.myUserId}|$myDeviceId|${getSAS().publicKey}|$transactionId"
+                val sasInfo = "MATRIX_KEY_VERIFICATION_SAS|" +
+                        "$otherUserId|$otherDeviceId|$otherKey|" +
+                        "${session.myUserId}|$myDeviceId|${getSAS().publicKey}|" +
+                        transactionId
                 return getSAS().generateShortCode(sasInfo, 6)
             }
             else             -> {
