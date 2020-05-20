@@ -184,26 +184,45 @@ class IncomingSASVerificationTransaction(transactionId: String, otherUserID: Str
         // using the result as the shared secret.
 
         getSAS().setTheirPublicKey(otherKey)
-        //(Note: In all of the following HKDF is as defined in RFC 5869, and uses the previously agreed-on hash function as the hash function,
-        // the shared secret as the input keying material, no salt, and with the input parameter set to the concatenation of:
-        // - the string “MATRIX_KEY_VERIFICATION_SAS”,
-        // - the Matrix ID of the user who sent the m.key.verification.start message,
-        // - the device ID of the device that sent the m.key.verification.start message,
-        // - the Matrix ID of the user who sent the m.key.verification.accept message,
-        // - he device ID of the device that sent the m.key.verification.accept message
-        // - the transaction ID.
-        val sasInfo = "MATRIX_KEY_VERIFICATION_SAS" +
-                "$otherUserId$otherDeviceId" +
-                "${session.myUserId}${session.requireCrypto().myDevice.deviceId}" +
-                transactionId
-        //decimal: generate five bytes by using HKDF.
-        //emoji: generate six bytes by using HKDF.
-        shortCodeBytes = getSAS().generateShortCode(sasInfo, 6)
+        shortCodeBytes = calculateSASBytes(session)
 
         Log.e(LOG_TAG, "************  BOB CODE ${getDecimalCodeRepresentation(shortCodeBytes!!)}")
         Log.e(LOG_TAG, "************  BOB EMOJI CODE ${getShortCodeRepresentation(KeyVerificationStart.SAS_MODE_EMOJI)}")
 
         state = SASVerificationTxState.ShortCodeReady
+    }
+
+    private fun calculateSASBytes(session: CryptoSession): ByteArray {
+        val myDeviceId = session.requireCrypto().myDevice.deviceId
+        when (accepted?.keyAgreementProtocol) {
+            KEY_AGREEMENT_V1 -> {
+                // (Note: In all of the following HKDF is as defined in RFC 5869, and uses the previously agreed-on hash function as the hash function,
+                // the shared secret as the input keying material, no salt, and with the input parameter set to the concatenation of:
+                // - the string “MATRIX_KEY_VERIFICATION_SAS”,
+                // - the Matrix ID of the user who sent the m.key.verification.start message,
+                // - the device ID of the device that sent the m.key.verification.start message,
+                // - the Matrix ID of the user who sent the m.key.verification.accept message,
+                // - he device ID of the device that sent the m.key.verification.accept message
+                // - the transaction ID.
+                val sasInfo = "MATRIX_KEY_VERIFICATION_SAS$otherUserId$otherDeviceId${session.myUserId}$myDeviceId$transactionId"
+
+                // decimal: generate five bytes by using HKDF.
+                // emoji: generate six bytes by using HKDF.
+                return getSAS().generateShortCode(sasInfo, 6)
+            }
+            KEY_AGREEMENT_V2 -> {
+                // Adds the SAS public key, and separate by |
+                val sasInfo = "MATRIX_KEY_VERIFICATION_SAS|" +
+                        "$otherUserId|$otherDeviceId|$otherKey|" +
+                        "${session.myUserId}|$myDeviceId|${getSAS().publicKey}|" +
+                        transactionId
+                return getSAS().generateShortCode(sasInfo, 6)
+            }
+            else             -> {
+                // Protocol has been checked earlier
+                throw IllegalArgumentException()
+            }
+        }
     }
 
     override fun onKeyVerificationMac(session: CryptoSession, vKey: KeyVerificationMac) {

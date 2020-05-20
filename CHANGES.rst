@@ -1,3 +1,12 @@
+Changes to Matrix Android SDK in 0.9.35 (2020-05-20)
+=======================================================
+
+Bugfix:
+ - Fix crash on RoomAccountData, on some devices
+
+Others:
+ - support new key agreement method for SAS (riotX/#1374)
+
 Changes to Matrix Android SDK in 0.9.34 (2020-05-13)
 =======================================================
 
