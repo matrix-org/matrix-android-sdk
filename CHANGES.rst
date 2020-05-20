@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Fix crash on RoomAccountData, on some devices
 
 API Change:
  -

@@ -18,9 +18,9 @@
 
 package org.matrix.androidsdk.data;
 
-import com.google.gson.JsonObject;
-
 import androidx.annotation.Nullable;
+
+import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.core.JsonUtils;
 import org.matrix.androidsdk.rest.model.Event;
@@ -80,7 +80,12 @@ public class RoomAccountData implements java.io.Serializable {
         }
 
         // Store by default the content of all the provided events.
-        eventContentsMap.put(eventType, jsonObject);
+        if (jsonObject != null) {
+            eventContentsMap.put(eventType, jsonObject);
+        } else {
+            // Store an empty JsonObject
+            eventContentsMap.put(eventType, new JsonObject());
+        }
     }
 
     /**
@@ -177,10 +182,10 @@ public class RoomAccountData implements java.io.Serializable {
 
     /**
      * Provide the content of an handled event according to its type.
-     * @apiNote Use this method only when no dedicated method exists for the requested event type.
      *
      * @param eventType the type of the requested event.
      * @return the event content casted as JsonObject (null if no event has been handled with this type).
+     * @apiNote Use this method only when no dedicated method exists for the requested event type.
      */
     @Nullable
     public JsonObject eventContent(String eventType) {
@@ -189,16 +194,16 @@ public class RoomAccountData implements java.io.Serializable {
 
 
     /**
-     * @deprecated use hasRoomTags() instead.
      * @return true if some tags have been defined for the room
+     * @deprecated use hasRoomTags() instead.
      */
     public boolean hasTags() {
         return hasRoomTags();
     }
 
     /**
-     * @deprecated use getRoomTagsKeys() instead.
      * @return the list of the keys used to defined the room tags, or null if there is no tag
+     * @deprecated use getRoomTagsKeys() instead.
      */
     @Nullable
     public Set<String> getKeys() {
