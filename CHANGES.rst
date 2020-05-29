@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - Crypto: Only create one olm session at a time per device (vector-im/riot-android#3056).
 
 Bugfix:
  -
