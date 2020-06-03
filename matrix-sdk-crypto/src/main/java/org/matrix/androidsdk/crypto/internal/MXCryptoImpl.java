@@ -1168,33 +1168,36 @@ public class MXCryptoImpl implements MXCrypto {
             public void onNetworkError(Exception e) {
                 Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage(), e);
 
-                oneTimeKeysResponseHandler.removePendingRequest(pendingRequest);
-
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        oneTimeKeysResponseHandler.onNetworkError(e, usersDevicesToClaim);
+                    }
+                });
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
                 Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage());
 
-                oneTimeKeysResponseHandler.removePendingRequest(pendingRequest);
-
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        oneTimeKeysResponseHandler.onMatrixError(e, usersDevicesToClaim);
+                    }
+                });
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
                 Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage(), e);
 
-                oneTimeKeysResponseHandler.removePendingRequest(pendingRequest);
-
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        oneTimeKeysResponseHandler.onUnexpectedError(e, usersDevicesToClaim);
+                    }
+                });
             }
         });
     }

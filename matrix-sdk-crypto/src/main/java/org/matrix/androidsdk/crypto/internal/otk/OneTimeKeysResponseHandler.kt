@@ -18,6 +18,7 @@ package org.matrix.androidsdk.crypto.internal.otk
 
 import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.callback.ApiCallback
+import org.matrix.androidsdk.core.model.MatrixError
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXKey
 import org.matrix.androidsdk.crypto.data.MXOlmSessionResult
@@ -115,5 +116,51 @@ class OneTimeKeysResponseHandler(
                 }
             }
         }
+    }
+
+    fun onNetworkError(e: Exception, usersDevicesToClaim: MXUsersDevicesMap<String>) {
+        onError(usersDevicesToClaim) {
+            it.callback.onNetworkError(e)
+        }
+    }
+
+    fun onMatrixError(e: MatrixError, usersDevicesToClaim: MXUsersDevicesMap<String>) {
+        onError(usersDevicesToClaim) {
+            it.callback.onMatrixError(e)
+        }
+    }
+
+    fun onUnexpectedError(e: Exception, usersDevicesToClaim: MXUsersDevicesMap<String>) {
+        onError(usersDevicesToClaim) {
+            it.callback.onUnexpectedError(e)
+        }
+    }
+
+    private fun onError(usersDevicesToClaim: MXUsersDevicesMap<String>, callCallback: ((PendingRequest) -> Unit)) {
+        // Spread the failure to all the pending requests which are waiting for this session
+        val concernedPendingRequests = mutableSetOf<PendingRequest>()
+
+        pendingRequests.toList().forEach { pendingRequest ->
+            pendingRequest.aggregatedResult.map.keys.forEach mainForEach@{ userId ->
+                pendingRequest.aggregatedResult.map[userId]!!.keys.forEach { deviceId ->
+                    if (usersDevicesToClaim.getObject(deviceId, userId) == MXKey.KEY_SIGNED_CURVE_25519_TYPE) {
+                        // This pending request was waiting for a key
+                        concernedPendingRequests.add(pendingRequest)
+                        return@mainForEach
+                    }
+                }
+            }
+        }
+
+        if (!mxCryptoImpl.hasBeenReleased()) {
+            concernedPendingRequests.forEach {
+                mxCryptoImpl.getUIHandler().post {
+                    callCallback.invoke(it)
+                }
+            }
+        }
+
+        // Also remove the pending requests
+        pendingRequests.removeAll(concernedPendingRequests)
     }
 }
