@@ -75,7 +75,7 @@ class OneTimeKeysResponseHandler(
         pendingRequests.toList().forEach { pendingRequest ->
             pendingRequest.aggregatedResult.map.keys.forEach { userId ->
                 pendingRequest.aggregatedResult.map[userId]!!.keys.forEach { deviceId ->
-                    val result = pendingRequest.aggregatedResult.getObject(deviceId, userId)
+                    val result = pendingRequest.aggregatedResult.getObject(deviceId, userId)!!
 
                     if (result.mSessionId != null) {
                         // We already have a result for this device
@@ -84,7 +84,7 @@ class OneTimeKeysResponseHandler(
                         // Check in cache
                         val sessionId = cacheOfSessionId.getOrPut(result.mDevice) {
                             val key = oneTimeKeys.getObject(deviceId, userId)
-                                    .takeIf { it.type == MXKey.KEY_SIGNED_CURVE_25519_TYPE }
+                                    ?.takeIf { it.type == MXKey.KEY_SIGNED_CURVE_25519_TYPE }
 
                             if (key == null) {
                                 Log.d(LOG_TAG, "## ensureOlmSessionsForDevices() : No one-time keys " + MXKey.KEY_SIGNED_CURVE_25519_TYPE
