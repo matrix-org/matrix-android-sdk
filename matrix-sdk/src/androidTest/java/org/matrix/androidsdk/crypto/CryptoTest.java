@@ -21,9 +21,10 @@ package org.matrix.androidsdk.crypto;
 
 import android.content.Context;
 import android.os.SystemClock;
+import android.text.TextUtils;
+
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
-import android.text.TextUtils;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -471,6 +472,7 @@ public class CryptoTest {
 
         Assert.assertNotNull(sessionWithAliceDevice);
         Assert.assertNotNull(sessionWithAliceDevice.mSessionId);
+        Assert.assertTrue(sessionWithAliceDevice.hasResult);
         Assert.assertEquals("AliceDevice", sessionWithAliceDevice.mDevice.deviceId);
 
         MXSession bobSession2 = mTestHelper.createNewSession(bobSession, mCryptoTestHelper.getDefaultSessionParams());
@@ -549,6 +551,7 @@ public class CryptoTest {
         MXOlmSessionResult sessionWithAliceDevice2 = result2.getObject("AliceDevice", aliceSession.getMyUserId());
         Assert.assertNotNull(sessionWithAliceDevice2);
         Assert.assertNotNull(sessionWithAliceDevice2.mSessionId);
+        Assert.assertTrue(sessionWithAliceDevice2.hasResult);
         Assert.assertEquals("AliceDevice", sessionWithAliceDevice2.mDevice.deviceId);
 
         bobSession.clear(context);
