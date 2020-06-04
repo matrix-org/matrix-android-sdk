@@ -140,8 +140,8 @@ class OneTimeKeysResponseHandler(
         // Spread the failure to all the pending requests which are waiting for this session
         val concernedPendingRequests = mutableSetOf<PendingRequest>()
 
-        pendingRequests.toList().forEach { pendingRequest ->
-            pendingRequest.aggregatedResult.map.keys.forEach mainForEach@{ userId ->
+        pendingRequests.toList().forEach mainForEach@{ pendingRequest ->
+            pendingRequest.aggregatedResult.map.keys.forEach { userId ->
                 pendingRequest.aggregatedResult.map[userId]!!.keys.forEach { deviceId ->
                     if (usersDevicesToClaim.getObject(deviceId, userId) == MXKey.KEY_SIGNED_CURVE_25519_TYPE) {
                         // This pending request was waiting for a key
