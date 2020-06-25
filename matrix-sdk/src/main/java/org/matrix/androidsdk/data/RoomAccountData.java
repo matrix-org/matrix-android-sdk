@@ -54,8 +54,8 @@ public class RoomAccountData implements java.io.Serializable {
     // The events the user wants to hide in this room.
     private Map<String, TaggedEventInfo> hiddenEvents = null;
 
-    // Store the content of all the provided events by using their event type.
-    private Map<String, JsonObject> eventContentsMap = new HashMap<>();
+    // Store all the provided events by using their event type.
+    private Map<String, Event> eventsMap = new HashMap<>();
 
     /**
      * Process an event that modifies room account data (like m.tag event).
@@ -79,13 +79,8 @@ public class RoomAccountData implements java.io.Serializable {
             hiddenEvents = taggedEventContent.getHiddenEvents();
         }
 
-        // Store by default the content of all the provided events.
-        if (jsonObject != null) {
-            eventContentsMap.put(eventType, jsonObject);
-        } else {
-            // Store an empty JsonObject
-            eventContentsMap.put(eventType, new JsonObject());
-        }
+        // Store by default all the provided events.
+        eventsMap.put(eventType, event);
     }
 
     /**
@@ -189,7 +184,11 @@ public class RoomAccountData implements java.io.Serializable {
      */
     @Nullable
     public JsonObject eventContent(String eventType) {
-        return eventContentsMap.get(eventType);
+        Event event = eventsMap.get(eventType);
+        if (event != null) {
+            return event.getContentAsJsonObject();
+        }
+        return null;
     }
 
 
