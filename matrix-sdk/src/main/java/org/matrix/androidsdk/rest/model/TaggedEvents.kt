@@ -31,7 +31,7 @@ data class TaggedEventsContent (
         @JvmField
         @SerializedName("tags")
         var tags: Map<String, Map<String, TaggedEventInfo>> = emptyMap()
-) {
+) : Serializable {
     fun getFavouriteEvents(): Map<String, TaggedEventInfo> {
         return tags[TAG_FAVOURITE] ?: emptyMap()
     }
