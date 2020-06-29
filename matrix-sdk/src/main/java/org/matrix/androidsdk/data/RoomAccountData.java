@@ -64,23 +64,25 @@ public class RoomAccountData implements java.io.Serializable {
      */
     public void handleEvent(Event event) {
         final String eventType = event.getType();
-        final JsonObject jsonObject = event.getContentAsJsonObject();
+        if (eventType != null) {
+            final JsonObject jsonObject = event.getContentAsJsonObject();
 
-        if (eventType.equals(Event.EVENT_TYPE_TAGS)) {
-            roomTags = RoomTag.roomTagsWithTagEvent(event);
-        } else if (eventType.equals(Event.EVENT_TYPE_URL_PREVIEW)) {
-            if (jsonObject != null && jsonObject.has(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
-                final boolean disabled = jsonObject.get(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE).getAsBoolean();
-                isURLPreviewAllowedByUser = !disabled;
+            if (eventType.equals(Event.EVENT_TYPE_TAGS)) {
+                roomTags = RoomTag.roomTagsWithTagEvent(event);
+            } else if (eventType.equals(Event.EVENT_TYPE_URL_PREVIEW)) {
+                if (jsonObject != null && jsonObject.has(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE)) {
+                    final boolean disabled = jsonObject.get(AccountDataElement.ACCOUNT_DATA_KEY_URL_PREVIEW_DISABLE).getAsBoolean();
+                    isURLPreviewAllowedByUser = !disabled;
+                }
+            } else if (eventType.equals(Event.EVENT_TYPE_TAGGED_EVENTS)) {
+                final TaggedEventsContent taggedEventContent = JsonUtils.toTaggedEventsContent(jsonObject);
+                favouriteEvents = taggedEventContent.getFavouriteEvents();
+                hiddenEvents = taggedEventContent.getHiddenEvents();
             }
-        } else if (eventType.equals(Event.EVENT_TYPE_TAGGED_EVENTS)) {
-            final TaggedEventsContent taggedEventContent = JsonUtils.toTaggedEventsContent(jsonObject);
-            favouriteEvents = taggedEventContent.getFavouriteEvents();
-            hiddenEvents = taggedEventContent.getHiddenEvents();
-        }
 
-        // Store by default all the provided events.
-        eventsMap.put(eventType, event);
+            // Store by default all the provided events.
+            eventsMap.put(eventType, event);
+        }
     }
 
     /**
