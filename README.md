@@ -3,6 +3,15 @@
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=vulnerabilities)](https://sonarcloud.io/project/issues?id=matrix.android.sdk&resolved=false&types=VULNERABILITY)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=matrix.android.sdk&metric=bugs)](https://sonarcloud.io/project/issues?id=matrix.android.sdk&resolved=false&types=BUG) 
 
+Important Announcement
+======================
+
+This SDK is deprecated and the core team does not work anymore on it.
+
+We strongly recommends that new projects use [the new Android Matrix SDK](https://github.com/matrix-org/matrix-android-sdk2).
+
+We can provide best effort support for existing projects that are still using this SDK though.
+
 matrix-android-sdk
 ==================
 The [Matrix] SDK for Android wraps the Matrix REST API calls in asynchronous Java methods and provides basic structures for storing and handling data.
