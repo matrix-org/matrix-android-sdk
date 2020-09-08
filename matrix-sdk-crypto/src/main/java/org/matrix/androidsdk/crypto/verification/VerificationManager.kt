@@ -22,6 +22,7 @@ import org.matrix.androidsdk.core.JsonUtility
 import org.matrix.androidsdk.core.Log
 import org.matrix.androidsdk.core.callback.ApiCallback
 import org.matrix.androidsdk.core.model.MatrixError
+import org.matrix.androidsdk.crypto.MXCrypto
 import org.matrix.androidsdk.crypto.data.MXDeviceInfo
 import org.matrix.androidsdk.crypto.data.MXUsersDevicesMap
 import org.matrix.androidsdk.crypto.interfaces.CryptoEvent
@@ -35,7 +36,10 @@ import kotlin.collections.HashMap
  * Short codes interactive verification is a more user friendly way of verifying devices
  * that is still maintaining a good level of security (alternative to the 43-character strings compare method).
  */
-class VerificationManager(val session: CryptoSession) : VerificationTransaction.Listener {
+class VerificationManager (
+        private val session: CryptoSession,
+        private val mxCrypto: MXCrypto
+) : VerificationTransaction.Listener {
 
     interface VerificationManagerListener {
         fun transactionCreated(tx: VerificationTransaction)
@@ -50,7 +54,7 @@ class VerificationManager(val session: CryptoSession) : VerificationTransaction.
 
     // Event received from the sync
     fun onToDeviceEvent(event: CryptoEvent) {
-        session.requireCrypto().getDecryptingThreadHandler().post {
+        mxCrypto.getDecryptingThreadHandler().post {
             when (event.getType()) {
                 CryptoEvent.EVENT_TYPE_KEY_VERIFICATION_START -> {
                     onStartRequestReceived(event)
@@ -116,7 +120,7 @@ class VerificationManager(val session: CryptoSession) : VerificationTransaction.
     }
 
     fun markedLocallyAsManuallyVerified(userId: String, deviceID: String) {
-        session.requireCrypto().setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED,
+        mxCrypto.setDeviceVerification(MXDeviceInfo.DEVICE_VERIFICATION_VERIFIED,
                 deviceID,
                 userId,
                 object : ApiCallback<Void> {
@@ -210,27 +214,27 @@ class VerificationManager(val session: CryptoSession) : VerificationTransaction.
                                        startReq: KeyVerificationStart,
                                        success: (MXUsersDevicesMap<MXDeviceInfo>) -> Unit,
                                        error: () -> Unit) {
-        session.requireCrypto().getDeviceList().downloadKeys(listOf(otherUserId), true, object : ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> {
+        mxCrypto.getDeviceList().downloadKeys(listOf(otherUserId), true, object : ApiCallback<MXUsersDevicesMap<MXDeviceInfo>> {
             override fun onUnexpectedError(e: Exception) {
-                session.requireCrypto().getDecryptingThreadHandler().post {
+                mxCrypto.getDecryptingThreadHandler().post {
                     error()
                 }
             }
 
             override fun onNetworkError(e: Exception) {
-                session.requireCrypto().getDecryptingThreadHandler().post {
+                mxCrypto.getDecryptingThreadHandler().post {
                     error()
                 }
             }
 
             override fun onMatrixError(e: MatrixError) {
-                session.requireCrypto().getDecryptingThreadHandler().post {
+                mxCrypto.getDecryptingThreadHandler().post {
                     error()
                 }
             }
 
             override fun onSuccess(info: MXUsersDevicesMap<MXDeviceInfo>) {
-                session.requireCrypto().getDecryptingThreadHandler().post {
+                mxCrypto.getDecryptingThreadHandler().post {
                     if (info.getUserDeviceIds(otherUserId).contains(startReq.fromDevice)) {
                         success(info)
                     } else {
@@ -371,7 +375,7 @@ class VerificationManager(val session: CryptoSession) : VerificationTransaction.
         if (KeyVerificationStart.VERIF_METHOD_SAS == method) {
             val tx = OutgoingSASVerificationRequest(txID, userId, deviceID)
             addTransaction(tx)
-            session.requireCrypto().getDecryptingThreadHandler().post {
+            mxCrypto.getDecryptingThreadHandler().post {
                 tx.start(session)
             }
             return txID
@@ -387,7 +391,7 @@ class VerificationManager(val session: CryptoSession) : VerificationTransaction.
         val buff = StringBuffer()
         buff
                 .append(session.myUserId).append("|")
-                .append(session.requireCrypto().myDevice.deviceId).append("|")
+                .append(mxCrypto.myDevice.deviceId).append("|")
                 .append(userId).append("|")
                 .append(deviceID).append("|")
                 .append(UUID.randomUUID().toString())
