@@ -1,3 +1,30 @@
+Changes to Matrix Android SDK in 0.9.37 (2020-XX-XX)
+=======================================================
+
+Features:
+ -
+
+Improvements:
+ -
+
+Bugfix:
+ -
+
+API Change:
+ -
+
+Translations:
+ -
+
+Others:
+ -
+
+Build:
+ -
+
+Test:
+ -
+
 Changes to Matrix Android SDK in 0.9.36 (2020-09-14)
 =======================================================
 

@@ -27,8 +27,8 @@ android {
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 28
-        versionCode 936
-        versionName "0.9.36"
+        versionCode 937
+        versionName "0.9.37-dev"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // Enable multi dex for test
