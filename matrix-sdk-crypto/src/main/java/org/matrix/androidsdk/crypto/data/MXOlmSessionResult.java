@@ -16,9 +16,7 @@
 
 package org.matrix.androidsdk.crypto.data;
 
-import java.io.Serializable;
-
-public class MXOlmSessionResult implements Serializable {
+public class MXOlmSessionResult {
     /**
      * the device
      */
@@ -30,6 +28,9 @@ public class MXOlmSessionResult implements Serializable {
      */
     public String mSessionId;
 
+    // True if mSessionId has been retrieved, (even if mSessionId is null)
+    public Boolean hasResult;
+
     /**
      * Constructor
      *
@@ -39,5 +40,6 @@ public class MXOlmSessionResult implements Serializable {
     public MXOlmSessionResult(MXDeviceInfo device, String sessionId) {
         mDevice = device;
         mSessionId = sessionId;
+        hasResult = sessionId != null && !sessionId.isEmpty();
     }
 }

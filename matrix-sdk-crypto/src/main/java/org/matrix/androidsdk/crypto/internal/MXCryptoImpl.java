@@ -73,6 +73,7 @@ import org.matrix.androidsdk.crypto.interfaces.CryptoRoomMember;
 import org.matrix.androidsdk.crypto.interfaces.CryptoRoomState;
 import org.matrix.androidsdk.crypto.interfaces.CryptoSession;
 import org.matrix.androidsdk.crypto.interfaces.CryptoSyncResponse;
+import org.matrix.androidsdk.crypto.internal.otk.OneTimeKeysResponseHandler;
 import org.matrix.androidsdk.crypto.keysbackup.KeysBackup;
 import org.matrix.androidsdk.crypto.model.crypto.KeysUploadResponse;
 import org.matrix.androidsdk.crypto.model.crypto.RoomKeyContent;
@@ -137,6 +138,8 @@ public class MXCryptoImpl implements MXCrypto {
     private MXOlmDevice mOlmDevice;
 
     private Map<String, Map<String, String>> mLastPublishedOneTimeKeys;
+
+    private OneTimeKeysResponseHandler oneTimeKeysResponseHandler = new OneTimeKeysResponseHandler(this);
 
     // the encryption is starting
     private boolean mIsStarting;
@@ -300,7 +303,7 @@ public class MXCryptoImpl implements MXCrypto {
         mCryptoStore.storeUserDevices(mSession.getMyUserId(), myDevices);
 
         // Create the VerificationManager before setting the CryptoEventsListener, to avoid crash (vector-im/riot-android#3396)
-        mShortCodeVerificationManager = new VerificationManager(mSession);
+        mShortCodeVerificationManager = new VerificationManager(mSession, this);
 
         mSession.getDataHandler().setCryptoEventsListener(mEventListener);
 
@@ -1107,6 +1110,7 @@ public class MXCryptoImpl implements MXCrypto {
         }
 
         if (devicesWithoutSession.size() == 0) {
+            Log.d(LOG_TAG, "[MXCrypto] ensureOlmSessionsForDevices: Have already sessions for all");
             if (null != callback) {
                 getUIHandler().post(new Runnable() {
                     @Override
@@ -1118,22 +1122,36 @@ public class MXCryptoImpl implements MXCrypto {
             return;
         }
 
-        // Prepare the request for claiming one-time keys
+        // Devices for which we will make a /claim request
         MXUsersDevicesMap<String> usersDevicesToClaim = new MXUsersDevicesMap<>();
 
-        final String oneTimeKeyAlgorithm = MXKey.KEY_SIGNED_CURVE_25519_TYPE;
+        Set<String> deviceIdentityKeysWithOlmSessionsInProgress = oneTimeKeysResponseHandler.getDeviceIdentityKeysWithOlmSessionsInProgress();
 
+        // Prepare the request for claiming one-time keys
         for (MXDeviceInfo device : devicesWithoutSession) {
-            usersDevicesToClaim.setObject(oneTimeKeyAlgorithm, device.userId, device.deviceId);
+            String deviceIdentityKey = device.identityKey();
+
+            // Claim only if a request is not yet pending
+            if (!deviceIdentityKeysWithOlmSessionsInProgress.contains(deviceIdentityKey)) {
+                usersDevicesToClaim.setObject(MXKey.KEY_SIGNED_CURVE_25519_TYPE, device.userId, device.deviceId);
+            }
         }
 
-        // TODO: this has a race condition - if we try to send another message
-        // while we are claiming a key, we will end up claiming two and setting up
-        // two sessions.
-        //
-        // That should eventually resolve itself, but it's poor form.
+        Log.d(LOG_TAG, "[MXCrypto] ensureOlmSessionsForDevices: " + usersDevicesToClaim.getMap().size()
+                + " out of " + devicesWithoutSession.size() + " sessions to claim one time keys");
 
         Log.d(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : " + usersDevicesToClaim);
+
+        OneTimeKeysResponseHandler.PendingRequest pendingRequest = new OneTimeKeysResponseHandler.PendingRequest(
+                devicesByUser,
+                callback,
+                results);
+
+        oneTimeKeysResponseHandler.addPendingRequest(pendingRequest);
+
+        if (usersDevicesToClaim.getMap().isEmpty()) {
+            return;
+        }
 
         mCryptoRestClient.claimOneTimeKeysForUsersDevices(usersDevicesToClaim, new ApiCallback<MXUsersDevicesMap<MXKey>>() {
             @Override
@@ -1141,61 +1159,7 @@ public class MXCryptoImpl implements MXCrypto {
                 getEncryptingThreadHandler().post(new Runnable() {
                     @Override
                     public void run() {
-                        try {
-                            Log.d(LOG_TAG, "## claimOneTimeKeysForUsersDevices() : keysClaimResponse.oneTimeKeys: " + oneTimeKeys);
-
-                            Set<String> userIds = devicesByUser.keySet();
-
-                            for (String userId : userIds) {
-                                List<MXDeviceInfo> deviceInfos = devicesByUser.get(userId);
-
-                                for (MXDeviceInfo deviceInfo : deviceInfos) {
-
-                                    MXKey oneTimeKey = null;
-
-                                    List<String> deviceIds = oneTimeKeys.getUserDeviceIds(userId);
-
-                                    if (null != deviceIds) {
-                                        for (String deviceId : deviceIds) {
-                                            MXOlmSessionResult olmSessionResult = results.getObject(deviceId, userId);
-
-                                            if (null != olmSessionResult.mSessionId) {
-                                                // We already have a result for this device
-                                                continue;
-                                            }
-
-                                            MXKey key = oneTimeKeys.getObject(deviceId, userId);
-
-                                            if (TextUtils.equals(key.type, oneTimeKeyAlgorithm)) {
-                                                oneTimeKey = key;
-                                            }
-
-                                            if (null == oneTimeKey) {
-                                                Log.d(LOG_TAG, "## ensureOlmSessionsForDevices() : No one-time keys " + oneTimeKeyAlgorithm
-                                                        + " for device " + userId + " : " + deviceId);
-                                                continue;
-                                            }
-
-                                            // Update the result for this device in results
-                                            olmSessionResult.mSessionId = verifyKeyAndStartSession(oneTimeKey, userId, deviceInfo);
-                                        }
-                                    }
-                                }
-                            }
-                        } catch (Exception e) {
-                            Log.e(LOG_TAG, "## ensureOlmSessionsForDevices() " + e.getMessage(), e);
-                        }
-
-                        if (!hasBeenReleased()) {
-                            if (null != callback) {
-                                getUIHandler().post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        callback.onSuccess(results);
-                                    }
-                                });
-                            }
-                        }
+                        oneTimeKeysResponseHandler.onOtkRetrieved(oneTimeKeys);
                     }
                 });
             }
@@ -1204,32 +1168,41 @@ public class MXCryptoImpl implements MXCrypto {
             public void onNetworkError(Exception e) {
                 Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage(), e);
 
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        oneTimeKeysResponseHandler.onNetworkError(e, usersDevicesToClaim);
+                    }
+                });
             }
 
             @Override
             public void onMatrixError(MatrixError e) {
                 Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage());
 
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        oneTimeKeysResponseHandler.onMatrixError(e, usersDevicesToClaim);
+                    }
+                });
             }
 
             @Override
             public void onUnexpectedError(Exception e) {
                 Log.e(LOG_TAG, "## ensureOlmSessionsForUsers(): claimOneTimeKeysForUsersDevices request failed" + e.getMessage(), e);
 
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
+                getEncryptingThreadHandler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        oneTimeKeysResponseHandler.onUnexpectedError(e, usersDevicesToClaim);
+                    }
+                });
             }
         });
     }
 
-    private String verifyKeyAndStartSession(MXKey oneTimeKey, String userId, MXDeviceInfo deviceInfo) {
+    public String verifyKeyAndStartSession(MXKey oneTimeKey, String userId, MXDeviceInfo deviceInfo) {
         String sessionId = null;
 
         String deviceId = deviceInfo.deviceId;

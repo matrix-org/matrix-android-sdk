@@ -17,6 +17,7 @@
 package org.matrix.androidsdk.rest.model
 
 import com.google.gson.annotations.SerializedName
+import java.io.Serializable
 
 /**
  * Class used to parse the content of a m.tagged_events type event.
@@ -30,7 +31,7 @@ data class TaggedEventsContent (
         @JvmField
         @SerializedName("tags")
         var tags: Map<String, Map<String, TaggedEventInfo>> = emptyMap()
-) {
+) : Serializable {
     fun getFavouriteEvents(): Map<String, TaggedEventInfo> {
         return tags[TAG_FAVOURITE] ?: emptyMap()
     }
@@ -75,7 +76,7 @@ data class TaggedEventInfo(@JvmField
                            @JvmField
                            @SerializedName("tagged_at")
                            var taggedAt: Long? = null
-) {
+) : Serializable {
     companion object {
         fun with(keywords: List<String>?, originServerTs: Long?, taggedAt: Long?): TaggedEventInfo {
             return TaggedEventInfo().apply {
