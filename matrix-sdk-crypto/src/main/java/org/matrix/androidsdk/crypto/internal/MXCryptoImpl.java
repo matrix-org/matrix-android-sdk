@@ -303,7 +303,7 @@ public class MXCryptoImpl implements MXCrypto {
         mCryptoStore.storeUserDevices(mSession.getMyUserId(), myDevices);
 
         // Create the VerificationManager before setting the CryptoEventsListener, to avoid crash (vector-im/riot-android#3396)
-        mShortCodeVerificationManager = new VerificationManager(mSession);
+        mShortCodeVerificationManager = new VerificationManager(mSession, this);
 
         mSession.getDataHandler().setCryptoEventsListener(mEventListener);
 

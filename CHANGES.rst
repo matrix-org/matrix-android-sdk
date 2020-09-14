@@ -9,6 +9,7 @@ Improvements:
 
 Bugfix:
  - Killed Application misses some notifications
+ - Fix a crash on the crypto code (race condition?)
 
 API Change:
  -
