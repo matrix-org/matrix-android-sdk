@@ -1,8 +1,5 @@
-Changes to Matrix Android SDK in 0.9.36 (2020-XX-XX)
+Changes to Matrix Android SDK in 0.9.36 (2020-09-14)
 =======================================================
-
-Features:
- -
 
 Improvements:
  - Crypto: Only create one olm session at a time per device (vector-im/riot-android#3056).
@@ -10,21 +7,6 @@ Improvements:
 Bugfix:
  - Killed Application misses some notifications
  - Fix a crash on the crypto code (race condition?)
-
-API Change:
- -
-
-Translations:
- -
-
-Others:
- -
-
-Build:
- -
-
-Test:
- -
 
 Changes to Matrix Android SDK in 0.9.35 (2020-05-20)
 =======================================================
