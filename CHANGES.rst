@@ -20,7 +20,7 @@ Others:
  -
 
 Build:
- -
+ - Update targetSdkVersion to Android 10 (API 29)
 
 Test:
  -
