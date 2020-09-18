@@ -36,7 +36,7 @@ allprojects {
         }
         // Jitsi repo
         maven {
-            url "https://github.com/vector-im/jitsi_libre_maven/raw/master/releases"
+            url "https://github.com/vector-im/jitsi_libre_maven/raw/master/android-sdk-2.9.3"
         }
         google()
         jcenter()

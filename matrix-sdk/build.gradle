@@ -175,7 +175,8 @@ dependencies {
     kapt 'dk.ilios:realmfieldnameshelper:1.1.1'
 
     // WebRTC
-    implementation('com.facebook.react:react-native-webrtc:1.69.2-jitsi-2062090@aar')
+    // Use the same WebRTC library than the one used by Jitsi library
+    implementation('com.facebook.react:react-native-webrtc:1.84.0-jitsi-5112273@aar')
 
     // Test
     testImplementation 'androidx.test:runner:1.2.0'
