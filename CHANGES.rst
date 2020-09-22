@@ -8,7 +8,7 @@ Improvements:
  -
 
 Bugfix:
- -
+ - Fix a crash when it checks user presence (related to matrix-org/synapse#7606).
 
 API Change:
  -
