@@ -1,3 +1,30 @@
+Changes to Matrix Android SDK in 0.9.37 (2020-XX-XX)
+=======================================================
+
+Features:
+ -
+
+Improvements:
+ -
+
+Bugfix:
+ - Fix a crash when it checks user presence (related to matrix-org/synapse#7606).
+
+API Change:
+ -
+
+Translations:
+ -
+
+Others:
+ -
+
+Build:
+ - Update targetSdkVersion to Android 10 (API 29)
+
+Test:
+ -
+
 Changes to Matrix Android SDK in 0.9.36 (2020-09-14)
 =======================================================
 

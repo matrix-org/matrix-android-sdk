@@ -547,6 +547,7 @@ public class MXSession implements CryptoSession {
                     currentUser.lastActiveAgo = user.lastActiveAgo;
                 } else {
                     currentUser = user;
+                    currentUser.user_id = userId;
                 }
 
                 currentUser.setLatestPresenceTs(System.currentTimeMillis());
