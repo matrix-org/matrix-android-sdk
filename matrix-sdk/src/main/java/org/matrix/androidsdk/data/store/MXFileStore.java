@@ -1868,9 +1868,15 @@ public class MXFileStore extends MXMemoryStore {
                 }
 
                 roomAccountData = (RoomAccountData) accountAsVoid;
+
+                // Patch: check whether the eventsMap exists by retrieving an event.
+                // This action will trigger an exception if this map doesn't exist.
+                // We will then flush the store to rebuild it correctly
+                roomAccountData.eventContent(Event.EVENT_TYPE_READ_MARKER);
             }
         } catch (Exception e) {
             succeeded = false;
+            roomAccountData = null;
             Log.e(LOG_TAG, "loadRoomAccountData failed : " + e.toString(), e);
         }
 
