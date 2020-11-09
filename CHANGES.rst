@@ -5,7 +5,7 @@ Features:
  -
 
 Improvements:
- -
+ - MXWebRtcCall: improve the mIsSupported flag handling.
 
 Bugfix:
  - Fix a crash when it checks user presence (related to matrix-org/synapse#7606).
