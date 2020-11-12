@@ -104,7 +104,6 @@ public class MXWebRtcCall extends MXCall {
     private MXWebRtcView mFullScreenRTCView = null;
     private MXWebRtcView mPipRTCView = null;
 
-    private static boolean mIsInitialized = false;
     // null -> not initialized
     // true / false for the supported status
     private static Boolean mIsSupported;
@@ -123,10 +122,18 @@ public class MXWebRtcCall extends MXCall {
      * @return true if this stack can perform calls.
      */
     public static boolean isSupported(Context context) {
-        if (null == mIsSupported) {
-            initializeAndroidGlobals(context.getApplicationContext());
-
-            Log.d(LOG_TAG, "isSupported " + mIsSupported);
+        synchronized (LOG_TAG) {
+            if (null == mIsSupported) {
+                try {
+                    PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(context).createInitializationOptions());
+                    mIsSupported = true;
+                    Log.d(LOG_TAG, "## initializeAndroidGlobals() done");
+                } catch (Throwable e) {
+                    Log.d(LOG_TAG, "## initializeAndroidGlobals(): Exception Msg=" + e.getMessage(), e);
+                    mIsSupported = false;
+                }
+            }
+            Log.i(LOG_TAG, "isSupported " + mIsSupported);
         }
 
         return mIsSupported;
@@ -237,33 +244,6 @@ public class MXWebRtcCall extends MXCall {
                 defaultIceServer = PeerConnection.IceServer.builder(defaultIceServerUri).createIceServer();
             } catch (Throwable e) {
                 Log.e(LOG_TAG, "MXWebRtcCall constructor  invalid default stun" + defaultIceServerUri);
-            }
-        }
-    }
-
-    /**
-     * Initialize globals
-     */
-    private static void initializeAndroidGlobals(Context context) {
-        if (!mIsInitialized) {
-            try {
-                /*
-                mIsInitialized = PeerConnectionFactory.initializeAndroidGlobals(
-                        context,
-                        true, // enable audio initializing
-                        true, // enable video initializing
-                        true  // enable hardware acceleration
-                );
-                */
-                PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(context).createInitializationOptions());
-
-                mIsInitialized = true;
-                mIsSupported = true;
-                Log.d(LOG_TAG, "## initializeAndroidGlobals(): mIsInitialized=" + mIsInitialized);
-            } catch (Throwable e) {
-                Log.e(LOG_TAG, "## initializeAndroidGlobals(): Exception Msg=" + e.getMessage(), e);
-                mIsInitialized = true;
-                mIsSupported = false;
             }
         }
     }
