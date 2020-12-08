@@ -1,6 +1,6 @@
 /*
  * Copyright 2014 OpenMarket Ltd
- * Copyright 2018 New Vector Ltd
+ * Copyright 2018-2020 New Vector Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,10 @@ import org.matrix.androidsdk.MXDataHandler;
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.core.callback.ApiCallback;
 import org.matrix.androidsdk.core.callback.SimpleApiCallback;
-import org.matrix.androidsdk.core.listeners.IMXNetworkEventListener;
 import org.matrix.androidsdk.core.model.MatrixError;
 import org.matrix.androidsdk.data.MyUser;
 import org.matrix.androidsdk.data.Room;
-import org.matrix.androidsdk.network.NetworkConnectivityReceiver;
+import org.matrix.androidsdk.listeners.MXEventListener;
 import org.matrix.androidsdk.rest.client.PushRulesRestClient;
 import org.matrix.androidsdk.rest.model.Event;
 import org.matrix.androidsdk.rest.model.bingrules.BingRule;
@@ -35,18 +34,17 @@ import org.matrix.androidsdk.rest.model.bingrules.ContainsDisplayNameCondition;
 import org.matrix.androidsdk.rest.model.bingrules.ContentRule;
 import org.matrix.androidsdk.rest.model.bingrules.EventMatchCondition;
 import org.matrix.androidsdk.rest.model.bingrules.PushRuleSet;
-import org.matrix.androidsdk.rest.model.bingrules.PushRulesResponse;
 import org.matrix.androidsdk.rest.model.bingrules.RoomMemberCountCondition;
 import org.matrix.androidsdk.rest.model.bingrules.SenderNotificationPermissionCondition;
 import org.matrix.androidsdk.rest.model.message.Message;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
 
 /**
  * Object that gets and processes bing rules from the server.
@@ -71,16 +69,6 @@ public class BingRulesManager {
         void onBingRuleUpdateFailure(String errorMessage);
     }
 
-    /**
-     * Bing rules update
-     */
-    public interface onBingRulesUpdateListener {
-        /**
-         * Warn that some bing rules have been updated
-         */
-        void onBingRulesUpdate();
-    }
-
     // general members
     private final PushRulesRestClient mApiClient;
     private final MXSession mSession;
@@ -93,22 +81,11 @@ public class BingRulesManager {
     // the rules list
     private final List<BingRule> mRules = new ArrayList<>();
 
-    // the default bing rule
-    private BingRule mDefaultBingRule = new BingRule(true);
-
     // tell if the bing rules set is initialized
     private boolean mIsInitialized = false;
 
     // map to check if a room is "mention only"
     private final Map<String, Boolean> mIsMentionOnlyMap = new HashMap<>();
-
-    // network management
-    private NetworkConnectivityReceiver mNetworkConnectivityReceiver;
-    private IMXNetworkEventListener mNetworkListener;
-    private ApiCallback<Void> mLoadRulesCallback;
-
-    //  listener
-    private final Set<onBingRulesUpdateListener> mBingRulesUpdateListeners = new HashSet<>();
 
     /**
      * Defines the room notification state
@@ -140,28 +117,21 @@ public class BingRulesManager {
     /**
      * Constructor
      *
-     * @param session                     the session
-     * @param networkConnectivityReceiver the network events listener
+     * @param session the session
      */
-    public BingRulesManager(MXSession session, NetworkConnectivityReceiver networkConnectivityReceiver) {
+    public BingRulesManager(MXSession session) {
         mSession = session;
         mApiClient = session.getBingRulesApiClient();
         mMyUserId = session.getCredentials().userId;
         mDataHandler = session.getDataHandler();
 
-        mNetworkListener = new IMXNetworkEventListener() {
+        mDataHandler.addListener(new MXEventListener() {
             @Override
-            public void onNetworkConnectionUpdate(boolean isConnected) {
-                // mLoadRulesCallback is set when a loadRules failed
-                // so when a network is available, trigger again loadRules
-                if (isConnected && (null != mLoadRulesCallback)) {
-                    loadRules(mLoadRulesCallback);
-                }
+            public void onStoreReady() {
+                // Load the global push rules from the store
+                buildRules(mDataHandler.pushRules());
             }
-        };
-
-        mNetworkConnectivityReceiver = networkConnectivityReceiver;
-        networkConnectivityReceiver.addEventListener(mNetworkListener);
+        });
     }
 
     /**
@@ -169,115 +139,6 @@ public class BingRulesManager {
      */
     public boolean isReady() {
         return mIsInitialized;
-    }
-
-    /**
-     * Remove the network events listener.
-     * This listener is only used to initialize the rules at application launch.
-     */
-    private void removeNetworkListener() {
-        if ((null != mNetworkConnectivityReceiver) && (null != mNetworkListener)) {
-            mNetworkConnectivityReceiver.removeEventListener(mNetworkListener);
-            mNetworkConnectivityReceiver = null;
-            mNetworkListener = null;
-        }
-    }
-
-    /**
-     * Add a listener
-     *
-     * @param listener the listener
-     */
-    public void addBingRulesUpdateListener(onBingRulesUpdateListener listener) {
-        if (null != listener) {
-            mBingRulesUpdateListeners.add(listener);
-        }
-    }
-
-    /**
-     * remove a listener
-     *
-     * @param listener the listener
-     */
-    public void removeBingRulesUpdateListener(onBingRulesUpdateListener listener) {
-        if (null != listener) {
-            mBingRulesUpdateListeners.remove(listener);
-        }
-    }
-
-    /**
-     * Some rules have been updated.
-     */
-    private void onBingRulesUpdate() {
-        // delete cached data
-        mRoomNotificationStateByRoomId.clear();
-
-        for (onBingRulesUpdateListener listener : mBingRulesUpdateListeners) {
-            try {
-                listener.onBingRulesUpdate();
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "## onBingRulesUpdate() : onBingRulesUpdate failed " + e.getMessage(), e);
-            }
-        }
-    }
-
-    /**
-     * Load the bing rules from the server.
-     *
-     * @param callback an async callback called when the rules are loaded
-     */
-    public void loadRules(final ApiCallback<Void> callback) {
-        mLoadRulesCallback = null;
-
-        Log.d(LOG_TAG, "## loadRules() : refresh the bing rules");
-        mApiClient.getAllRules(new ApiCallback<PushRulesResponse>() {
-            @Override
-            public void onSuccess(PushRulesResponse info) {
-                Log.d(LOG_TAG, "## loadRules() : succeeds");
-
-                buildRules(info);
-                mIsInitialized = true;
-
-                if (callback != null) {
-                    callback.onSuccess(null);
-                }
-
-                removeNetworkListener();
-            }
-
-            private void onError(String errorMessage) {
-                Log.e(LOG_TAG, "## loadRules() : failed " + errorMessage);
-                // the callback will be called when the request will succeed
-                mLoadRulesCallback = callback;
-            }
-
-            @Override
-            public void onNetworkError(Exception e) {
-                onError(e.getMessage());
-
-                if (null != callback) {
-                    callback.onNetworkError(e);
-                }
-            }
-
-            @Override
-            public void onMatrixError(MatrixError e) {
-                onError(e.getMessage());
-
-                if (null != callback) {
-                    callback.onMatrixError(e);
-                }
-            }
-
-            @Override
-            public void onUnexpectedError(Exception e) {
-                onError(e.getMessage());
-
-                if (null != callback) {
-                    callback.onUnexpectedError(e);
-                }
-            }
-        });
     }
 
     /**
@@ -500,12 +361,15 @@ public class BingRulesManager {
     /**
      * Build the internal push rules
      *
-     * @param pushRulesResponse the server request response.
+     * @param pushRulesSet the server request response.
      */
-    public void buildRules(PushRulesResponse pushRulesResponse) {
-        if (null != pushRulesResponse) {
-            updateRulesSet(pushRulesResponse.global);
-            onBingRulesUpdate();
+    public void buildRules(@Nullable PushRuleSet pushRulesSet) {
+        if (null != pushRulesSet) {
+            Log.i(LOG_TAG, "## buildRules() : update push rules");
+            mIsInitialized = true;
+            updateRulesSet(pushRulesSet);
+            // delete cached data
+            mRoomNotificationStateByRoomId.clear();
         }
     }
 
@@ -591,7 +455,7 @@ public class BingRulesManager {
 
             mRulesSet = ruleSet;
 
-            Log.d(LOG_TAG, "## updateRules() : has " + mRules.size() + " rules");
+            Log.i(LOG_TAG, "## updateRules() : has " + mRules.size() + " rules");
         }
     }
 
@@ -657,58 +521,6 @@ public class BingRulesManager {
     }
 
     /**
-     * Force to refresh the rules.
-     * The listener is called when the rules are refreshed.
-     *
-     * @param errorMsg the error message to dispatch.
-     * @param listener the asynchronous listener
-     */
-    private void forceRulesRefresh(final String errorMsg, final onBingRuleUpdateListener listener) {
-        // refresh only there is a listener
-        if (null != listener) {
-            // clear cached data
-            mRoomNotificationStateByRoomId.clear();
-
-            loadRules(new ApiCallback<Void>() {
-                private void onDone(String error) {
-                    // clear cached data
-                    mRoomNotificationStateByRoomId.clear();
-
-                    try {
-                        if (TextUtils.isEmpty(error) && TextUtils.isEmpty(errorMsg)) {
-                            listener.onBingRuleUpdateSuccess();
-                        } else {
-                            listener.onBingRuleUpdateFailure(TextUtils.isEmpty(errorMsg) ? error : errorMsg);
-                        }
-                    } catch (Exception e) {
-                        Log.e(LOG_TAG, "## forceRulesRefresh() : failed " + e.getMessage(), e);
-                    }
-                }
-
-                @Override
-                public void onSuccess(Void info) {
-                    onDone(null);
-                }
-
-                @Override
-                public void onNetworkError(Exception e) {
-                    onDone(e.getLocalizedMessage());
-                }
-
-                @Override
-                public void onMatrixError(MatrixError e) {
-                    onDone(e.getLocalizedMessage());
-                }
-
-                @Override
-                public void onUnexpectedError(Exception e) {
-                    onDone(e.getLocalizedMessage());
-                }
-            });
-        }
-    }
-
-    /**
      * Get the rules update callback.
      *
      * @param listener the listener
@@ -718,11 +530,23 @@ public class BingRulesManager {
         return new ApiCallback<Void>() {
             @Override
             public void onSuccess(Void info) {
-                forceRulesRefresh(null, listener);
+                if (listener != null) {
+                    try {
+                        listener.onBingRuleUpdateSuccess();
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## onBingRuleUpdateSuccess failed " + e.getMessage(), e);
+                    }
+                }
             }
 
             private void onError(String message) {
-                forceRulesRefresh(message, listener);
+                if (listener != null) {
+                    try {
+                        listener.onBingRuleUpdateFailure(message);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## onBingRuleUpdateFailure failed " + e.getMessage(), e);
+                    }
+                }
             }
 
             /**
@@ -759,7 +583,6 @@ public class BingRulesManager {
 
     /**
      * Update the rule enable status.
-     * The rules lits are refreshed when the listener is called.
      *
      * @param rule     the bing rule to toggle.
      * @param listener the rule update listener.
@@ -772,7 +595,6 @@ public class BingRulesManager {
 
     /**
      * Delete the rule.
-     * The rules lists are refreshed when the listener is called.
      *
      * @param rule     the rule to delete.
      * @param listener the rule update listener.
@@ -795,7 +617,6 @@ public class BingRulesManager {
 
     /**
      * Delete a rules list.
-     * The rules lists are refreshed when the listener is called.
      *
      * @param rules    the rules to delete
      * @param listener the listener when the rules are deleted
@@ -814,7 +635,9 @@ public class BingRulesManager {
     private void deleteRules(final List<BingRule> rules, final int index, final onBingRuleUpdateListener listener) {
         // sanity checks
         if ((null == rules) || (index >= rules.size())) {
-            onBingRulesUpdate();
+            // delete cached data
+            mRoomNotificationStateByRoomId.clear();
+
             if (null != listener) {
                 try {
                     listener.onBingRuleUpdateSuccess();
@@ -848,7 +671,6 @@ public class BingRulesManager {
 
     /**
      * Add a rule.
-     * The rules lists are refreshed when the listener is called.
      *
      * @param rule     the rule to delete.
      * @param listener the rule update listener.
@@ -871,7 +693,6 @@ public class BingRulesManager {
 
     /**
      * Update a bing rule.
-     * The rules list are updated when the callback is called.
      *
      * @param source   the source
      * @param target   the target
@@ -896,19 +717,29 @@ public class BingRulesManager {
                     updateRule(source, target, listener);
                 }
 
+                private void onError(String message) {
+                    if (listener != null) {
+                        try {
+                            listener.onBingRuleUpdateFailure(message);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "## updateRule : onBingRuleUpdateFailure failed " + e.getMessage(), e);
+                        }
+                    }
+                }
+
                 @Override
                 public void onNetworkError(Exception e) {
-                    forceRulesRefresh(e.getLocalizedMessage(), listener);
+                    onError(e.getLocalizedMessage());
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    forceRulesRefresh(e.getLocalizedMessage(), listener);
+                    onError(e.getLocalizedMessage());
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    forceRulesRefresh(e.getLocalizedMessage(), listener);
+                    onError(e.getLocalizedMessage());
                 }
             });
 
@@ -947,19 +778,29 @@ public class BingRulesManager {
                     updateRule(source, target, listener);
                 }
 
+                private void onError(String message) {
+                    if (listener != null) {
+                        try {
+                            listener.onBingRuleUpdateFailure(message);
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "## updateRule : onBingRuleUpdateFailure failed " + e.getMessage(), e);
+                        }
+                    }
+                }
+
                 @Override
                 public void onNetworkError(Exception e) {
-                    forceRulesRefresh(e.getLocalizedMessage(), listener);
+                    onError(e.getLocalizedMessage());
                 }
 
                 @Override
                 public void onMatrixError(MatrixError e) {
-                    forceRulesRefresh(e.getLocalizedMessage(), listener);
+                    onError(e.getLocalizedMessage());
                 }
 
                 @Override
                 public void onUnexpectedError(Exception e) {
-                    forceRulesRefresh(e.getLocalizedMessage(), listener);
+                    onError(e.getLocalizedMessage());
                 }
             });
 
@@ -967,7 +808,11 @@ public class BingRulesManager {
         }
 
         // the update succeeds
-        forceRulesRefresh(null, listener);
+        try {
+            listener.onBingRuleUpdateSuccess();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## updateRule : onBingRuleUpdateSuccess failed " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -1054,7 +899,13 @@ public class BingRulesManager {
             @Override
             public void onBingRuleUpdateSuccess() {
                 if (state == RoomNotificationState.ALL_MESSAGES) {
-                    forceRulesRefresh(null, listener);
+                    if (listener != null) {
+                        try {
+                            listener.onBingRuleUpdateSuccess();
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "## updateRoomNotificationState : onBingRuleUpdateSuccess failed " + e.getMessage(), e);
+                        }
+                    }
                 } else {
                     BingRule rule;
 
@@ -1077,7 +928,13 @@ public class BingRulesManager {
 
             @Override
             public void onBingRuleUpdateFailure(String errorMessage) {
-                listener.onBingRuleUpdateFailure(errorMessage);
+                if (listener != null) {
+                    try {
+                        listener.onBingRuleUpdateFailure(errorMessage);
+                    } catch (Exception e) {
+                        Log.e(LOG_TAG, "## updateRoomNotificationState : onBingRuleUpdateFailure failed " + e.getMessage(), e);
+                    }
+                }
             }
         });
     }

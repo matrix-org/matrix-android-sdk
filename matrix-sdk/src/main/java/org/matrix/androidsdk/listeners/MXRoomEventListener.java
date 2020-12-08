@@ -188,6 +188,15 @@ public class MXRoomEventListener extends MXEventListener {
     }
 
     @Override
+    public void onBingRulesUpdate() {
+        try {
+            mEventListener.onBingRulesUpdate();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "onBingRulesUpdate exception " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public void onTaggedEventsEvent(String roomId) {
         // Filter out events for other rooms
         if (TextUtils.equals(mRoomId, roomId)) {

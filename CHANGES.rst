@@ -5,13 +5,18 @@ Features:
  -
 
 Improvements:
- -
+ - MXWebRtcCall: improve the mIsSupported flag handling.
+ - Improve/Simplify the push rules handling.
 
 Bugfix:
  - Fix a crash when it checks user presence (related to matrix-org/synapse#7606).
 
 API Change:
- -
+ - MXDataHandler: refreshPushRules() has been removed - we trust the server sync response
+ - BingRulesManager: loadRules() has been removed - we trust the server sync response
+ - BingRulesManager: an update of the push rules is not forced anymore when a rule is deleted, added or updated.
+ We let the server sync handle this push rules update.
+ - BingRulesManager: the interface onBingRulesUpdateListener has been removed. Use MXEventListener instead.
 
 Translations:
  -
