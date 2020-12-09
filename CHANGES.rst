@@ -10,6 +10,8 @@ Improvements:
 
 Bugfix:
  - Fix a crash when it checks user presence (related to matrix-org/synapse#7606).
+ - Fix crashes related to RoomAccountData (flush the store if this isn't done yet to take into account the recent added eventsMap).
+ - Fix a crash: java.lang.NullPointerException: at org.matrix.androidsdk.data.RoomState.getMembersAsync
 
 API Change:
  - MXDataHandler: refreshPushRules() has been removed - we trust the server sync response

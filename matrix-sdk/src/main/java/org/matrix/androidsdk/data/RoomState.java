@@ -294,7 +294,7 @@ public class RoomState implements Externalizable, CryptoRoomState {
                 doTheRequest = mGetAllMembersCallbacks.size() == 1;
             }
 
-            if (doTheRequest) {
+            if (doTheRequest && getDataHandler() != null) {
                 // Load members from server
                 getDataHandler().getMembersAsync(roomId, new ApiCallback<List<RoomMember>>() {
                     @Override
