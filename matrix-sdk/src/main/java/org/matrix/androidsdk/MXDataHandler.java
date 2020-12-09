@@ -502,13 +502,6 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
     public void setPushRulesManager(BingRulesManager bingRulesManager) {
         if (isAlive()) {
             mBingRulesManager = bingRulesManager;
-
-            mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
-                @Override
-                public void onSuccess(Void info) {
-                    onBingRulesUpdate();
-                }
-            });
         }
     }
 
@@ -551,29 +544,24 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
     }
 
     /**
-     * @return the used push rules set.
+     * @return the push rules defined in the Account Data.
      */
     @Nullable
     public PushRuleSet pushRules() {
-        if (isAlive() && (null != mBingRulesManager)) {
-            return mBingRulesManager.pushRules();
-        }
-
-        return null;
-    }
-
-    /**
-     * Trigger a push rules refresh.
-     */
-    public void refreshPushRules() {
-        if (isAlive() && (null != mBingRulesManager)) {
-            mBingRulesManager.loadRules(new SimpleApiCallback<Void>() {
-                @Override
-                public void onSuccess(Void info) {
-                    onBingRulesUpdate();
+        if (isAlive() && mStore.isReady()) {
+            Log.i(LOG_TAG, "## pushRules() retrieve push rules from store");
+            AccountDataElement accountDataElement = mStore.getAccountDataElement(AccountDataElement.ACCOUNT_DATA_TYPE_PUSH_RULES);
+            if (null != accountDataElement) {
+                Gson gson = JsonUtils.getGson(false);
+                try {
+                    JsonElement element = gson.toJsonTree(accountDataElement.content);
+                    return gson.fromJson(element, PushRulesResponse.class).global;
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "## pushRules(), toJson failed " + e.getMessage(), e);
                 }
-            });
+            }
         }
+        return null;
     }
 
     /**
@@ -1038,13 +1026,19 @@ public class MXDataHandler implements CryptoDataHandler, DataHandlerInterface {
      * @param accountDataElement the account data element
      */
     private void managePushRulesUpdate(AccountDataElement accountDataElement) {
-        Gson gson = JsonUtils.getGson(false);
-
         // convert the data to PushRulesResponse
-        // because BingRulesManager supports only PushRulesResponse
-        JsonElement element = gson.toJsonTree(accountDataElement.content);
-        getBingRulesManager().buildRules(gson.fromJson(element, PushRulesResponse.class));
+        // and extract the global push rules from this response
+        Log.i(LOG_TAG, "## managePushRulesUpdate() manage push rules");
+        Gson gson = JsonUtils.getGson(false);
+        PushRuleSet globalPushRules = null;
+        try {
+            JsonElement element = gson.toJsonTree(accountDataElement.content);
+            globalPushRules = gson.fromJson(element, PushRulesResponse.class).global;
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "## managePushRulesUpdate, toJson failed " + e.getMessage(), e);
+        }
 
+        getBingRulesManager().buildRules(globalPushRules);
         // warn the client that the push rules have been updated
         onBingRulesUpdate();
     }

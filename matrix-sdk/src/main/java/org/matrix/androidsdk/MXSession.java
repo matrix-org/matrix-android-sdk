@@ -349,7 +349,7 @@ public class MXSession implements CryptoSession {
         mDataHandler.setNetworkConnectivityReceiver(mNetworkConnectivityReceiver);
         mContext.registerReceiver(mNetworkConnectivityReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
-        mBingRulesManager = new BingRulesManager(this, mNetworkConnectivityReceiver);
+        mBingRulesManager = new BingRulesManager(this);
         mDataHandler.setPushRulesManager(mBingRulesManager);
 
         mUnsentEventsManager = new UnsentEventsManager(mNetworkConnectivityReceiver, mDataHandler);
